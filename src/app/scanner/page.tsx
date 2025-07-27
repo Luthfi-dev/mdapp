@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { 
-  Camera, Copy, Trash2, Zap, ZapOff, SwitchCamera, HelpCircle, X, ClipboardCheck, Power, RotateCcw, QrCode, Barcode, ZoomIn, Loader2
+  Camera, Copy, Trash2, Zap, ZapOff, SwitchCamera, HelpCircle, X, Power, QrCode, Barcode, ZoomIn, Loader2
 } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
@@ -25,7 +25,6 @@ type ScanType = 'qr' | 'barcode' | 'all';
 
 export default function ScannerPage() {
   const [scannedHistory, setScannedHistory] = useState<ScannedItem[]>([]);
-  const [isScanning, setIsScanning] = useState(false);
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [facingMode, setFacingMode] = useState<'user' | 'environment'>('environment');
   const [isFlashOn, setIsFlashOn] = useState(false);
@@ -37,10 +36,9 @@ export default function ScannerPage() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const barcodeDetectorRef = useRef<any | null>(null);
-  const scanIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Load history from localStorage only on client-side mount
   useEffect(() => {
-    // Load history from localStorage only once on mount
     try {
       const storedHistory = localStorage.getItem('scannedHistory');
       if (storedHistory) {
@@ -51,7 +49,7 @@ export default function ScannerPage() {
       }
     } catch (e) {
       console.error("Failed to parse history from localStorage", e);
-      localStorage.removeItem('scannedHistory'); // Clear corrupted data
+      localStorage.removeItem('scannedHistory');
     }
 
     if ('BarcodeDetector' in window) {
@@ -73,17 +71,14 @@ export default function ScannerPage() {
     }
   };
 
-
   const stopCamera = useCallback(() => {
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(track => track.stop());
       streamRef.current = null;
+      if (videoRef.current) {
+        videoRef.current.srcObject = null;
+      }
     }
-    if(scanIntervalRef.current) {
-      clearInterval(scanIntervalRef.current);
-      scanIntervalRef.current = null;
-    }
-    setIsScanning(false);
   }, []);
 
   const startCamera = useCallback(async () => {
@@ -100,9 +95,12 @@ export default function ScannerPage() {
       streamRef.current = stream;
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
+        // The onloadedmetadata event is more reliable
+        videoRef.current.onloadedmetadata = () => {
+            videoRef.current?.play();
+        };
       }
       setHasPermission(true);
-      setIsScanning(true);
     } catch (err) {
       console.error("Camera permission error:", err);
       setHasPermission(false);
@@ -118,7 +116,6 @@ export default function ScannerPage() {
     startCamera();
     return () => stopCamera();
   }, [startCamera, stopCamera]);
-
 
   const handleScanResult = useCallback((result: string) => {
     if (result && !scannedHistory.some(item => item.data === result)) {
@@ -140,38 +137,37 @@ export default function ScannerPage() {
       }
     }
   }, [scannedHistory, isAutoScan, stopCamera, toast]);
-
+  
   const scanFrame = useCallback(async () => {
-    if (!isScanning || !videoRef.current || !canvasRef.current || !videoRef.current.videoWidth) return;
-
+    if (!videoRef.current || !canvasRef.current || videoRef.current.paused || videoRef.current.ended || videoRef.current.readyState < 3) {
+      requestAnimationFrame(scanFrame);
+      return;
+    }
+  
     const video = videoRef.current;
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d', { willReadFrequently: true });
     
-    if (!ctx || video.readyState !== video.HAVE_ENOUGH_DATA) {
-      requestAnimationFrame(scanFrame);
-      return;
+    if (!ctx) {
+        requestAnimationFrame(scanFrame);
+        return;
     }
-
+  
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
     
     let codeFound = false;
-
-    // QR Code Scanning with jsQR
+  
     if (!codeFound && (scanType === 'qr' || scanType === 'all')) {
-      const code = jsQR(imageData.data, imageData.width, imageData.height, {
-        inversionAttempts: "dontInvert",
-      });
-      if (code) {
+      const code = jsQR(imageData.data, imageData.width, imageData.height);
+      if (code && code.data) {
         handleScanResult(code.data);
         codeFound = true;
       }
     }
-
-    // Barcode Scanning with BarcodeDetector
+  
     if (!codeFound && (scanType === 'barcode' || scanType === 'all') && barcodeDetectorRef.current) {
       try {
         const barcodes = await barcodeDetectorRef.current.detect(imageData);
@@ -180,21 +176,26 @@ export default function ScannerPage() {
           codeFound = true;
         }
       } catch (e) {
-        // BarcodeDetector may fail if format is not supported
+        // BarcodeDetector may fail
       }
     }
     
     if (!codeFound || isAutoScan) {
       requestAnimationFrame(scanFrame);
     }
-  }, [isScanning, scanType, handleScanResult, isAutoScan]);
+  }, [scanType, handleScanResult, isAutoScan]);
   
   useEffect(() => {
-    if (isScanning && hasPermission) {
-        requestAnimationFrame(scanFrame);
+    let animationFrameId: number;
+    if (hasPermission) {
+        const runScan = () => {
+            scanFrame();
+            animationFrameId = requestAnimationFrame(runScan);
+        };
+        animationFrameId = requestAnimationFrame(runScan);
     }
-  }, [isScanning, hasPermission, scanFrame]);
-
+    return () => cancelAnimationFrame(animationFrameId);
+  }, [hasPermission, scanFrame]);
 
   const copyToClipboard = (text: string, singleItem: boolean = false) => {
     navigator.clipboard.writeText(text);
@@ -214,12 +215,12 @@ export default function ScannerPage() {
   
   const copyAll = () => {
     if (scannedHistory.length === 0) return;
-    const allData = scannedHistory.map(item => item.data).join(', ');
+    const allData = scannedHistory.map(item => item.data).join('\n');
     copyToClipboard(allData, false);
   }
 
   const toggleFacingMode = () => {
-    setIsFlashOn(false); // Turn off flash when switching camera
+    setIsFlashOn(false);
     setFacingMode(prev => (prev === 'user' ? 'environment' : 'user'));
   };
 
@@ -245,18 +246,22 @@ export default function ScannerPage() {
     if(streamRef.current) {
        const track = streamRef.current.getVideoTracks()[0];
        const capabilities = track.getCapabilities();
-       if ('zoom' in capabilities) {
+       if ('zoom' in capabilities && capabilities.zoom) {
           track.applyConstraints({ advanced: [{ zoom: value[0] }] });
        }
     }
   }
 
+  const handleScanTypeChange = (type: 'qr' | 'barcode') => {
+    setScanType(prev => (prev === type ? 'all' : type));
+  };
+  
   const renderScanner = () => {
     if (hasPermission === null) {
       return (
         <div className="flex flex-col items-center justify-center text-center p-4 text-white bg-gray-900 h-full">
           <Loader2 className="w-16 h-16 text-gray-400 mb-4 animate-spin" />
-          <h3 className="text-xl font-bold">Meminta Izin Kamera...</h3>
+          <h3 className="text-xl font-bold">Memulai Kamera...</h3>
         </div>
       );
     }
@@ -317,7 +322,7 @@ export default function ScannerPage() {
                       <p className="flex items-start gap-3"><Zap className="w-6 h-6 text-primary shrink-0 mt-0.5"/><span>Gunakan ikon **Flash** untuk menyalakan lampu senter perangkat dalam kondisi gelap agar pemindaian lebih mudah.</span></p>
                       <p className="flex items-start gap-3"><SwitchCamera className="w-6 h-6 text-primary shrink-0 mt-0.5"/><span>Gunakan ikon **Ganti Kamera** untuk beralih antara kamera depan dan belakang sesuai kebutuhan Anda.</span></p>
                       <p className="flex items-start gap-3"><Power className="w-6 h-6 text-primary shrink-0 mt-0.5"/><span>Aktifkan **'Auto Scan'** untuk memulai pemindaian baru secara otomatis setelah pemindaian sebelumnya berhasil. Sangat efisien untuk memindai banyak kode secara berurutan.</span></p>
-                      <p className="flex items-start gap-3"><Copy className="w-6 h-6 text-primary shrink-0 mt-0.5"/><span>Setiap hasil pindaian akan muncul di riwayat. Anda dapat **menyalin** satu per satu atau **menyalin semua** hasil sekaligus dengan pemisah koma.</span></p>
+                      <p className="flex items-start gap-3"><Copy className="w-6 h-6 text-primary shrink-0 mt-0.5"/><span>Setiap hasil pindaian akan muncul di riwayat. Anda dapat **menyalin** satu per satu atau **menyalin semua** hasil sekaligus dengan pemisah baris baru.</span></p>
                   </div>
                   <DialogClose asChild>
                       <Button type="button" variant="ghost" size="icon" className="absolute right-4 top-4 rounded-full h-8 w-8">
@@ -339,22 +344,19 @@ export default function ScannerPage() {
                 id="zoom-slider"
                 defaultValue={[1]} 
                 min={1} 
-                max={streamRef.current?.getVideoTracks()[0].getCapabilities().zoom?.max ?? 10} 
+                max={streamRef.current?.getVideoTracks()[0]?.getCapabilities()?.zoom?.max ?? 10} 
                 step={0.1} 
                 onValueChange={handleZoom}
-                disabled={!isScanning || hasPermission !== true}
+                disabled={hasPermission !== true}
               />
           </div>
           
           <div className="flex items-center justify-center gap-4">
-            <Button variant={scanType === 'barcode' ? "default" : "outline"} className="flex-1" onClick={() => setScanType('barcode')}>
+            <Button variant={scanType === 'barcode' ? "default" : "outline"} className="flex-1" onClick={() => handleScanTypeChange('barcode')}>
               <Barcode className="mr-2"/> Barcode
             </Button>
-            <Button variant={scanType === 'qr' ? "default" : "outline"} className="flex-1" onClick={() => setScanType('qr')}>
+            <Button variant={scanType === 'qr' ? "default" : "outline"} className="flex-1" onClick={() => handleScanTypeChange('qr')}>
               <QrCode className="mr-2"/> QR Code
-            </Button>
-            <Button variant={scanType === 'all' ? "default" : "outline"} onClick={() => setScanType('all')}>
-              All
             </Button>
           </div>
 
