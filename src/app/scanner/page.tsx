@@ -44,24 +44,25 @@ export default function ScannerPage() {
   const [isAutoScan, setIsAutoScan] = useState(true);
   
   const { toast } = useToast();
-  const videoRef = useRef<HTMLVideoElement | null>(null);
   const scannerRef = useRef<any>(null);
 
+  // Safely load from localStorage ONLY on the client side
   useEffect(() => {
-    const storedHistory = localStorage.getItem('scannedHistory');
-    if (storedHistory) {
-      try {
+    try {
+      const storedHistory = localStorage.getItem('scannedHistory');
+      if (storedHistory) {
         const parsed = JSON.parse(storedHistory);
         if (Array.isArray(parsed)) {
           setScannedHistory(parsed);
         }
-      } catch (e) {
-        console.error("Failed to parse history from localStorage", e);
-        setScannedHistory([]);
       }
+    } catch (e) {
+      console.error("Failed to parse history from localStorage", e);
+      setScannedHistory([]); // Reset to empty array on error
     }
   }, []);
 
+  // Save to localStorage whenever history changes
   useEffect(() => {
     localStorage.setItem('scannedHistory', JSON.stringify(scannedHistory));
   }, [scannedHistory]);
@@ -107,11 +108,17 @@ export default function ScannerPage() {
 
   const handleError = (error: any) => {
     console.error('QR Scanner Error:', error);
-    if (isScanning && hasPermission) {
+    if (hasPermission === false) {
+       toast({
+          variant: 'destructive',
+          title: 'Izin Kamera Diperlukan',
+          description: 'Harap berikan izin kamera di pengaturan browser.',
+        });
+    } else if (isScanning) {
         toast({
           variant: 'destructive',
           title: 'Gagal Memulai Kamera',
-          description: 'Pastikan izin kamera diberikan dan tidak digunakan aplikasi lain.',
+          description: 'Pastikan tidak digunakan aplikasi lain dan coba lagi.',
         });
         setIsScanning(false); 
     }
