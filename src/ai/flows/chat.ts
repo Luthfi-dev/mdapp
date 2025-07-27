@@ -21,7 +21,7 @@ export async function chat(history: ChatMessage[]): Promise<ChatMessage> {
 const prompt = ai.definePrompt({
   name: 'chatPrompt',
   input: { schema: ChatHistorySchema },
-  output: { schema: z.string() },
+  output: { schema: z.string().nullable() },
   prompt: `You are a friendly and helpful AI assistant named Maudigi.
 Your role is to assist users of the "All-in-One Toolkit" application.
 Be concise and helpful.
