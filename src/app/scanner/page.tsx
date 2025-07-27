@@ -13,7 +13,7 @@ import {
   Trash2, 
   Zap, 
   ZapOff, 
-  CameraReverse, 
+  SwitchCamera,
   HelpCircle,
   X,
   ClipboardCheck,
@@ -162,10 +162,8 @@ export default function ScannerPage() {
                         onScan={handleScanResult}
                         style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                         constraints={{ video: { facingMode } }}
-                        onLoad={(...args) => {
-                            // @ts-ignore
+                        onLoad={(...args: any[]) => {
                             if (args[0]?.target) {
-                                // @ts-ignore
                                 videoRef.current = args[0].target;
                             }
                         }}
@@ -177,7 +175,7 @@ export default function ScannerPage() {
                                     {isFlashOn ? <ZapOff /> : <Zap />}
                                 </Button>
                                 <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full text-white hover:bg-white/20 hover:text-white" onClick={toggleFacingMode}>
-                                    <CameraReverse />
+                                    <SwitchCamera />
                                 </Button>
                             </div>
                              <Dialog>
@@ -193,7 +191,7 @@ export default function ScannerPage() {
                                     <div className="space-y-4 text-sm text-muted-foreground pt-2">
                                         <p className="flex items-start gap-3"><Camera className="w-5 h-5 text-primary shrink-0 mt-0.5"/> <span>Point your camera at a QR or Barcode. The scan will happen automatically.</span></p>
                                         <p className="flex items-start gap-3"><Zap className="w-5 h-5 text-primary shrink-0 mt-0.5"/><span>Use the flash icon to toggle your device's flashlight in dark conditions.</span></p>
-                                        <p className="flex items-start gap-3"><CameraReverse className="w-5 h-5 text-primary shrink-0 mt-0.5"/><span>Use the camera switch icon to flip between front and rear cameras.</span></p>
+                                        <p className="flex items-start gap-3"><SwitchCamera className="w-5 h-5 text-primary shrink-0 mt-0.5"/><span>Use the camera switch icon to flip between front and rear cameras.</span></p>
                                         <p className="flex items-start gap-3"><Power className="w-5 h-5 text-primary shrink-0 mt-0.5"/><span>Enable 'Auto Scan' to automatically start a new scan 2 seconds after a successful one.</span></p>
                                     </div>
                                     <DialogClose asChild>
