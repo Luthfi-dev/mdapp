@@ -92,17 +92,17 @@ export default function HomePage() {
             onMouseLeave={plugin.current.reset}
           >
             <CarouselContent>
-              <CarouselItem className="basis-4/5 md:basis-1/2 pl-8">
+              <CarouselItem className="basis-4/5 md:basis-1/2 pl-6">
                 <div className="p-1 h-36">
                   <DailyQuizCard />
                 </div>
               </CarouselItem>
-              <CarouselItem className="basis-4/5 md:basis-1/2 pl-8">
+              <CarouselItem className="basis-4/5 md:basis-1/2 pl-6">
                 <div className="p-1 h-36">
                  <LatihanSoalCard />
                 </div>
               </CarouselItem>
-               <CarouselItem className="basis-4/5 md:basis-1/2 pl-8">
+               <CarouselItem className="basis-4/5 md:basis-1/2 pl-6">
                 <div className="p-1 h-36">
                   <DailyQuizCard />
                 </div>
