@@ -2,7 +2,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
-import { ArrowRight, BookOpen, BrainCircuit, Edit, FileText, Grid3x3, Lightbulb, Moon, Search } from "lucide-react";
+import { ArrowRight, BrainCircuit, Edit, FileText, Grid3x3, Moon, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import Autoplay from "embla-carousel-autoplay"
 import React from "react";
@@ -75,7 +75,7 @@ export default function HomePage() {
       <main className="-mt-10 z-10">
         <div className="px-6">
             <section id="features" className="mb-8">
-                <div className="flex justify-around items-start bg-card p-4 rounded-2xl shadow-md">
+                <div className="flex justify-center items-start bg-card p-2 rounded-2xl shadow-md gap-2">
                     <CategoryCard href="/converter" icon={<FileText className="text-primary" />} label="Konversi File" />
                     <CategoryCard href="/scanner" icon={<ScanLine className="text-primary" />} label="Scanner" />
                     <CategoryCard href="/apps" icon={<Grid3x3 className="text-primary" />} label="Semua App" />
@@ -94,18 +94,18 @@ export default function HomePage() {
             onMouseEnter={plugin.current.stop}
             onMouseLeave={plugin.current.reset}
           >
-            <CarouselContent className="-ml-2">
-              <CarouselItem className="basis-4/5 md:basis-1/2 pl-6">
+            <CarouselContent className="-ml-4">
+              <CarouselItem className="basis-4/5 md:basis-1/2 pl-6 pr-2">
                 <div className="p-1 h-36">
                   <DailyQuizCard />
                 </div>
               </CarouselItem>
-              <CarouselItem className="basis-4/5 md:basis-1/2 pl-4">
+              <CarouselItem className="basis-4/5 md:basis-1/2 px-2">
                 <div className="p-1 h-36">
                  <LatihanSoalCard />
                 </div>
               </CarouselItem>
-               <CarouselItem className="basis-4/5 md:basis-1/2 pl-4">
+               <CarouselItem className="basis-4/5 md:basis-1/2 pl-2 pr-6">
                 <div className="p-1 h-36">
                   <DailyQuizCard />
                 </div>
