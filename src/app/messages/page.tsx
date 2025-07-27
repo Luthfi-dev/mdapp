@@ -1,3 +1,4 @@
+
 'use client';
 import { useState, useRef, useEffect, FormEvent } from "react";
 import { Button } from "@/components/ui/button";
@@ -54,8 +55,8 @@ export default function MessagesPage() {
     };
 
     return (
-        <div className="flex flex-col h-full bg-background">
-             <CardHeader className="flex flex-row items-center gap-3 border-b sticky top-0 bg-background z-10">
+        <div className="flex flex-col h-[calc(100vh-80px)] bg-background">
+             <CardHeader className="flex flex-row items-center gap-3 border-b bg-background z-10 shrink-0">
                  <Avatar>
                     <AvatarFallback className="bg-primary text-primary-foreground"><Bot /></AvatarFallback>
                 </Avatar>
@@ -64,9 +65,9 @@ export default function MessagesPage() {
                     <p className="text-sm text-muted-foreground">Online</p>
                 </div>
             </CardHeader>
-            <div className="flex-grow flex flex-col">
+            <div className="flex-grow flex flex-col overflow-hidden">
                 <ScrollArea className="flex-grow" viewportRef={viewportRef}>
-                    <div className="space-y-6 p-4 pb-24">
+                    <div className="space-y-6 p-4">
                         {messages.map((message, index) => (
                             <div key={index} className={cn("flex items-end gap-2", message.role === 'user' ? "justify-end" : "justify-start")}>
                                 {message.role === 'model' && (
@@ -101,7 +102,7 @@ export default function MessagesPage() {
                         )}
                     </div>
                 </ScrollArea>
-                <CardFooter className="p-4 border-t sticky bottom-20 bg-background">
+                <CardFooter className="p-4 border-t bg-background shrink-0">
                     <form onSubmit={handleSubmit} className="flex w-full items-center gap-2">
                         <Input
                             value={input}
