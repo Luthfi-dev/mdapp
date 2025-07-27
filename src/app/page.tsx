@@ -2,18 +2,19 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
-import { ArrowRight, BookOpen, BrainCircuit, Edit, FileText, Lightbulb, Moon, Search } from "lucide-react";
+import { ArrowRight, BookOpen, BrainCircuit, Edit, FileText, Grid3x3, Lightbulb, Moon, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import Autoplay from "embla-carousel-autoplay"
 import React from "react";
+import Link from "next/link";
 
 const CategoryCard = ({ icon, label, href }: { icon: React.ReactNode, label: string, href: string }) => (
-  <a href={href} className="flex flex-col items-center gap-2 flex-shrink-0 w-20 text-center">
-    <div className={`w-16 h-16 rounded-2xl flex items-center justify-center bg-primary/10`}>
+  <Link href={href} className="flex flex-col items-center gap-2 flex-shrink-0 w-20 text-center">
+    <div className={`w-16 h-16 rounded-2xl flex items-center justify-center bg-white shadow-md`}>
       {icon}
     </div>
     <span className="text-xs font-medium text-foreground leading-tight">{label}</span>
-  </a>
+  </Link>
 )
 
 const DailyQuizCard = () => (
@@ -46,37 +47,37 @@ const LatihanSoalCard = () => (
 
 export default function HomePage() {
    const plugin = React.useRef(
-    Autoplay({ delay: 2000, stopOnInteraction: true, stopOnMouseEnter: true })
+    Autoplay({ delay: 3000, stopOnInteraction: true, stopOnMouseEnter: true })
   )
   return (
     <div className="flex flex-col h-full bg-background overflow-x-hidden">
-      <header className="p-6 pb-8">
+       <header className="bg-primary text-primary-foreground p-6 pb-16 rounded-b-[40px] shadow-lg">
         <div className="flex justify-between items-center mb-6">
             <div className="flex flex-col">
-                <p className="text-muted-foreground text-sm">Selamat Datang!</p>
-                <h1 className="text-2xl font-bold text-foreground">John Doe</h1>
+                <p className="opacity-80 text-sm">Selamat Datang!</p>
+                <h1 className="text-2xl font-bold">John Doe</h1>
             </div>
             <Button variant="ghost" size="icon" className="rounded-full">
-              <Moon className="h-5 w-5 text-muted-foreground" />
+              <Moon className="h-5 w-5" />
             </Button>
         </div>
          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-primary-foreground/60" />
             <Input
               type="search"
               placeholder="Cari kursus atau materi..."
-              className="w-full rounded-full bg-secondary pl-10 pr-4 py-2 h-12 border-0 focus-visible:ring-2 focus-visible:ring-primary"
+              className="w-full rounded-full bg-primary/80 text-primary-foreground placeholder:text-primary-foreground/60 pl-11 pr-4 py-2 h-12 border-0 focus-visible:ring-2 focus-visible:ring-primary-foreground"
             />
         </div>
       </header>
 
-      <main className="flex-grow px-6 pb-28">
+      <main className="flex-grow px-6 pb-28 -mt-10 z-10">
         <section id="features" className="mb-8">
-            <div className="flex justify-around items-start">
+            <div className="flex justify-around items-start bg-card p-4 rounded-2xl shadow-md">
                 <CategoryCard href="/converter" icon={<FileText className="text-primary" />} label="Konversi File" />
                 <CategoryCard href="/unit-converter" icon={<BookOpen className="text-primary" />} label="Konversi Unit" />
                 <CategoryCard href="/scanner" icon={<Edit className="text-primary" />} label="Scanner" />
-                <CategoryCard href="#" icon={<Lightbulb className="text-primary" />} label="Fitur Lain" />
+                <CategoryCard href="/apps" icon={<Grid3x3 className="text-primary" />} label="Semua App" />
             </div>
         </section>
 
@@ -117,7 +118,7 @@ export default function HomePage() {
                 <a href="#" className="text-sm text-primary font-semibold">Lihat Semua</a>
             </div>
             <div className="space-y-4">
-                 <Card className="shadow-sm border-0 bg-secondary">
+                 <Card className="shadow-sm border-0 bg-card">
                     <CardContent className="p-4 flex gap-4 items-center">
                         <img data-ai-hint="education learning" src="https://placehold.co/100x100.png" alt="Edukasi" className="w-20 h-20 rounded-lg object-cover" />
                         <div className="flex-1">
@@ -129,7 +130,7 @@ export default function HomePage() {
                         </Button>
                     </CardContent>
                 </Card>
-                 <Card className="shadow-sm border-0 bg-secondary">
+                 <Card className="shadow-sm border-0 bg-card">
                     <CardContent className="p-4 flex gap-4 items-center">
                         <img data-ai-hint="technology education" src="https://placehold.co/100x100.png" alt="Teknologi" className="w-20 h-20 rounded-lg object-cover" />
                         <div className="flex-1">

@@ -17,19 +17,22 @@ const BottomNavBar = () => {
   const pathname = usePathname();
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 h-24 bg-transparent z-50 px-4">
-      <div className="relative flex justify-around items-center h-full max-w-md mx-auto bg-card shadow-[0_8px_32px_0_rgba(0,0,0,0.1)] rounded-2xl border">
+    <div className="fixed bottom-0 left-0 right-0 h-20 bg-card z-50 shadow-[0_-8px_32px_0_rgba(0,0,0,0.05)] border-t">
+      <div className="flex justify-around items-center h-full">
           {navItems.map(({ href, label, icon: Icon }) => {
              const isActive = (pathname === '/' && href === '/') || (pathname.startsWith(href) && href !== '/');
 
             return (
-              <Link key={label} href={href} className="flex flex-col items-center justify-center w-16 h-16 rounded-2xl transition-colors duration-300">
-                  <div className={cn("flex flex-col items-center gap-1 text-center w-full transition-all duration-300", isActive ? 'text-primary' : 'text-muted-foreground hover:text-foreground')}>
-                    <div className={cn("w-8 h-1 rounded-full", isActive ? 'bg-primary' : 'bg-transparent -translate-y-2 opacity-0')} />
+              <Link key={label} href={href} className="flex flex-col items-center justify-center w-full h-full transition-colors duration-300">
+                  <div className={cn("flex flex-col items-center gap-1 text-center w-full transition-all duration-300 relative pt-2", isActive ? 'text-primary' : 'text-muted-foreground hover:text-foreground')}>
                     <Icon className={cn("h-6 w-6 transition-all", isActive ? '-translate-y-1' : '')} />
                     <span className={cn("text-xs font-medium transition-all", isActive ? 'font-bold' : '')}>
                       {label}
                     </span>
+                     <div className={cn(
+                        "w-8 h-1 rounded-full absolute -top-1 transition-all duration-300", 
+                        isActive ? 'bg-primary scale-x-100' : 'scale-x-0'
+                      )} />
                   </div>
               </Link>
             );
@@ -40,5 +43,3 @@ const BottomNavBar = () => {
 };
 
 export default BottomNavBar;
-
-    
