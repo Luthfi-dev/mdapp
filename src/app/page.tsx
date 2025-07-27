@@ -72,21 +72,21 @@ export default function HomePage() {
         </div>
       </header>
 
-      <main className="-mt-10 z-10">
+      <main className="flex-1 flex flex-col">
         <div className="px-6">
-            <section id="features" className="mb-8">
-                <div className="flex justify-center items-start bg-card p-2 rounded-2xl shadow-md gap-2">
-                    <CategoryCard href="/converter" icon={<FileText className="text-primary" />} label="Konversi File" />
-                    <CategoryCard href="/scanner" icon={<ScanLine className="text-primary" />} label="Scanner" />
-                    <CategoryCard href="/apps" icon={<Grid3x3 className="text-primary" />} label="Semua App" />
-                </div>
-            </section>
+          <section id="features" className="mb-8 -mt-10 z-10">
+              <div className="flex justify-center items-start bg-card p-2 rounded-2xl shadow-md gap-2">
+                  <CategoryCard href="/converter" icon={<FileText className="text-primary" />} label="Konversi File" />
+                  <CategoryCard href="/scanner" icon={<ScanLine className="text-primary" />} label="Scanner" />
+                  <CategoryCard href="/apps" icon={<Grid3x3 className="text-primary" />} label="Semua App" />
+              </div>
+          </section>
         </div>
 
-        <section id="interactive-cards" className="mb-8">
+        <section id="interactive-cards" className="mb-8 w-full">
           <Carousel
             opts={{
-              align: "start",
+              align: "center",
               loop: true,
             }}
             plugins={[plugin.current]}
@@ -114,38 +114,40 @@ export default function HomePage() {
           </Carousel>
         </section>
         
-        <section id="insights" className="px-6 pb-28">
-            <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-bold flex items-center gap-2">Wawasan Edukasi</h2>
-                <a href="#" className="text-sm text-primary font-semibold">Lihat Semua</a>
-            </div>
-            <div className="space-y-4">
-                 <Card className="shadow-sm border-0 bg-card">
-                    <CardContent className="p-4 flex gap-4 items-center">
-                        <img data-ai-hint="education learning" src="https://placehold.co/100x100.png" alt="Edukasi" className="w-20 h-20 rounded-lg object-cover" />
-                        <div className="flex-1">
-                            <h3 className="font-bold leading-tight">Tips Belajar Efektif di Era Digital</h3>
-                            <p className="text-sm text-muted-foreground mt-1">Maksimalkan waktumu dengan metode yang terbukti.</p>
-                        </div>
-                        <Button variant="ghost" size="icon" className="rounded-full shrink-0">
-                            <ArrowRight className="w-4 h-4 text-muted-foreground"/>
-                        </Button>
-                    </CardContent>
-                </Card>
-                 <Card className="shadow-sm border-0 bg-card">
-                    <CardContent className="p-4 flex gap-4 items-center">
-                        <img data-ai-hint="technology education" src="https://placehold.co/100x100.png" alt="Teknologi" className="w-20 h-20 rounded-lg object-cover" />
-                        <div className="flex-1">
-                            <h3 className="font-bold leading-tight">Teknologi dalam Pendidikan</h3>
-                            <p className="text-sm text-muted-foreground mt-1">Peran AI dan teknologi dalam proses belajar.</p>
-                        </div>
-                        <Button variant="ghost" size="icon" className="rounded-full shrink-0">
-                            <ArrowRight className="w-4 h-4 text-muted-foreground"/>
-                        </Button>
-                    </CardContent>
-                </Card>
-            </div>
-        </section>
+        <div className="px-6">
+          <section id="insights" className="pb-28">
+              <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-xl font-bold flex items-center gap-2">Wawasan Edukasi</h2>
+                  <a href="#" className="text-sm text-primary font-semibold">Lihat Semua</a>
+              </div>
+              <div className="space-y-4">
+                   <Card className="shadow-sm border-0 bg-card">
+                      <CardContent className="p-4 flex gap-4 items-center">
+                          <img data-ai-hint="education learning" src="https://placehold.co/100x100.png" alt="Edukasi" className="w-20 h-20 rounded-lg object-cover" />
+                          <div className="flex-1">
+                              <h3 className="font-bold leading-tight">Tips Belajar Efektif di Era Digital</h3>
+                              <p className="text-sm text-muted-foreground mt-1">Maksimalkan waktumu dengan metode yang terbukti.</p>
+                          </div>
+                          <Button variant="ghost" size="icon" className="rounded-full shrink-0">
+                              <ArrowRight className="w-4 h-4 text-muted-foreground"/>
+                          </Button>
+                      </CardContent>
+                  </Card>
+                   <Card className="shadow-sm border-0 bg-card">
+                      <CardContent className="p-4 flex gap-4 items-center">
+                          <img data-ai-hint="technology education" src="https://placehold.co/100x100.png" alt="Teknologi" className="w-20 h-20 rounded-lg object-cover" />
+                          <div className="flex-1">
+                              <h3 className="font-bold leading-tight">Teknologi dalam Pendidikan</h3>
+                              <p className="text-sm text-muted-foreground mt-1">Peran AI dan teknologi dalam proses belajar.</p>
+                          </div>
+                          <Button variant="ghost" size="icon" className="rounded-full shrink-0">
+                              <ArrowRight className="w-4 h-4 text-muted-foreground"/>
+                          </Button>
+                      </CardContent>
+                  </Card>
+              </div>
+          </section>
+        </div>
       </main>
     </div>
   );
