@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -53,7 +54,7 @@ export default function ExplorePage() {
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 pb-24">
               {filteredApps.map((app) => (
                 <ToolCard
-                  key={app.href}
+                  key={app.title}
                   href={app.href}
                   icon={<app.icon className="w-10 h-10 text-primary" />}
                   title={app.title}
