@@ -184,10 +184,9 @@ export default function ScannerPage() {
     
     let codeFound = false;
   
-    // Logic to prevent duplicate scans within cooldown
     const isAlreadyScanned = (data: string) => scannedHistory.some(item => item.data === data);
 
-    if (!codeFound && (scanType === 'qr' || scanType === 'all')) {
+    if (scanType === 'qr' || scanType === 'all') {
       const code = jsQR(imageData.data, imageData.width, imageData.height);
       if (code && code.data && !isAlreadyScanned(code.data)) {
         handleScanResult(code.data);
@@ -212,14 +211,19 @@ export default function ScannerPage() {
   
   useEffect(() => {
     let animationFrameId: number;
-    if (isCameraActive) {
+    if (isCameraActive && !isCooldown) {
         const runScan = () => {
             scanFrame();
         };
         animationFrameId = requestAnimationFrame(runScan);
     }
-    return () => cancelAnimationFrame(animationFrameId);
-  }, [isCameraActive, scanFrame]);
+    return () => {
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+      }
+    };
+  }, [isCameraActive, scanFrame, isCooldown]);
+
 
   const copyToClipboard = (text: string, singleItem: boolean = false) => {
     navigator.clipboard.writeText(text);
@@ -288,20 +292,7 @@ export default function ScannerPage() {
   }
 
   const handleScanTypeChange = (type: 'qr' | 'barcode') => {
-    setScanType(prev => {
-        const newType = prev === type ? 'all' : type;
-        if(barcodeDetectorRef.current?.formats) {
-            if (newType === 'qr') {
-              // Only allow QR code scanning with jsQR
-            } else if(newType === 'barcode') {
-              barcodeDetectorRef.current.formats = ['code_128', 'ean_13', 'upc_a'];
-            }
-            else { 
-              barcodeDetectorRef.current.formats = ['qr_code', 'code_128', 'ean_13', 'upc_a'];
-            }
-        }
-        return newType;
-    });
+    setScanType(prev => (prev === type ? 'all' : type));
   };
   
   const renderScanner = () => {
@@ -459,5 +450,3 @@ export default function ScannerPage() {
     </div>
   );
 }
-
-    
