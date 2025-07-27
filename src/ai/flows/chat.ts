@@ -38,13 +38,12 @@ const chatFlow = ai.defineFlow(
     }));
 
     // The last message is the prompt, the rest is history.
-    const lastMessage = modelHistory[modelHistory.length - 1];
-    const conversationHistory = modelHistory.slice(0, -1);
+    const lastMessage = modelHistory.pop(); // Use pop to get and remove the last message
 
-    const { output } = await ai.generate({
+    const response = await ai.generate({
       model: 'googleai/gemini-2.0-flash',
-      history: conversationHistory,
-      prompt: lastMessage.parts[0].text,
+      history: modelHistory,
+      prompt: lastMessage?.parts[0].text ?? '',
       config: {
         safetySettings: [
             { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_ONLY_HIGH' },
@@ -55,7 +54,7 @@ const chatFlow = ai.defineFlow(
       },
     });
     
-    const textResponse = output ?? "Maaf, saya tidak bisa merespon saat ini. Coba lagi nanti.";
+    const textResponse = response.text ?? "Maaf, saya tidak bisa merespon saat ini. Coba lagi nanti.";
 
     return {
       role: 'model',
