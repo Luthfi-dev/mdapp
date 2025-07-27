@@ -1,163 +1,92 @@
+
 'use client';
 
-import { useState } from 'react';
-import { Button } from '@/components/ui/button';
+import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useToast } from '@/hooks/use-toast';
-import { convertFile, type ConvertFileInput } from '@/ai/flows/file-converter';
-import { Download, Loader2, UploadCloud } from 'lucide-react';
+import { 
+  FileText, 
+  FileCode2, 
+  FileImage, 
+  ArrowRightLeft, 
+  FileJson,
+  FileUp,
+  type LucideIcon 
+} from 'lucide-react';
+import { ReactNode } from 'react';
 
-type SupportedFormats = 'pdf' | 'docx' | 'png' | 'jpg' | 'txt' | 'md';
+interface ConversionOption {
+  title: string;
+  description: string;
+  href: string;
+  icon: ReactNode;
+}
 
-export default function FileConverterPage() {
-  const [file, setFile] = useState<File | null>(null);
-  const [targetFormat, setTargetFormat] = useState<SupportedFormats>('pdf');
-  const [isConverting, setIsConverting] = useState(false);
-  const [convertedFileUrl, setConvertedFileUrl] = useState<string | null>(null);
-  const { toast } = useToast();
+const conversionOptions: ConversionOption[] = [
+  {
+    title: 'PDF ke Word',
+    description: 'Ubah file PDF menjadi dokumen Word yang dapat diedit.',
+    href: '/converter/pdf-to-word',
+    icon: (
+      <div className="flex items-center gap-2">
+        <FileText className="w-8 h-8 text-red-600" />
+        <ArrowRightLeft className="w-5 h-5 text-muted-foreground" />
+        <FileCode2 className="w-8 h-8 text-blue-600" />
+      </div>
+    ),
+  },
+  {
+    title: 'Word ke PDF',
+    description: 'Konversi dokumen Word Anda menjadi file PDF universal.',
+    href: '/converter/word-to-pdf',
+    icon: (
+       <div className="flex items-center gap-2">
+        <FileCode2 className="w-8 h-8 text-blue-600" />
+        <ArrowRightLeft className="w-5 h-5 text-muted-foreground" />
+        <FileText className="w-8 h-8 text-red-600" />
+      </div>
+    ),
+  },
+   {
+    title: 'Gambar ke PDF',
+    description: 'Gabungkan satu atau lebih gambar menjadi satu file PDF.',
+    href: '/converter/image-to-pdf',
+    icon: (
+       <div className="flex items-center gap-2">
+        <FileImage className="w-8 h-8 text-green-600" />
+        <ArrowRightLeft className="w-5 h-5 text-muted-foreground" />
+        <FileText className="w-8 h-8 text-red-600" />
+      </div>
+    ),
+  },
+];
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFile = e.target.files?.[0];
-    if (selectedFile) {
-      setFile(selectedFile);
-      setConvertedFileUrl(null);
-    }
-  };
-
-  const fileToDataUri = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
-  };
-
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (!file) {
-      toast({
-        variant: 'destructive',
-        title: 'No file selected',
-        description: 'Please select a file to convert.',
-      });
-      return;
-    }
-
-    setIsConverting(true);
-    setConvertedFileUrl(null);
-
-    try {
-      const fileDataUri = await fileToDataUri(file);
-      const input: ConvertFileInput = { fileDataUri, targetFormat };
-      
-      const result = await convertFile(input);
-
-      if (result.convertedFileDataUri) {
-        setConvertedFileUrl(result.convertedFileDataUri);
-        toast({
-          title: 'Conversion Successful',
-          description: `Your file has been converted to ${targetFormat}.`,
-        });
-      } else {
-        throw new Error('Conversion failed: No file data returned.');
-      }
-    } catch (error) {
-      console.error(error);
-      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
-      toast({
-        variant: 'destructive',
-        title: 'Conversion Error',
-        description: errorMessage,
-      });
-    } finally {
-      setIsConverting(false);
-    }
-  };
-  
-  const getFileExtension = (filename: string) => {
-    return filename.slice(((filename.lastIndexOf(".") - 1) >>> 0) + 2);
-  }
-
-  const getTargetFilename = () => {
-    if (!file) return `converted.${targetFormat}`;
-    const originalName = file.name.substring(0, file.name.lastIndexOf('.'));
-    return `${originalName}.${targetFormat}`;
-  }
-
-
+export default function FileConverterHomePage() {
   return (
     <div className="container mx-auto px-4 py-8">
-      <Card className="max-w-2xl mx-auto">
-        <CardHeader>
-          <CardTitle className="text-2xl font-headline">AI File Converter</CardTitle>
-          <CardDescription>Select a file and choose the format you want to convert it to.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="space-y-2">
-              <Label htmlFor="file-upload">Upload File</Label>
-              <div className="flex items-center justify-center w-full">
-                <label
-                  htmlFor="file-upload"
-                  className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer bg-card hover:bg-secondary transition-colors"
-                >
-                  <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                    <UploadCloud className="w-10 h-10 mb-3 text-muted-foreground" />
-                    <p className="mb-2 text-sm text-muted-foreground">
-                      {file ? file.name : <><span className="font-semibold">Click to upload</span> or drag and drop</>}
-                    </p>
-                  </div>
-                  <Input id="file-upload" type="file" className="hidden" onChange={handleFileChange} />
-                </label>
-              </div>
-            </div>
+      <div className="max-w-4xl mx-auto">
+        <div className="text-center mb-12">
+          <h1 className="text-4xl font-bold font-headline tracking-tight">Konversi File</h1>
+          <p className="text-muted-foreground mt-2 text-lg">
+            Alat konversi online yang cepat dan andal untuk semua kebutuhan dokumen Anda.
+          </p>
+        </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="target-format">Target Format</Label>
-              <Select onValueChange={(value: SupportedFormats) => setTargetFormat(value)} defaultValue={targetFormat}>
-                <SelectTrigger id="target-format">
-                  <SelectValue placeholder="Select a format" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="pdf">PDF</SelectItem>
-                  <SelectItem value="docx">DOCX</SelectItem>
-                  <SelectItem value="png">PNG</SelectItem>
-                  <SelectItem value="jpg">JPG</SelectItem>
-                  <SelectItem value="txt">TXT</SelectItem>
-                  <SelectItem value="md">Markdown (MD)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <Button type="submit" className="w-full" disabled={isConverting || !file}>
-              {isConverting ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Converting...
-                </>
-              ) : (
-                'Convert File'
-              )}
-            </Button>
-          </form>
-
-          {convertedFileUrl && (
-            <div className="mt-6 text-center">
-              <p className="text-lg font-medium text-primary mb-4">Your file is ready!</p>
-              <Button asChild>
-                <a href={convertedFileUrl} download={getTargetFilename()}>
-                  <Download className="mr-2 h-4 w-4" />
-                  Download Converted File
-                </a>
-              </Button>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {conversionOptions.map((option) => (
+            <Link href={option.href} key={option.title} className="group">
+              <Card className="h-full transition-all duration-300 ease-in-out group-hover:shadow-xl group-hover:border-primary group-hover:-translate-y-1.5">
+                <CardHeader>
+                  <div className="flex justify-center mb-4">{option.icon}</div>
+                  <CardTitle className="text-center">{option.title}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-muted-foreground text-center">{option.description}</p>
+                </CardContent>
+              </Card>
+            </Link>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
