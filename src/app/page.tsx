@@ -1,9 +1,11 @@
 'use client';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
 import { ArrowRight, BookOpen, BrainCircuit, Edit, FileText, Lightbulb, Moon, Search } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import Autoplay from "embla-carousel-autoplay"
+import React from "react";
 
 const CategoryCard = ({ icon, label, href }: { icon: React.ReactNode, label: string, href: string }) => (
   <a href={href} className="flex flex-col items-center gap-2 flex-shrink-0 w-20 text-center">
@@ -15,40 +17,37 @@ const CategoryCard = ({ icon, label, href }: { icon: React.ReactNode, label: str
 )
 
 const DailyQuizCard = () => (
-    <Card className="w-full bg-gradient-to-br from-primary to-purple-600 text-white shadow-lg rounded-2xl overflow-hidden">
-        <CardContent className="p-5 flex flex-col justify-between h-full">
-            <div>
-                <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center mb-3">
-                     <BrainCircuit className="text-white w-6 h-6"/>
-                </div>
+    <Card className="w-full h-full bg-gradient-to-br from-pink-500 to-purple-600 text-white shadow-lg rounded-2xl overflow-hidden">
+        <CardContent className="p-5 flex flex-col justify-between h-full relative">
+            <div className="z-10">
                 <h3 className="text-lg font-bold">Kuis Harian</h3>
-                <p className="text-sm opacity-90 mt-1">Asah kemampuanmu dengan kuis interaktif setiap hari.</p>
+                <p className="text-sm opacity-90 mt-1 max-w-[150px]">Asah kemampuanmu dengan kuis interaktif</p>
             </div>
-            <Button size="sm" className="mt-4 bg-white/90 text-primary hover:bg-white w-full justify-between">
-                Mulai Kuis <ArrowRight className="w-4 h-4" />
-            </Button>
+            <div className="absolute bottom-4 right-4 w-16 h-16 rounded-full bg-white/20 flex items-center justify-center z-0">
+                 <BrainCircuit className="text-white w-8 h-8"/>
+            </div>
         </CardContent>
     </Card>
 );
 
 const LatihanSoalCard = () => (
-    <Card className="w-full bg-gradient-to-br from-cyan-500 to-blue-600 text-white shadow-lg rounded-2xl overflow-hidden">
-        <CardContent className="p-5 flex flex-col justify-between h-full">
-             <div>
-                <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center mb-3">
-                     <Edit className="text-white w-6 h-6"/>
-                </div>
+    <Card className="w-full h-full bg-gradient-to-br from-cyan-500 to-blue-600 text-white shadow-lg rounded-2xl overflow-hidden">
+        <CardContent className="p-5 flex flex-col justify-between h-full relative">
+             <div className="z-10">
                 <h3 className="text-lg font-bold">Latihan Soal</h3>
-                <p className="text-sm opacity-90 mt-1">Perbanyak latihan untuk persiapan ujian.</p>
+                <p className="text-sm opacity-90 mt-1 max-w-[150px]">Perbanyak latihan untuk persiapan ujian.</p>
             </div>
-             <Button size="sm" className="mt-4 bg-white/90 text-cyan-600 hover:bg-white w-full justify-between">
-                Mulai Latihan <ArrowRight className="w-4 h-4" />
-            </Button>
+             <div className="absolute bottom-4 right-4 w-16 h-16 rounded-full bg-white/20 flex items-center justify-center z-0">
+                 <Edit className="text-white w-8 h-8"/>
+            </div>
         </CardContent>
     </Card>
 )
 
 export default function HomePage() {
+   const plugin = React.useRef(
+    Autoplay({ delay: 2000, stopOnInteraction: true, stopOnMouseEnter: true })
+  )
   return (
     <div className="flex flex-col h-full bg-background">
       <header className="p-6 pb-8">
@@ -84,24 +83,27 @@ export default function HomePage() {
         <section id="interactive-cards" className="mb-8 -mx-6">
           <Carousel
             opts={{
-              align: "start",
+              align: "center",
               loop: true,
             }}
+            plugins={[plugin.current]}
             className="w-full"
+            onMouseEnter={plugin.current.stop}
+            onMouseLeave={plugin.current.reset}
           >
-            <CarouselContent className="-ml-2">
-              <CarouselItem className="pl-8 md:basis-1/2">
-                <div className="p-1 h-48">
+            <CarouselContent>
+              <CarouselItem className="basis-4/5 md:basis-1/2 pl-8">
+                <div className="p-1 h-36">
                   <DailyQuizCard />
                 </div>
               </CarouselItem>
-              <CarouselItem className="pl-8 md:basis-1/2">
-                <div className="p-1 h-48">
+              <CarouselItem className="basis-4/5 md:basis-1/2 pl-8">
+                <div className="p-1 h-36">
                  <LatihanSoalCard />
                 </div>
               </CarouselItem>
-               <CarouselItem className="pl-8 md:basis-1/2">
-                <div className="p-1 h-48">
+               <CarouselItem className="basis-4/5 md:basis-1/2 pl-8">
+                <div className="p-1 h-36">
                   <DailyQuizCard />
                 </div>
               </CarouselItem>
