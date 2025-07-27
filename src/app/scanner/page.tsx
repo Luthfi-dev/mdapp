@@ -26,7 +26,6 @@ import {
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from '@/components/ui/dialog';
-import { cn } from '@/lib/utils';
 import { Slider } from '@/components/ui/slider';
 
 
@@ -44,17 +43,14 @@ export default function ScannerPage() {
   const [isAutoScan, setIsAutoScan] = useState(true);
   
   const { toast } = useToast();
-  const scannerRef = useRef<any>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
 
-  // Safely load from localStorage ONLY on the client side, AFTER the component has mounted.
+  // Safely load history from localStorage only on the client, after the component has mounted.
   useEffect(() => {
     try {
       const storedHistory = localStorage.getItem('scannedHistory');
       if (storedHistory) {
-        const parsed = JSON.parse(storedHistory);
-        if (Array.isArray(parsed)) {
-          setScannedHistory(parsed);
-        }
+        setScannedHistory(JSON.parse(storedHistory));
       }
     } catch (e) {
       console.error("Failed to parse history from localStorage", e);
@@ -62,15 +58,10 @@ export default function ScannerPage() {
     }
   }, []);
 
-  // Save to localStorage whenever history changes. This runs after the initial load.
+  // Save to localStorage whenever history changes.
   useEffect(() => {
-    // We don't run this on the initial render to avoid overwriting the loaded state
-    // with an empty array before the history has a chance to be loaded from localStorage.
-    if (scannedHistory.length > 0 || localStorage.getItem('scannedHistory')) {
-      localStorage.setItem('scannedHistory', JSON.stringify(scannedHistory));
-    }
+    localStorage.setItem('scannedHistory', JSON.stringify(scannedHistory));
   }, [scannedHistory]);
-
 
   useEffect(() => {
     const requestCameraPermission = async () => {
@@ -95,7 +86,6 @@ export default function ScannerPage() {
         data: result.text,
       };
       
-      // Check if the item already exists in the history before adding
       if (!scannedHistory.some(item => item.data === newScan.data)) {
         setScannedHistory(prev => [newScan, ...prev]);
         
@@ -106,6 +96,9 @@ export default function ScannerPage() {
 
         if (!isAutoScan) {
           setIsScanning(false);
+        } else {
+            // Restart scanning after a delay for auto-scan mode
+            setTimeout(() => setIsScanning(true), 2000);
         }
       }
     }
@@ -119,7 +112,7 @@ export default function ScannerPage() {
           title: 'Izin Kamera Diperlukan',
           description: 'Harap berikan izin kamera di pengaturan browser.',
         });
-    } else if (isScanning) {
+    } else {
         toast({
           variant: 'destructive',
           title: 'Gagal Memulai Kamera',
@@ -155,34 +148,32 @@ export default function ScannerPage() {
   };
 
   const toggleFlash = async () => {
-    if (scannerRef.current) {
-        const stream = (scannerRef.current?.video as HTMLVideoElement)?.srcObject as MediaStream;
-        if(stream){
-            const track = stream.getVideoTracks()[0];
-            if (track && track.getCapabilities().torch) {
-                try {
-                    await track.applyConstraints({ advanced: [{ torch: !isFlashOn }] });
-                    setIsFlashOn(!isFlashOn);
-                } catch (error) {
-                    console.error("Gagal menyalakan flash:", error);
-                    toast({ variant: "destructive", title: "Flash Error", description: "Tidak dapat mengaktifkan flash."});
-                }
-            } else {
-                toast({ title: "Flash Tidak Didukung", description: "Perangkat ini tidak mendukung kontrol flash."});
+     if (videoRef.current && videoRef.current.srcObject) {
+        const stream = videoRef.current.srcObject as MediaStream;
+        const track = stream.getVideoTracks()[0];
+        if (track && track.getCapabilities().torch) {
+            try {
+                await track.applyConstraints({ advanced: [{ torch: !isFlashOn }] });
+                setIsFlashOn(!isFlashOn);
+            } catch (error) {
+                console.error("Gagal menyalakan flash:", error);
+                toast({ variant: "destructive", title: "Flash Error", description: "Tidak dapat mengaktifkan flash."});
             }
+        } else {
+            toast({ title: "Flash Tidak Didukung", description: "Perangkat ini tidak mendukung kontrol flash."});
         }
     }
   }
 
   const handleZoom = (value: number[]) => {
-      if(scannerRef.current) {
-         const stream = (scannerRef.current?.video as HTMLVideoElement)?.srcObject as MediaStream;
-         if(stream) {
-            const track = stream.getVideoTracks()[0];
-            const capabilities = track.getCapabilities();
-            if ('zoom' in capabilities && capabilities.zoom) {
-                track.applyConstraints({ advanced: [{ zoom: value[0] }] });
-            }
+      if(videoRef.current && videoRef.current.srcObject) {
+         const stream = videoRef.current.srcObject as MediaStream;
+         const track = stream.getVideoTracks()[0];
+         const capabilities = track.getCapabilities();
+         if ('zoom' in capabilities && capabilities.zoom) {
+            track.applyConstraints({ advanced: [{ zoom: value[0] }] });
+         } else {
+             console.warn("Zoom is not supported by this device's camera.");
          }
       }
   }
@@ -192,7 +183,7 @@ export default function ScannerPage() {
       return (
         <div className="flex flex-col items-center justify-center text-center p-4 text-white bg-gray-900 h-full">
           <Camera className="w-16 h-16 text-gray-400 mb-4 animate-pulse" />
-          <h3 className="text-xl font-bold">Memeriksa Izin Kamera...</h3>
+          <h3 className="text-xl font-bold">Meminta Izin Kamera...</h3>
         </div>
       );
     }
@@ -215,16 +206,16 @@ export default function ScannerPage() {
        return (
           <>
               <QrScanner
-                  ref={scannerRef}
-                  delay={300}
-                  onError={handleError}
                   onScan={handleScanResult}
+                  onError={handleError}
+                  constraints={{ 
+                      video: { 
+                          facingMode,
+                          focusMode: 'continuous',
+                      } 
+                  }}
+                  videoRef={videoRef}
                   style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                  constraints={{ video: { 
-                      facingMode,
-                      focusMode: 'continuous',
-                    } 
-                }}
               />
               <div className="absolute inset-0 bg-transparent pointer-events-none">
                 <div className="absolute inset-0 border-[20px] border-black/30 shadow-[0_0_0_2000px_rgba(0,0,0,0.3)] rounded-2xl" />
@@ -266,11 +257,9 @@ export default function ScannerPage() {
         <CardHeader>
             <CardTitle className="text-2xl font-headline">Pemindai Cerdas</CardTitle>
             <CardDescription>Arahkan kamera ke kode untuk memindai.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-            <Dialog>
+             <Dialog>
               <DialogTrigger asChild>
-                  <Button variant="outline" className="w-full">
+                  <Button variant="outline" className="w-full mt-4">
                     <HelpCircle className="mr-2"/> Cara Penggunaan
                   </Button>
               </DialogTrigger>
@@ -294,6 +283,8 @@ export default function ScannerPage() {
                   </DialogClose>
               </DialogContent>
             </Dialog>
+        </CardHeader>
+        <CardContent className="space-y-6">
           <div className="relative w-full aspect-square bg-gray-900 rounded-lg overflow-hidden flex items-center justify-center">
              {renderScanner()}
           </div>
