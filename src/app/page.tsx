@@ -2,7 +2,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
 import { ArrowRight, BookOpen, BrainCircuit, Edit, FileText, Lightbulb, Moon, Search } from "lucide-react";
 
 const CategoryCard = ({ icon, label, href }: { icon: React.ReactNode, label: string, href: string }) => (
@@ -15,7 +15,7 @@ const CategoryCard = ({ icon, label, href }: { icon: React.ReactNode, label: str
 )
 
 const DailyQuizCard = () => (
-    <Card className="w-[85vw] sm:w-80 flex-shrink-0 bg-gradient-to-br from-primary to-purple-600 text-white shadow-lg rounded-2xl overflow-hidden">
+    <Card className="w-full bg-gradient-to-br from-primary to-purple-600 text-white shadow-lg rounded-2xl overflow-hidden">
         <CardContent className="p-5 flex flex-col justify-between h-full">
             <div>
                 <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center mb-3">
@@ -32,7 +32,7 @@ const DailyQuizCard = () => (
 );
 
 const LatihanSoalCard = () => (
-    <Card className="w-[85vw] sm:w-80 flex-shrink-0 bg-gradient-to-br from-cyan-500 to-blue-600 text-white shadow-lg rounded-2xl overflow-hidden">
+    <Card className="w-full bg-gradient-to-br from-cyan-500 to-blue-600 text-white shadow-lg rounded-2xl overflow-hidden">
         <CardContent className="p-5 flex flex-col justify-between h-full">
              <div>
                 <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center mb-3">
@@ -82,13 +82,31 @@ export default function HomePage() {
         </section>
 
         <section id="interactive-cards" className="mb-8 -mx-6">
-            <ScrollArea className="w-full whitespace-nowrap rounded-lg">
-                <div className="flex space-x-4 pb-4 px-6">
-                    <DailyQuizCard />
-                    <LatihanSoalCard />
+          <Carousel
+            opts={{
+              align: "start",
+              loop: true,
+            }}
+            className="w-full"
+          >
+            <CarouselContent className="-ml-2">
+              <CarouselItem className="pl-8 md:basis-1/2">
+                <div className="p-1 h-48">
+                  <DailyQuizCard />
                 </div>
-                <ScrollBar orientation="horizontal" className="h-1.5" />
-            </ScrollArea>
+              </CarouselItem>
+              <CarouselItem className="pl-8 md:basis-1/2">
+                <div className="p-1 h-48">
+                 <LatihanSoalCard />
+                </div>
+              </CarouselItem>
+               <CarouselItem className="pl-8 md:basis-1/2">
+                <div className="p-1 h-48">
+                  <DailyQuizCard />
+                </div>
+              </CarouselItem>
+            </CarouselContent>
+          </Carousel>
         </section>
         
         <section id="insights">
