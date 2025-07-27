@@ -83,14 +83,19 @@ const convertWordToPdfFlow = ai.defineFlow(
   async (input) => {
     try {
       const buffer = Buffer.from(input.fileDataUri.split(',')[1], 'base64');
-      const { value: html } = await mammoth.extractRawText({ buffer });
+      const { value: html } = await mammoth.convertToHtml({ buffer });
 
       const pdfDoc = await PDFDocument.create();
       const page = pdfDoc.addPage();
       const { width, height } = page.getSize();
       const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
       
-      const textContent = html.replace(/<[^>]*>/g, ''); // Basic HTML tag stripping
+      // A very basic HTML to text conversion. This is where table and layout handling needs to be improved.
+      // For now, we will just strip tags. A more sophisticated parser would be needed for full layout preservation.
+      const textContent = html.replace(/<\/p>/g, '\n')
+                              .replace(/<\/h[1-6]>/g, '\n\n')
+                              .replace(/<br\s*\/?>/g, '\n')
+                              .replace(/<[^>]*>/g, '');
       
       page.drawText(textContent, {
         x: 50,
