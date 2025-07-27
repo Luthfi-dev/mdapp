@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import Autoplay from "embla-carousel-autoplay"
 import React from "react";
 import Link from "next/link";
+import { ScanLine } from "lucide-react";
 
 const CategoryCard = ({ icon, label, href }: { icon: React.ReactNode, label: string, href: string }) => (
   <Link href={href} className="flex flex-col items-center gap-2 flex-shrink-0 w-20 text-center">
@@ -65,26 +66,27 @@ export default function HomePage() {
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-primary-foreground/60" />
             <Input
               type="search"
-              placeholder="Cari kursus atau materi..."
+              placeholder="Cari tool yg kamu butuhkan"
               className="w-full rounded-full bg-primary/80 text-primary-foreground placeholder:text-primary-foreground/60 pl-11 pr-4 py-2 h-12 border-0 focus-visible:ring-2 focus-visible:ring-primary-foreground"
             />
         </div>
       </header>
 
-      <main className="flex-grow px-6 pb-28 -mt-10 z-10">
-        <section id="features" className="mb-8">
-            <div className="flex justify-around items-start bg-card p-4 rounded-2xl shadow-md">
-                <CategoryCard href="/converter" icon={<FileText className="text-primary" />} label="Konversi File" />
-                <CategoryCard href="/unit-converter" icon={<BookOpen className="text-primary" />} label="Konversi Unit" />
-                <CategoryCard href="/scanner" icon={<Edit className="text-primary" />} label="Scanner" />
-                <CategoryCard href="/apps" icon={<Grid3x3 className="text-primary" />} label="Semua App" />
-            </div>
-        </section>
+      <main className="-mt-10 z-10">
+        <div className="px-6">
+            <section id="features" className="mb-8">
+                <div className="flex justify-around items-start bg-card p-4 rounded-2xl shadow-md">
+                    <CategoryCard href="/converter" icon={<FileText className="text-primary" />} label="Konversi File" />
+                    <CategoryCard href="/scanner" icon={<ScanLine className="text-primary" />} label="Scanner" />
+                    <CategoryCard href="/apps" icon={<Grid3x3 className="text-primary" />} label="Semua App" />
+                </div>
+            </section>
+        </div>
 
-        <section id="interactive-cards" className="mb-8 -mx-4">
+        <section id="interactive-cards" className="mb-8">
           <Carousel
             opts={{
-              align: "center",
+              align: "start",
               loop: true,
             }}
             plugins={[plugin.current]}
@@ -92,8 +94,8 @@ export default function HomePage() {
             onMouseEnter={plugin.current.stop}
             onMouseLeave={plugin.current.reset}
           >
-            <CarouselContent>
-              <CarouselItem className="basis-4/5 md:basis-1/2 pl-4">
+            <CarouselContent className="-ml-2">
+              <CarouselItem className="basis-4/5 md:basis-1/2 pl-6">
                 <div className="p-1 h-36">
                   <DailyQuizCard />
                 </div>
@@ -112,7 +114,7 @@ export default function HomePage() {
           </Carousel>
         </section>
         
-        <section id="insights">
+        <section id="insights" className="px-6 pb-28">
             <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-bold flex items-center gap-2">Wawasan Edukasi</h2>
                 <a href="#" className="text-sm text-primary font-semibold">Lihat Semua</a>
