@@ -9,8 +9,6 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { 
   Camera, Copy, Trash2, Zap, ZapOff, SwitchCamera, HelpCircle, X, Power, QrCode, Barcode, ZoomIn
 } from 'lucide-react';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from '@/components/ui/dialog';
 import { Slider } from '@/components/ui/slider';
 import jsQR from 'jsqr';
@@ -21,16 +19,12 @@ interface ScannedItem {
   data: string;
 }
 
-type ScanType = 'qr' | 'barcode' | 'all';
-
 export default function ScannerPage() {
   const [scannedHistory, setScannedHistory] = useState<ScannedItem[]>([]);
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [isCameraActive, setIsCameraActive] = useState(false);
   const [facingMode, setFacingMode] = useState<'user' | 'environment'>('environment');
   const [isFlashOn, setIsFlashOn] = useState(false);
-  const [isAutoScan, setIsAutoScan] = useState(false);
-  const [scanType, setScanType] = useState<ScanType>('all');
   const [isCooldown, setIsCooldown] = useState(false);
   
   const { toast } = useToast();
@@ -93,6 +87,7 @@ export default function ScannerPage() {
         videoRef.current.srcObject = null;
       }
     }
+    setIsFlashOn(false);
   }, []);
 
   const startCamera = useCallback(async () => {
@@ -149,12 +144,10 @@ export default function ScannerPage() {
       description: 'Data telah ditambahkan ke riwayat.',
     });
 
-    if (!isAutoScan) {
-      setIsCameraActive(false);
-    }
+    setIsCameraActive(false);
     
     setTimeout(() => setIsCooldown(false), 2000);
-  }, [isAutoScan, playBeep, toast]);
+  }, [playBeep, toast]);
   
   const scanFrame = useCallback(async () => {
     if (!isCameraActive || !videoRef.current || !canvasRef.current || videoRef.current.paused || videoRef.current.ended || videoRef.current.readyState < 3 || isCooldown) {
@@ -182,24 +175,24 @@ export default function ScannerPage() {
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
     
-    let codeFound = false;
-  
     const isAlreadyScanned = (data: string) => scannedHistory.some(item => item.data === data);
 
-    if (scanType === 'qr' || scanType === 'all') {
-      const code = jsQR(imageData.data, imageData.width, imageData.height);
-      if (code && code.data && !isAlreadyScanned(code.data)) {
-        handleScanResult(code.data);
-        codeFound = true;
-      }
+    // QR Code Scan
+    const code = jsQR(imageData.data, imageData.width, imageData.height);
+    if (code && code.data && !isAlreadyScanned(code.data)) {
+      handleScanResult(code.data);
+      if(isCameraActive) requestAnimationFrame(scanFrame);
+      return;
     }
   
-    if (!codeFound && (scanType === 'barcode' || scanType === 'all') && barcodeDetectorRef.current) {
+    // Barcode Scan
+    if (barcodeDetectorRef.current) {
       try {
         const barcodes = await barcodeDetectorRef.current.detect(imageData);
         if (barcodes.length > 0 && barcodes[0].rawValue && !isAlreadyScanned(barcodes[0].rawValue)) {
           handleScanResult(barcodes[0].rawValue);
-          codeFound = true;
+           if(isCameraActive) requestAnimationFrame(scanFrame);
+           return;
         }
       } catch (e) {
           // BarcodeDetector may fail silently
@@ -207,7 +200,7 @@ export default function ScannerPage() {
     }
     
     if(isCameraActive) requestAnimationFrame(scanFrame);
-  }, [isCameraActive, isCooldown, scanType, handleScanResult, scannedHistory]);
+  }, [isCameraActive, isCooldown, handleScanResult, scannedHistory]);
   
   useEffect(() => {
     let animationFrameId: number;
@@ -290,10 +283,6 @@ export default function ScannerPage() {
        }
     }
   }
-
-  const handleScanTypeChange = (type: 'qr' | 'barcode') => {
-    setScanType(prev => (prev === type ? 'all' : type));
-  };
   
   const renderScanner = () => {
     if (!isCameraActive) {
@@ -363,7 +352,6 @@ export default function ScannerPage() {
                       <p className="flex items-start gap-3"><ZoomIn className="w-6 h-6 text-primary shrink-0 mt-0.5"/><span>Gunakan **slider zoom** untuk memperbesar atau memperkecil tampilan jika kode terlalu kecil atau jauh.</span></p>
                       <p className="flex items-start gap-3"><Zap className="w-6 h-6 text-primary shrink-0 mt-0.5"/><span>Gunakan ikon **Flash** untuk menyalakan lampu senter perangkat dalam kondisi gelap agar pemindaian lebih mudah.</span></p>
                       <p className="flex items-start gap-3"><SwitchCamera className="w-6 h-6 text-primary shrink-0 mt-0.5"/><span>Gunakan ikon **Ganti Kamera** untuk beralih antara kamera depan dan belakang sesuai kebutuhan Anda.</span></p>
-                      <p className="flex items-start gap-3"><Power className="w-6 h-6 text-primary shrink-0 mt-0.5"/><span>Jika **'Auto Scan'** nonaktif, kamera akan berhenti setelah berhasil memindai. Aktifkan untuk memindai banyak kode secara berurutan.</span></p>
                       <p className="flex items-start gap-3"><Copy className="w-6 h-6 text-primary shrink-0 mt-0.5"/><span>Setiap hasil pindaian akan muncul di riwayat. Anda dapat **menyalin** satu per satu atau **menyalin semua** hasil sekaligus dengan pemisah baris baru.</span></p>
                   </div>
                   <DialogClose asChild>
@@ -397,22 +385,9 @@ export default function ScannerPage() {
                 disabled={!isCameraActive}
               />
           </div>
-          
-          <div className="flex items-center justify-center gap-4">
-            <Button variant={scanType === 'barcode' ? "default" : "outline"} className="flex-1" onClick={() => handleScanTypeChange('barcode')}>
-              <Barcode className="mr-2"/> Barcode
-            </Button>
-            <Button variant={scanType === 'qr' ? "default" : "outline"} className="flex-1" onClick={() => handleScanTypeChange('qr')}>
-              <QrCode className="mr-2"/> QR Code
-            </Button>
-          </div>
 
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-semibold">Riwayat Pindaian</h3>
-            <div className="flex items-center space-x-2">
-                <Switch id="auto-scan-mode" checked={isAutoScan} onCheckedChange={setIsAutoScan} />
-                <Label htmlFor="auto-scan-mode">Auto Scan</Label>
-            </div>
           </div>
           
            <div className="space-y-3 max-h-48 overflow-y-auto pr-2">
