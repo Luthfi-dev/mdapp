@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { cn } from "@/lib/utils"
 import { Toaster } from "@/components/ui/toaster"
-import Header from '@/components/Header';
+import BottomNavBar from '@/components/BottomNavBar';
 
 export const metadata: Metadata = {
   title: 'All-in-One Toolkit',
@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: '#3CB371',
+  themeColor: '#7C3AED',
 }
 
 export default function RootLayout({
@@ -26,11 +26,11 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=PT+Sans:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet" />
       </head>
-      <body className={cn("font-body antialiased min-h-screen flex flex-col")}>
-        <Header />
-        <main className="flex-grow">
+      <body className={cn("font-body antialiased min-h-screen flex flex-col bg-background")}>
+        <main className="flex-grow pb-24">
           {children}
         </main>
+        <BottomNavBar />
         <Toaster />
       </body>
     </html>
