@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { 
-  Camera, Copy, Trash2, Zap, ZapOff, SwitchCamera, HelpCircle, X, Power, QrCode, Barcode, ZoomIn
+  Camera, Copy, Trash2, Zap, ZapOff, SwitchCamera, HelpCircle, X, ZoomIn
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from '@/components/ui/dialog';
 import { Slider } from '@/components/ui/slider';
@@ -414,7 +414,7 @@ export default function ScannerPage() {
            {scannedHistory.length > 0 && (
                 <div className="flex items-center gap-2">
                   <Button onClick={copyAll} className="w-full">
-                      <Copy className="mr-2 h-4 w-4" /> Salin All
+                      <Copy className="mr-2 h-4 w-4" /> Copy All
                   </Button>
                    <Button onClick={clearAllHistory} className="w-full" variant="destructive">
                       <Trash2 className="mr-2 h-4 w-4" /> Clear All
