@@ -14,47 +14,16 @@ export type ChatMessage = z.infer<typeof ChatMessageSchema>;
 
 const ChatHistorySchema = z.array(ChatMessageSchema);
 
+// This is the schema the Gemini API expects for chat history.
+const ModelContentSchema = z.object({
+  role: z.enum(['user', 'model']),
+  parts: z.array(z.object({ text: z.string() })),
+});
+const ModelContentsSchema = z.array(ModelContentSchema);
+
 export async function chat(history: ChatMessage[]): Promise<ChatMessage> {
   return chatFlow(history);
 }
-
-const prompt = ai.definePrompt({
-  name: 'chatPrompt',
-  input: { schema: ChatHistorySchema },
-  output: { schema: z.string().nullable() },
-  model: 'googleai/gemini-2.0-flash',
-  prompt: `You are a friendly and helpful AI assistant named Maudigi.
-Your role is to assist users of the "All-in-One Toolkit" application.
-Be concise and helpful.
-
-Here is the conversation history:
-{{#each input}}
-{{role}}: {{content}}
-{{/each}}
-model:`,
-  // Loosen safety settings for free-tier keys.
-  config: {
-    safetySettings: [
-      {
-        category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
-        threshold: 'BLOCK_ONLY_HIGH',
-      },
-      {
-        category: 'HARM_CATEGORY_HATE_SPEECH',
-        threshold: 'BLOCK_ONLY_HIGH',
-      },
-      {
-        category: 'HARM_CATEGORY_HARASSMENT',
-        threshold: 'BLOCK_ONLY_HIGH',
-      },
-      {
-        category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
-        threshold: 'BLOCK_ONLY_HIGH',
-      },
-    ],
-  },
-});
-
 
 const chatFlow = ai.defineFlow(
   {
@@ -63,10 +32,29 @@ const chatFlow = ai.defineFlow(
     outputSchema: ChatMessageSchema,
   },
   async (history) => {
-    const { output } = await prompt(history);
+    // Transform the simple chat history into the format the model expects.
+    const modelHistory = history.map(msg => ({
+        role: msg.role,
+        parts: [{ text: msg.content }],
+    }));
+
+    const { output } = await ai.generate({
+      model: 'googleai/gemini-2.0-flash',
+      history: modelHistory.slice(0, -1), // All but the last message
+      prompt: modelHistory[modelHistory.length - 1].parts[0].text, // The last message's content
+      config: {
+        safetySettings: [
+            { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_ONLY_HIGH' },
+            { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_ONLY_HIGH' },
+            { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_ONLY_HIGH' },
+            { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_ONLY_HIGH' },
+        ],
+      },
+    });
+
     return {
-        role: 'model',
-        content: output || "Maaf, saya tidak bisa merespon saat ini. Coba lagi nanti.",
+      role: 'model',
+      content: output || "Maaf, saya tidak bisa merespon saat ini. Coba lagi nanti.",
     };
   }
 );
