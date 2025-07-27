@@ -1,3 +1,4 @@
+
 'use client';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -73,8 +74,8 @@ export default function HomePage() {
       </header>
 
       <main className="flex-1 flex flex-col">
-        <div className="px-6">
-          <section id="features" className="mb-8 -mt-10 z-10">
+        <div className="w-full">
+          <section id="features" className="mb-8 -mt-10 z-10 px-6">
               <div className="flex justify-center items-start bg-card p-2 rounded-2xl shadow-md gap-2">
                   <CategoryCard href="/converter" icon={<FileText className="text-primary" />} label="Konversi File" />
                   <CategoryCard href="/scanner" icon={<ScanLine className="text-primary" />} label="Scanner" />
@@ -117,7 +118,7 @@ export default function HomePage() {
         <div className="px-6">
           <section id="insights" className="pb-28">
               <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-xl font-bold flex items-center gap-2">Wawasan Edukasi</h2>
+                  <h2 className="text-xl font-bold flex items-center gap-2">Rekomendasi untuk Anda</h2>
                   <a href="#" className="text-sm text-primary font-semibold">Lihat Semua</a>
               </div>
               <div className="space-y-4">
