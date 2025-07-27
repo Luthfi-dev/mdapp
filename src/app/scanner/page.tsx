@@ -214,7 +214,6 @@ export default function ScannerPage() {
                           focusMode: 'continuous',
                       } 
                   }}
-                  videoRef={videoRef}
                   style={{ width: '100%', height: '100%', objectFit: 'cover' }}
               />
               <div className="absolute inset-0 bg-transparent pointer-events-none">
