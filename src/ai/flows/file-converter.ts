@@ -11,6 +11,7 @@ import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import mammoth from 'mammoth';
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
+import htmlToDocx from 'html-to-docx';
 
 // Schema for PDF to Word
 export const PdfToWordInputSchema = z.object({
@@ -20,7 +21,7 @@ export const PdfToWordInputSchema = z.object({
 export type PdfToWordInput = z.infer<typeof PdfToWordInputSchema>;
 
 export const PdfToWordOutputSchema = z.object({
-  htmlContent: z.string().optional().describe('The content of the document as an HTML string.'),
+  docxDataUri: z.string().optional().describe('The content of the document as a DOCX data uri.'),
   error: z.string().optional(),
 });
 export type PdfToWordOutput = z.infer<typeof PdfToWordOutputSchema>;
@@ -55,10 +56,15 @@ const convertPdfToWordFlow = ai.defineFlow(
   async (input) => {
     try {
         const { output } = await pdfToWordPrompt({ fileDataUri: input.fileDataUri });
+        
         if (!output || !output.htmlContent) {
             return { error: 'AI failed to extract content from the PDF.' };
         }
-        return { htmlContent: output.htmlContent };
+        
+        const docxBuffer = await htmlToDocx(output.htmlContent);
+        const docxDataUri = `data:application/vnd.openxmlformats-officedocument.wordprocessingml.document;base64,${docxBuffer.toString('base64')}`;
+
+        return { docxDataUri: docxDataUri };
     } catch (e: any) {
         console.error("Error in convertPdfToWordFlow:", e);
         return { error: e.message || 'An unknown error occurred during conversion.' };

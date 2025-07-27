@@ -10,7 +10,6 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2, FileText, FileCode2, ArrowRightLeft } from 'lucide-react';
 import { saveAs } from 'file-saver';
 import { convertPdfToWord } from '@/ai/flows/file-converter';
-import htmlToDocx from 'html-to-docx';
 
 export default function PdfToWordPage() {
   const [file, setFile] = useState<File | null>(null);
@@ -38,6 +37,12 @@ export default function PdfToWordPage() {
     reader.onerror = error => reject(error);
   });
 
+  const getTargetFilename = () => {
+    if (!file) return 'converted.docx';
+    const originalName = file.name.substring(0, file.name.lastIndexOf('.'));
+    return `${originalName}.docx`;
+  };
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!file) {
@@ -60,9 +65,9 @@ export default function PdfToWordPage() {
          throw new Error(result.error);
       }
       
-      if (result.htmlContent) {
-        const fileBuffer = await htmlToDocx(result.htmlContent);
-        saveAs(fileBuffer as Blob, getTargetFilename());
+      if (result.docxDataUri) {
+        saveAs(result.docxDataUri, getTargetFilename());
+
         toast({
           title: 'Konversi Berhasil',
           description: 'File PDF Anda telah berhasil dikonversi ke Word.',
@@ -82,12 +87,6 @@ export default function PdfToWordPage() {
     } finally {
       setIsConverting(false);
     }
-  };
-
-  const getTargetFilename = () => {
-    if (!file) return 'converted.docx';
-    const originalName = file.name.substring(0, file.name.lastIndexOf('.'));
-    return `${originalName}.docx`;
   };
 
   return (
