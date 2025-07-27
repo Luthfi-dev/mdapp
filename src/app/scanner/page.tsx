@@ -32,8 +32,28 @@ interface ScannedItem {
   data: string;
 }
 
+// Safely initialize state from localStorage
+const getInitialHistory = (): ScannedItem[] => {
+  if (typeof window === 'undefined') {
+    return [];
+  }
+  try {
+    const storedHistory = localStorage.getItem('scannedHistory');
+    if (storedHistory) {
+      const parsed = JSON.parse(storedHistory);
+      // Basic validation to ensure it's an array
+      return Array.isArray(parsed) ? parsed : [];
+    }
+    return [];
+  } catch (error) {
+    console.error("Failed to parse history from localStorage", error);
+    return [];
+  }
+};
+
+
 export default function ScannerPage() {
-  const [scannedHistory, setScannedHistory] = useState<ScannedItem[]>([]);
+  const [scannedHistory, setScannedHistory] = useState<ScannedItem[]>(getInitialHistory);
   const [isScanning, setIsScanning] = useState(false);
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [facingMode, setFacingMode] = useState<'user' | 'environment'>('environment');
@@ -61,25 +81,15 @@ export default function ScannerPage() {
       }
     };
     requestCameraPermission();
-
-    // Load history from localStorage
-    try {
-      const storedHistory = localStorage.getItem('scannedHistory');
-      if (storedHistory) {
-        const parsedHistory = JSON.parse(storedHistory);
-        if (Array.isArray(parsedHistory)) {
-          setScannedHistory(parsedHistory);
-        }
-      }
-    } catch (error) {
-      console.error("Failed to parse history from localStorage", error);
-      setScannedHistory([]); // Ensure it's always an array
-    }
   }, []);
 
   useEffect(() => {
     // Save history to localStorage whenever it changes
-    localStorage.setItem('scannedHistory', JSON.stringify(scannedHistory));
+    try {
+        localStorage.setItem('scannedHistory', JSON.stringify(scannedHistory));
+    } catch (error) {
+        console.error("Failed to save history to localStorage", error);
+    }
   }, [scannedHistory]);
 
   const handleScanResult = (result: any) => {
@@ -242,9 +252,11 @@ export default function ScannerPage() {
         <CardHeader>
             <CardTitle className="text-2xl font-headline">Pemindai Cerdas</CardTitle>
             <CardDescription>Arahkan kamera ke kode untuk memindai.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
             <Dialog>
               <DialogTrigger asChild>
-                  <Button variant="outline" className="w-full mt-2">
+                  <Button variant="outline" className="w-full">
                     <HelpCircle className="mr-2"/> Cara Penggunaan
                   </Button>
               </DialogTrigger>
@@ -267,8 +279,6 @@ export default function ScannerPage() {
                   </DialogClose>
               </DialogContent>
             </Dialog>
-        </CardHeader>
-        <CardContent className="space-y-6">
           <div className="relative w-full aspect-square bg-gray-900 rounded-lg overflow-hidden flex items-center justify-center">
              {renderScanner()}
           </div>
