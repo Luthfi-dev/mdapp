@@ -20,12 +20,15 @@ import {
   Power,
   RotateCcw,
   QrCode,
-  Barcode
+  Barcode,
+  ZoomIn
 } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
+import { Slider } from '@/components/ui/slider';
+
 
 interface ScannedItem {
   id: number;
@@ -42,31 +45,32 @@ export default function ScannerPage() {
   
   const { toast } = useToast();
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const scannerRef = useRef<any>(null);
 
-  // Effect to load history from localStorage only on the client side
   useEffect(() => {
-    try {
-      const storedHistory = localStorage.getItem('scannedHistory');
-      if (storedHistory) {
+    const storedHistory = localStorage.getItem('scannedHistory');
+    if (storedHistory) {
+      try {
         const parsed = JSON.parse(storedHistory);
         if (Array.isArray(parsed)) {
           setScannedHistory(parsed);
         }
+      } catch (e) {
+        console.error("Failed to parse history from localStorage", e);
+        setScannedHistory([]);
       }
-    } catch (error) {
-      console.error("Failed to parse history from localStorage", error);
     }
   }, []);
 
   useEffect(() => {
+    localStorage.setItem('scannedHistory', JSON.stringify(scannedHistory));
+  }, [scannedHistory]);
+
+
+  useEffect(() => {
     const requestCameraPermission = async () => {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ 
-            video: { 
-                facingMode: 'environment',
-                focusMode: 'continuous'
-            } 
-        });
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
         stream.getTracks().forEach(track => track.stop());
         setHasPermission(true);
         setIsScanning(true);
@@ -78,14 +82,6 @@ export default function ScannerPage() {
     requestCameraPermission();
   }, []);
 
-  // Effect to save history to localStorage whenever it changes
-  useEffect(() => {
-    try {
-        localStorage.setItem('scannedHistory', JSON.stringify(scannedHistory));
-    } catch (error) {
-        console.error("Failed to save history to localStorage", error);
-    }
-  }, [scannedHistory]);
 
   const handleScanResult = (result: any) => {
     if (result && result.text) {
@@ -93,31 +89,31 @@ export default function ScannerPage() {
         id: Date.now(),
         data: result.text,
       };
-      // Prevent duplicate scans
+      
       if (scannedHistory.some(item => item.data === newScan.data)) return;
 
       setScannedHistory(prev => [newScan, ...prev]);
-      setIsScanning(false);
+      
       toast({
         title: 'Pemindaian Berhasil',
         description: 'Data telah ditambahkan ke riwayat.',
       });
 
-      if (isAutoScan) {
-        setTimeout(() => setIsScanning(true), 2000);
+      if (!isAutoScan) {
+        setIsScanning(false);
       }
     }
   };
 
   const handleError = (error: any) => {
     console.error('QR Scanner Error:', error);
-    if(isScanning) { // Only show toast if scanning was active
-        setIsScanning(false);
+    if (isScanning && hasPermission) {
         toast({
           variant: 'destructive',
           title: 'Gagal Memulai Kamera',
-          description: 'Tidak dapat memulai sumber video. Pastikan izin kamera diberikan dan kamera tidak digunakan oleh aplikasi lain.',
+          description: 'Pastikan izin kamera diberikan dan tidak digunakan aplikasi lain.',
         });
+        setIsScanning(false); 
     }
   }
   
@@ -140,7 +136,6 @@ export default function ScannerPage() {
   }
 
   const toggleFacingMode = () => {
-    // Turn off flash before switching camera
     if (isFlashOn) {
         toggleFlash();
     }
@@ -148,38 +143,51 @@ export default function ScannerPage() {
   };
 
   const toggleFlash = async () => {
-     if (videoRef.current && videoRef.current.srcObject) {
-        const stream = videoRef.current.srcObject as MediaStream;
-        const track = stream.getVideoTracks()[0];
-        if (track && track.getCapabilities().torch) {
-            try {
-                await track.applyConstraints({
-                    advanced: [{ torch: !isFlashOn }]
-                });
-                setIsFlashOn(!isFlashOn);
-            } catch (error) {
-                console.error("Gagal menyalakan flash:", error);
-                toast({ variant: "destructive", title: "Flash Error", description: "Tidak dapat mengaktifkan flash."});
+    if (scannerRef.current) {
+        const stream = (scannerRef.current?.video as HTMLVideoElement)?.srcObject as MediaStream;
+        if(stream){
+            const track = stream.getVideoTracks()[0];
+            if (track && track.getCapabilities().torch) {
+                try {
+                    await track.applyConstraints({ advanced: [{ torch: !isFlashOn }] });
+                    setIsFlashOn(!isFlashOn);
+                } catch (error) {
+                    console.error("Gagal menyalakan flash:", error);
+                    toast({ variant: "destructive", title: "Flash Error", description: "Tidak dapat mengaktifkan flash."});
+                }
+            } else {
+                toast({ title: "Flash Tidak Didukung", description: "Perangkat ini tidak mendukung kontrol flash."});
             }
-        } else {
-            toast({ title: "Flash Tidak Didukung", description: "Perangkat ini tidak mendukung kontrol flash."});
         }
     }
+  }
+
+  const handleZoom = (value: number[]) => {
+      if(scannerRef.current) {
+         const stream = (scannerRef.current?.video as HTMLVideoElement)?.srcObject as MediaStream;
+         if(stream) {
+            const track = stream.getVideoTracks()[0];
+            const capabilities = track.getCapabilities();
+            if ('zoom' in capabilities && capabilities.zoom) {
+                track.applyConstraints({ advanced: [{ zoom: value[0] }] });
+            }
+         }
+      }
   }
   
   const renderScanner = () => {
     if (hasPermission === null) {
       return (
-        <div className="flex flex-col items-center justify-center text-center p-4 text-white">
+        <div className="flex flex-col items-center justify-center text-center p-4 text-white bg-gray-900 h-full">
           <Camera className="w-16 h-16 text-gray-400 mb-4 animate-pulse" />
-          <h3 className="text-xl font-bold">Memeriksa Kamera...</h3>
+          <h3 className="text-xl font-bold">Memeriksa Izin Kamera...</h3>
         </div>
       );
     }
 
     if (hasPermission === false) {
       return (
-         <div className="p-4">
+         <div className="p-4 h-full flex items-center justify-center">
             <Alert variant="destructive">
                 <Camera className="h-4 w-4" />
                 <AlertTitle>Izin Kamera Diperlukan</AlertTitle>
@@ -195,19 +203,18 @@ export default function ScannerPage() {
        return (
           <>
               <QrScanner
-                  delay={500}
+                  ref={scannerRef}
+                  delay={300}
                   onError={handleError}
                   onScan={handleScanResult}
                   style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                  constraints={{ video: { facingMode, focusMode: 'continuous' } }}
-                  onLoad={(...args: any[]) => {
-                      if (args[0]?.target) {
-                          videoRef.current = args[0].target;
-                      }
-                  }}
+                  constraints={{ video: { 
+                      facingMode,
+                      focusMode: 'continuous',
+                    } 
+                }}
               />
               <div className="absolute inset-0 bg-transparent pointer-events-none">
-                {/* Overlay UI */}
                 <div className="absolute inset-0 border-[20px] border-black/30 shadow-[0_0_0_2000px_rgba(0,0,0,0.3)] rounded-2xl" />
                 <div className="absolute w-2/3 max-w-[300px] aspect-square top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
                    <div className="w-full h-full border-4 border-white/80 rounded-2xl animate-pulse" />
@@ -228,7 +235,7 @@ export default function ScannerPage() {
       )
     } else {
         return (
-            <div className="flex flex-col items-center justify-center text-center p-4 text-white">
+            <div className="flex flex-col items-center justify-center text-center p-4 text-white bg-gray-900 h-full">
                 <ClipboardCheck className="w-16 h-16 text-green-400 mb-4" />
                 <h3 className="text-xl font-bold">Pindai Selesai!</h3>
                 <p className="text-gray-300 mb-6">Hasil pindaian Anda telah ditambahkan ke riwayat di bawah.</p>
@@ -261,10 +268,11 @@ export default function ScannerPage() {
                   </DialogHeader>
                   <div className="space-y-4 text-sm text-muted-foreground pt-2">
                       <p className="flex items-start gap-3"><Camera className="w-6 h-6 text-primary shrink-0 mt-0.5"/> <span>Arahkan kamera Anda ke QR Code atau Barcode. Pemindaian akan terjadi secara otomatis ketika kode terdeteksi dengan jelas.</span></p>
+                      <p className="flex items-start gap-3"><ZoomIn className="w-6 h-6 text-primary shrink-0 mt-0.5"/><span>Gunakan **slider zoom** untuk memperbesar atau memperkecil tampilan jika kode terlalu kecil atau jauh.</span></p>
                       <p className="flex items-start gap-3"><Zap className="w-6 h-6 text-primary shrink-0 mt-0.5"/><span>Gunakan ikon **Flash** untuk menyalakan lampu senter perangkat dalam kondisi gelap agar pemindaian lebih mudah.</span></p>
                       <p className="flex items-start gap-3"><SwitchCamera className="w-6 h-6 text-primary shrink-0 mt-0.5"/><span>Gunakan ikon **Ganti Kamera** untuk beralih antara kamera depan dan belakang sesuai kebutuhan Anda.</span></p>
-                      <p className="flex items-start gap-3"><Power className="w-6 h-6 text-primary shrink-0 mt-0.5"/><span>Aktifkan **'Auto Scan'** untuk memulai pemindaian baru secara otomatis 2 detik setelah pemindaian sebelumnya berhasil. Sangat efisien untuk memindai banyak kode secara berurutan.</span></p>
-                        <p className="flex items-start gap-3"><Copy className="w-6 h-6 text-primary shrink-0 mt-0.5"/><span>Setiap hasil pindaian akan muncul di riwayat. Anda dapat **menyalin** satu per satu atau **menyalin semua** hasil sekaligus dengan pemisah koma.</span></p>
+                      <p className="flex items-start gap-3"><Power className="w-6 h-6 text-primary shrink-0 mt-0.5"/><span>Aktifkan **'Auto Scan'** untuk memulai pemindaian baru secara otomatis setelah pemindaian sebelumnya berhasil. Sangat efisien untuk memindai banyak kode secara berurutan.</span></p>
+                      <p className="flex items-start gap-3"><Copy className="w-6 h-6 text-primary shrink-0 mt-0.5"/><span>Setiap hasil pindaian akan muncul di riwayat. Anda dapat **menyalin** satu per satu atau **menyalin semua** hasil sekaligus dengan pemisah koma.</span></p>
                   </div>
                   <DialogClose asChild>
                       <Button type="button" variant="ghost" size="icon" className="absolute right-4 top-4 rounded-full h-8 w-8">
@@ -276,6 +284,19 @@ export default function ScannerPage() {
             </Dialog>
           <div className="relative w-full aspect-square bg-gray-900 rounded-lg overflow-hidden flex items-center justify-center">
              {renderScanner()}
+          </div>
+
+          <div className='space-y-2'>
+              <Label htmlFor="zoom-slider">Zoom</Label>
+              <Slider 
+                id="zoom-slider"
+                defaultValue={[1]} 
+                min={1} 
+                max={5} 
+                step={0.1} 
+                onValueChange={handleZoom}
+                disabled={!isScanning || hasPermission !== true}
+              />
           </div>
           
            <div className="flex items-center justify-center gap-4">
@@ -325,3 +346,5 @@ export default function ScannerPage() {
     </div>
   );
 }
+
+    
