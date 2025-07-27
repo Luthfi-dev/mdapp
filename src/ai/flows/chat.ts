@@ -19,7 +19,6 @@ const ModelContentSchema = z.object({
   role: z.enum(['user', 'model']),
   parts: z.array(z.object({ text: z.string() })),
 });
-const ModelContentsSchema = z.array(ModelContentSchema);
 
 export async function chat(history: ChatMessage[]): Promise<ChatMessage> {
   return chatFlow(history);
@@ -38,10 +37,14 @@ const chatFlow = ai.defineFlow(
         parts: [{ text: msg.content }],
     }));
 
+    // The last message is the prompt, the rest is history.
+    const lastMessage = modelHistory[modelHistory.length - 1];
+    const conversationHistory = modelHistory.slice(0, -1);
+
     const { output } = await ai.generate({
       model: 'googleai/gemini-2.0-flash',
-      history: modelHistory.slice(0, -1), // All but the last message
-      prompt: modelHistory[modelHistory.length - 1].parts[0].text, // The last message's content
+      history: conversationHistory,
+      prompt: lastMessage.parts[0].text,
       config: {
         safetySettings: [
             { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_ONLY_HIGH' },
@@ -51,10 +54,12 @@ const chatFlow = ai.defineFlow(
         ],
       },
     });
+    
+    const textResponse = output ?? "Maaf, saya tidak bisa merespon saat ini. Coba lagi nanti.";
 
     return {
       role: 'model',
-      content: output || "Maaf, saya tidak bisa merespon saat ini. Coba lagi nanti.",
+      content: textResponse,
     };
   }
 );
