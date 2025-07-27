@@ -61,7 +61,26 @@ export default function ScannerPage() {
       }
     };
     requestCameraPermission();
+
+    // Load history from localStorage
+    const storedHistory = localStorage.getItem('scannedHistory');
+    if (storedHistory) {
+      try {
+        const parsedHistory = JSON.parse(storedHistory);
+        if (Array.isArray(parsedHistory)) {
+          setScannedHistory(parsedHistory);
+        }
+      } catch (error) {
+        console.error("Failed to parse history from localStorage", error);
+        setScannedHistory([]);
+      }
+    }
   }, []);
+
+  useEffect(() => {
+    // Save history to localStorage whenever it changes
+    localStorage.setItem('scannedHistory', JSON.stringify(scannedHistory));
+  }, [scannedHistory]);
 
   const handleScanResult = (result: any) => {
     if (result && result.text) {
@@ -296,5 +315,3 @@ export default function ScannerPage() {
     </div>
   );
 }
-
-    
