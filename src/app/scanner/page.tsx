@@ -31,24 +31,32 @@ interface ScannedItem {
 
 export default function ScannerPage() {
   const [scannedHistory, setScannedHistory] = useState<ScannedItem[]>([]);
-  const [isScanning, setIsScanning] = useState(true);
-  const [hasPermission, setHasPermission] = useState(false);
+  const [isScanning, setIsScanning] = useState(false);
+  const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [facingMode, setFacingMode] = useState<'user' | 'environment'>('environment');
   const [isFlashOn, setIsFlashOn] = useState(false);
   const [isAutoScan, setIsAutoScan] = useState(true);
   
   const { toast } = useToast();
-  const scannerRef = useRef<QrScanner>(null);
-  const videoRef = useRef<HTMLVideoElement>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
 
   useEffect(() => {
-    navigator.mediaDevices?.getUserMedia({ video: true })
-      .then(() => setHasPermission(true))
-      .catch(() => setHasPermission(false));
+    const checkCameraPermission = async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        stream.getTracks().forEach(track => track.stop()); // Stop the stream immediately, we just needed to check permission
+        setHasPermission(true);
+        setIsScanning(true);
+      } catch (err) {
+        console.error("Camera permission error:", err);
+        setHasPermission(false);
+      }
+    };
+    checkCameraPermission();
   }, []);
-  
+
   const handleScanResult = (result: any) => {
-    if (result) {
+    if (result && result.text) {
       const newScan: ScannedItem = {
         id: Date.now(),
         data: result.text,
@@ -67,16 +75,13 @@ export default function ScannerPage() {
   };
 
   const handleError = (error: any) => {
-    if (error.name === 'NotAllowedError') {
-      setHasPermission(false);
-    } else {
-      console.error(error);
-      toast({
-        variant: 'destructive',
-        title: 'Scan Error',
-        description: 'An unexpected error occurred while scanning.',
-      });
-    }
+    console.error('QR Scanner Error:', error);
+    setIsScanning(false);
+    toast({
+      variant: 'destructive',
+      title: 'Scan Error',
+      description: 'Could not start video source. Please check camera permissions and ensure another app is not using the camera.',
+    });
   }
   
   const copyToClipboard = (text: string, singleItem: boolean = false) => {
@@ -105,44 +110,116 @@ export default function ScannerPage() {
      if (videoRef.current && videoRef.current.srcObject) {
         const stream = videoRef.current.srcObject as MediaStream;
         const track = stream.getVideoTracks()[0];
-        const capabilities = track.getCapabilities();
-        if (capabilities.torch) {
-            try {
-                await track.applyConstraints({
-                    advanced: [{ torch: !isFlashOn }]
-                });
-                setIsFlashOn(!isFlashOn);
-            } catch (error) {
-                console.error("Failed to toggle flash:", error);
-                toast({ variant: "destructive", title: "Flash Error", description: "Could not toggle the flash."});
+        if (track) {
+            const capabilities = track.getCapabilities();
+            if (capabilities.torch) {
+                try {
+                    await track.applyConstraints({
+                        advanced: [{ torch: !isFlashOn }]
+                    });
+                    setIsFlashOn(!isFlashOn);
+                } catch (error) {
+                    console.error("Failed to toggle flash:", error);
+                    toast({ variant: "destructive", title: "Flash Error", description: "Could not toggle the flash."});
+                }
+            } else {
+                toast({ title: "Flash Not Supported", description: "This device does not support flash control."});
             }
-        } else {
-            toast({ title: "Flash Not Supported", description: "This device does not support flash control."});
         }
     }
   }
-
-  if (!hasPermission) {
+  
+  const renderScanner = () => {
+    if (hasPermission === null) {
       return (
-        <div className="container mx-auto px-4 py-8">
-            <Card className="max-w-2xl mx-auto">
-                <CardHeader>
-                    <CardTitle className="text-2xl font-headline">QR/Barcode Scanner</CardTitle>
-                    <CardDescription>Point your camera at a code to scan it.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <Alert variant="destructive">
-                        <Camera className="h-4 w-4" />
-                        <AlertTitle>Camera Permission Required</AlertTitle>
-                        <AlertDescription>
-                            Please grant camera access in your browser settings to use the scanner. Then, refresh the page.
-                        </AlertDescription>
-                    </Alert>
-                </CardContent>
-            </Card>
+        <div className="flex flex-col items-center justify-center text-center p-4 text-white">
+          <Camera className="w-16 h-16 text-gray-400 mb-4 animate-pulse" />
+          <h3 className="text-xl font-bold">Checking Camera...</h3>
         </div>
+      );
+    }
+
+    if (hasPermission === false) {
+      return (
+         <div className="p-4">
+            <Alert variant="destructive">
+                <Camera className="h-4 w-4" />
+                <AlertTitle>Camera Permission Required</AlertTitle>
+                <AlertDescription>
+                    Please grant camera access in your browser settings to use the scanner. Then, refresh the page.
+                </AlertDescription>
+            </Alert>
+         </div>
+      );
+    }
+    
+    if (isScanning) {
+       return (
+          <>
+              <QrScanner
+                  delay={300}
+                  onError={handleError}
+                  onScan={handleScanResult}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  constraints={{ video: { facingMode } }}
+                  onLoad={(...args: any[]) => {
+                      if (args[0]?.target) {
+                          videoRef.current = args[0].target;
+                      }
+                  }}
+              />
+              <div className="absolute inset-0 bg-transparent pointer-events-none">
+                  <div className="absolute top-4 left-4 right-4 flex justify-between items-center pointer-events-auto">
+                      <div className="flex items-center gap-2 rounded-full bg-black/50 p-2">
+                          <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full text-white hover:bg-white/20 hover:text-white" onClick={toggleFlash}>
+                              {isFlashOn ? <ZapOff /> : <Zap />}
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full text-white hover:bg-white/20 hover:text-white" onClick={toggleFacingMode}>
+                              <SwitchCamera />
+                          </Button>
+                      </div>
+                       <Dialog>
+                          <DialogTrigger asChild>
+                               <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full text-white bg-black/50 hover:bg-white/20 hover:text-white pointer-events-auto">
+                                  <HelpCircle />
+                              </Button>
+                          </DialogTrigger>
+                          <DialogContent className="max-w-sm rounded-2xl shadow-2xl">
+                              <DialogHeader>
+                              <DialogTitle className="text-xl text-center font-bold">How to Use Scanner</DialogTitle>
+                              </DialogHeader>
+                              <div className="space-y-4 text-sm text-muted-foreground pt-2">
+                                  <p className="flex items-start gap-3"><Camera className="w-5 h-5 text-primary shrink-0 mt-0.5"/> <span>Point your camera at a QR or Barcode. The scan will happen automatically.</span></p>
+                                  <p className="flex items-start gap-3"><Zap className="w-5 h-5 text-primary shrink-0 mt-0.5"/><span>Use the flash icon to toggle your device's flashlight in dark conditions.</span></p>
+                                  <p className="flex items-start gap-3"><SwitchCamera className="w-5 h-5 text-primary shrink-0 mt-0.5"/><span>Use the camera switch icon to flip between front and rear cameras.</span></p>
+                                  <p className="flex items-start gap-3"><Power className="w-5 h-5 text-primary shrink-0 mt-0.5"/><span>Enable 'Auto Scan' to automatically start a new scan 2 seconds after a successful one.</span></p>
+                              </div>
+                              <DialogClose asChild>
+                                 <Button type="button" variant="ghost" size="icon" className="absolute right-4 top-4 rounded-full h-8 w-8">
+                                    <X className="h-4 w-4" />
+                                    <span className="sr-only">Close</span>
+                                </Button>
+                              </DialogClose>
+                          </DialogContent>
+                      </Dialog>
+                  </div>
+              </div>
+          </>
       )
+    } else {
+        return (
+            <div className="flex flex-col items-center justify-center text-center p-4 text-white">
+                <ClipboardCheck className="w-16 h-16 text-green-400 mb-4" />
+                <h3 className="text-xl font-bold">Scan Complete!</h3>
+                <p className="text-gray-300 mb-6">Your result has been added to the history below.</p>
+                <Button onClick={() => setIsScanning(true)}>
+                   <RotateCcw className="mr-2"/> Start New Scan
+                </Button>
+            </div>
+        );
+    }
   }
+
 
   return (
     <div className="container mx-auto px-4 py-8 pb-24">
@@ -153,68 +230,7 @@ export default function ScannerPage() {
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="relative w-full aspect-square bg-gray-900 rounded-lg overflow-hidden flex items-center justify-center">
-             {isScanning ? (
-                <>
-                    <QrScanner
-                        ref={scannerRef}
-                        delay={300}
-                        onError={handleError}
-                        onScan={handleScanResult}
-                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                        constraints={{ video: { facingMode } }}
-                        onLoad={(...args: any[]) => {
-                            if (args[0]?.target) {
-                                videoRef.current = args[0].target;
-                            }
-                        }}
-                    />
-                    <div className="absolute inset-0 bg-transparent pointer-events-none">
-                        <div className="absolute top-4 left-4 right-4 flex justify-between items-center pointer-events-auto">
-                            <div className="flex items-center gap-2 rounded-full bg-black/50 p-2">
-                                <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full text-white hover:bg-white/20 hover:text-white" onClick={toggleFlash}>
-                                    {isFlashOn ? <ZapOff /> : <Zap />}
-                                </Button>
-                                <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full text-white hover:bg-white/20 hover:text-white" onClick={toggleFacingMode}>
-                                    <SwitchCamera />
-                                </Button>
-                            </div>
-                             <Dialog>
-                                <DialogTrigger asChild>
-                                     <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full text-white bg-black/50 hover:bg-white/20 hover:text-white pointer-events-auto">
-                                        <HelpCircle />
-                                    </Button>
-                                </DialogTrigger>
-                                <DialogContent className="max-w-sm rounded-2xl shadow-2xl">
-                                    <DialogHeader>
-                                    <DialogTitle className="text-xl text-center font-bold">How to Use Scanner</DialogTitle>
-                                    </DialogHeader>
-                                    <div className="space-y-4 text-sm text-muted-foreground pt-2">
-                                        <p className="flex items-start gap-3"><Camera className="w-5 h-5 text-primary shrink-0 mt-0.5"/> <span>Point your camera at a QR or Barcode. The scan will happen automatically.</span></p>
-                                        <p className="flex items-start gap-3"><Zap className="w-5 h-5 text-primary shrink-0 mt-0.5"/><span>Use the flash icon to toggle your device's flashlight in dark conditions.</span></p>
-                                        <p className="flex items-start gap-3"><SwitchCamera className="w-5 h-5 text-primary shrink-0 mt-0.5"/><span>Use the camera switch icon to flip between front and rear cameras.</span></p>
-                                        <p className="flex items-start gap-3"><Power className="w-5 h-5 text-primary shrink-0 mt-0.5"/><span>Enable 'Auto Scan' to automatically start a new scan 2 seconds after a successful one.</span></p>
-                                    </div>
-                                    <DialogClose asChild>
-                                       <Button type="button" variant="ghost" size="icon" className="absolute right-4 top-4 rounded-full h-8 w-8">
-                                          <X className="h-4 w-4" />
-                                          <span className="sr-only">Close</span>
-                                      </Button>
-                                    </DialogClose>
-                                </DialogContent>
-                            </Dialog>
-                        </div>
-                    </div>
-                </>
-            ) : (
-                <div className="flex flex-col items-center justify-center text-center p-4 text-white">
-                    <ClipboardCheck className="w-16 h-16 text-green-400 mb-4" />
-                    <h3 className="text-xl font-bold">Scan Complete!</h3>
-                    <p className="text-gray-300 mb-6">Your result has been added to the history below.</p>
-                    <Button onClick={() => setIsScanning(true)}>
-                       <RotateCcw className="mr-2"/> Start New Scan
-                    </Button>
-                </div>
-             )}
+             {renderScanner()}
           </div>
           
           <div className="flex items-center justify-between">
@@ -255,3 +271,5 @@ export default function ScannerPage() {
     </div>
   );
 }
+
+    
