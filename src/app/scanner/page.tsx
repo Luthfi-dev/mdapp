@@ -48,16 +48,20 @@ export default function ScannerPage() {
       localStorage.removeItem('scannedHistory');
     }
 
-    if ('BarcodeDetector' in window) {
-      try {
-        const supportedFormats = (window as any).BarcodeDetector.getSupportedFormats();
-        if (supportedFormats.includes('qr_code') && supportedFormats.includes('code_128')) {
-           barcodeDetectorRef.current = new (window as any).BarcodeDetector({ formats: ['qr_code', 'code_128', 'ean_13', 'upc_a'] });
+    const initializeBarcodeDetector = async () => {
+      if ('BarcodeDetector' in window) {
+        try {
+          const supportedFormats = await (window as any).BarcodeDetector.getSupportedFormats();
+          if (supportedFormats.includes('qr_code') && supportedFormats.includes('code_128')) {
+             barcodeDetectorRef.current = new (window as any).BarcodeDetector({ formats: ['qr_code', 'code_128', 'ean_13', 'upc_a'] });
+          }
+        } catch (e) {
+          console.error('Barcode Detector could not be initialized:', e);
         }
-      } catch (e) {
-        console.error('Barcode Detector could not be initialized:', e);
       }
-    }
+    };
+
+    initializeBarcodeDetector();
   }, []);
   
   const saveHistoryToLocalStorage = (history: ScannedItem[]) => {
