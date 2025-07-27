@@ -54,7 +54,7 @@ export default function PdfToWordPage() {
       const dataUri = await toBase64(file);
       const result = await convertPdfToWord({ pdfDataUri: dataUri, filename: file.name });
       
-      const docBlob = new Blob([result.htmlContent], { type: 'application/msword' });
+      const docBlob = new Blob([`<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body>${result.htmlContent}</body></html>`], { type: 'application/msword' });
       saveAs(docBlob, getTargetFilename());
 
       toast({

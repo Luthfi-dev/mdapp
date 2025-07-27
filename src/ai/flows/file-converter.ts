@@ -4,27 +4,16 @@
  * @fileOverview A file conversion flow using AI.
  *
  * - convertPdfToWord - Converts a PDF file to a Word document.
- * - FileConversionInput - The input type for the file conversion function.
- * - FileConversionOutput - The return type for the file conversion function.
  */
 
 import { ai } from '@/ai/genkit';
-import { z } from 'zod';
+import { 
+    FileConversionInput, 
+    FileConversionInputSchema, 
+    FileConversionOutput, 
+    FileConversionOutputSchema 
+} from './schemas';
 
-export const FileConversionInputSchema = z.object({
-  pdfDataUri: z
-    .string()
-    .describe(
-      "A PDF file encoded as a data URI. Expected format: 'data:application/pdf;base64,<encoded_data>'."
-    ),
-  filename: z.string().describe('The original name of the file.'),
-});
-export type FileConversionInput = z.infer<typeof FileConversionInputSchema>;
-
-export const FileConversionOutputSchema = z.object({
-  htmlContent: z.string().describe('The content of the document as an HTML string.'),
-});
-export type FileConversionOutput = z.infer<typeof FileConversionOutputSchema>;
 
 const pdfToWordPrompt = ai.definePrompt({
     name: 'pdfToWordPrompt',
