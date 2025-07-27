@@ -8,48 +8,34 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Download, Loader2, FileText, FileCode2, ArrowRightLeft } from 'lucide-react';
-import { mammoth } from 'mammoth'; // This is a placeholder for actual conversion logic
-import { PDFDocument } from 'pdf-lib';
-import { saveAs } from 'file-saver'; // To trigger download
+import { convertPdfToWord } from '@/ai/flows/file-converter';
+import { saveAs } from 'file-saver';
 
 export default function PdfToWordPage() {
   const [file, setFile] = useState<File | null>(null);
   const [isConverting, setIsConverting] = useState(false);
-  const [convertedFileUrl, setConvertedFileUrl] = useState<string | null>(null);
   const { toast } = useToast();
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
     if (selectedFile && selectedFile.type === 'application/pdf') {
       setFile(selectedFile);
-      setConvertedFileUrl(null);
     } else {
       toast({
         variant: 'destructive',
         title: 'File Tidak Valid',
         description: 'Silakan pilih file dengan format PDF.',
       });
+      setFile(null);
     }
   };
 
-  const convertPdfToText = async (pdfFile: File): Promise<string> => {
-    const arrayBuffer = await pdfFile.arrayBuffer();
-    const pdfDoc = await PDFDocument.load(arrayBuffer);
-    const pages = pdfDoc.getPages();
-    let textContent = '';
-
-    // This is a simplified text extraction. For complex layouts, a more advanced library or service would be needed.
-    // pdf-text-reader or pdf-parse on a server would be better.
-    // For now, we simulate basic text extraction.
-    textContent = `Konten dari ${pages.length} halaman PDF diekstrak di sini. \n\nCatatan: Ini adalah ekstraksi teks dasar dan mungkin tidak mempertahankan tata letak yang kompleks.`;
-    
-    return textContent;
-  };
-  
-  const createHtmlFromText = (text: string): string => {
-    const paragraphs = text.split('\n').map(p => `<p>${p}</p>`).join('');
-    return `<!DOCTYPE html><html><head><title>Converted Document</title></head><body>${paragraphs}</body></html>`;
-  }
+  const toBase64 = (file: File) => new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = error => reject(error);
+  });
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -63,23 +49,17 @@ export default function PdfToWordPage() {
     }
 
     setIsConverting(true);
-    setConvertedFileUrl(null);
 
     try {
-      // 1. Extract text from PDF
-      const text = await convertPdfToText(file);
+      const dataUri = await toBase64(file);
+      const result = await convertPdfToWord({ pdfDataUri: dataUri, filename: file.name });
       
-      // 2. Create a basic HTML structure from the text
-      const htmlContent = createHtmlFromText(text);
-
-      // 3. Create a Blob from the HTML content (simulating a .doc file)
-      const blob = new Blob([htmlContent], { type: 'application/msword' });
-      const url = URL.createObjectURL(blob);
-      setConvertedFileUrl(url);
+      const docBlob = new Blob([result.htmlContent], { type: 'application/msword' });
+      saveAs(docBlob, getTargetFilename());
 
       toast({
         title: 'Konversi Berhasil',
-        description: 'File PDF Anda telah dikonversi.',
+        description: 'File PDF Anda telah berhasil dikonversi ke Word.',
       });
 
     } catch (error) {
@@ -88,7 +68,7 @@ export default function PdfToWordPage() {
       toast({
         variant: 'destructive',
         title: 'Kesalahan Konversi',
-        description: errorMessage,
+        description: `Gagal mengonversi file: ${errorMessage}`,
       });
     } finally {
       setIsConverting(false);
@@ -110,8 +90,8 @@ export default function PdfToWordPage() {
             <ArrowRightLeft className="w-8 h-8 text-muted-foreground" />
             <FileCode2 className="w-12 h-12 text-blue-500" />
           </div>
-          <CardTitle className="text-2xl font-headline">PDF ke Word</CardTitle>
-          <CardDescription>Unggah file PDF Anda untuk diubah menjadi dokumen Word (.doc).</CardDescription>
+          <CardTitle className="text-2xl font-headline">PDF ke Word (AI)</CardTitle>
+          <CardDescription>Unggah file PDF Anda untuk diubah menjadi dokumen Word (.doc) menggunakan AI.</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
@@ -128,23 +108,13 @@ export default function PdfToWordPage() {
                   Mengonversi...
                 </>
               ) : (
-                'Konversi ke Word'
+                'Konversi ke Word & Unduh'
               )}
             </Button>
           </form>
-
-          {convertedFileUrl && (
-            <div className="mt-8 text-center border-t pt-6">
-              <h3 className="text-lg font-medium text-primary mb-4">Konversi Selesai!</h3>
-               <p className="text-sm text-muted-foreground mb-4">Pratinjau tidak tersedia untuk format .doc. Silakan unduh file untuk melihat hasilnya.</p>
-              <Button asChild>
-                <a href={convertedFileUrl} download={getTargetFilename()}>
-                  <Download className="mr-2 h-4 w-4" />
-                  Unduh File Word
-                </a>
-              </Button>
+            <div className="mt-6 text-center text-sm text-muted-foreground">
+                <p>Konversi ini didukung oleh AI untuk mengekstrak teks. Hasilnya mungkin memerlukan penyesuaian tata letak manual.</p>
             </div>
-          )}
         </CardContent>
       </Card>
     </div>
