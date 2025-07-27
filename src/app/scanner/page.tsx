@@ -38,6 +38,27 @@ export default function ScannerPage() {
   const streamRef = useRef<MediaStream | null>(null);
   const barcodeDetectorRef = useRef<any | null>(null);
   const beepAudioRef = useRef<AudioContext | null>(null);
+  
+  // Load history from localStorage once on mount
+  useEffect(() => {
+    try {
+      const storedHistory = localStorage.getItem('scannedHistory');
+      if (storedHistory) {
+        setScannedHistory(JSON.parse(storedHistory));
+      }
+    } catch (e) {
+      console.error("Failed to parse history from localStorage", e);
+      localStorage.setItem('scannedHistory', JSON.stringify([]));
+    }
+  }, []);
+
+  const saveHistoryToLocalStorage = (history: ScannedItem[]) => {
+    try {
+      localStorage.setItem('scannedHistory', JSON.stringify(history));
+    } catch (e) {
+      console.error("Failed to save history to localStorage", e);
+    }
+  };
 
   const initializeBeep = () => {
     if (typeof window !== 'undefined' && !beepAudioRef.current) {
@@ -67,17 +88,8 @@ export default function ScannerPage() {
     oscillator.stop(beepAudioRef.current.currentTime + 0.1);
   };
 
+  // Initialize Barcode Detector and Beep sound
   useEffect(() => {
-    try {
-      const storedHistory = localStorage.getItem('scannedHistory');
-      if (storedHistory) {
-        setScannedHistory(JSON.parse(storedHistory));
-      }
-    } catch (e) {
-      console.error("Failed to parse history from localStorage", e);
-      localStorage.setItem('scannedHistory', JSON.stringify([]));
-    }
-
     const initializeBarcodeDetector = async () => {
       if ('BarcodeDetector' in window) {
         try {
@@ -95,14 +107,6 @@ export default function ScannerPage() {
     initializeBarcodeDetector();
   }, []);
   
-  const saveHistoryToLocalStorage = (history: ScannedItem[]) => {
-    try {
-      localStorage.setItem('scannedHistory', JSON.stringify(history));
-    } catch (e) {
-      console.error("Failed to save history to localStorage", e);
-    }
-  };
-
   const stopCamera = useCallback(() => {
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(track => track.stop());
@@ -115,9 +119,6 @@ export default function ScannerPage() {
 
   const startCamera = useCallback(async () => {
     stopCamera();
-    if(hasPermission === false) return;
-
-    setHasPermission(null);
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
@@ -129,9 +130,8 @@ export default function ScannerPage() {
       streamRef.current = stream;
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
-        videoRef.current.onloadedmetadata = () => {
-            videoRef.current?.play();
-        };
+        // The play() call is essential to start the video stream.
+        videoRef.current.play().catch(e => console.error("Video play failed:", e));
       }
       setHasPermission(true);
     } catch (err) {
@@ -143,11 +143,15 @@ export default function ScannerPage() {
         description: 'Pastikan tidak digunakan aplikasi lain dan berikan izin kamera di pengaturan browser.',
       });
     }
-  }, [facingMode, stopCamera, toast, hasPermission]);
+  }, [facingMode, stopCamera, toast]);
   
+  // Main effect for starting and stopping the camera
   useEffect(() => {
     startCamera();
-    return () => stopCamera();
+    // Cleanup function to stop the camera when the component unmounts or facingMode changes
+    return () => {
+      stopCamera();
+    };
   }, [startCamera]);
 
   const handleScanResult = useCallback((result: string) => {
@@ -156,9 +160,9 @@ export default function ScannerPage() {
       setIsCooldown(true);
 
       const newScan: ScannedItem = { id: Date.now() + Math.random(), data: result };
-      const newHistory = [newScan, ...scannedHistory];
-      setScannedHistory(newHistory);
-      saveHistoryToLocalStorage(newHistory);
+      const updatedHistory = [newScan, ...scannedHistory];
+      setScannedHistory(updatedHistory);
+      saveHistoryToLocalStorage(updatedHistory);
       
       toast({
         title: 'Pemindaian Berhasil',
@@ -174,9 +178,9 @@ export default function ScannerPage() {
   }, [scannedHistory, isAutoScan, stopCamera, toast, isCooldown]);
   
   const scanFrame = useCallback(async () => {
-    if (!videoRef.current || !canvasRef.current || videoRef.current.paused || videoRef.current.ended || videoRef.current.readyState < 3 || isCooldown) {
+    if (!videoRef.current || !canvasRef.current || videoRef.current.paused || videoRef.current.ended || videoRef.current.readyState < 3 || isCooldown || !hasPermission) {
         requestAnimationFrame(scanFrame);
-      return;
+        return;
     }
   
     const video = videoRef.current;
@@ -185,16 +189,23 @@ export default function ScannerPage() {
     
     if (!ctx) {
         requestAnimationFrame(scanFrame);
-      return;
+        return;
     }
   
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
+
+    if (canvas.width === 0 || canvas.height === 0) {
+        requestAnimationFrame(scanFrame);
+        return;
+    }
+
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
     
     let codeFound = false;
   
+    // QR Code Scanning
     if (!codeFound && (scanType === 'qr' || scanType === 'all')) {
       const code = jsQR(imageData.data, imageData.width, imageData.height);
       if (code && code.data) {
@@ -203,6 +214,7 @@ export default function ScannerPage() {
       }
     }
   
+    // Barcode Scanning
     if (!codeFound && (scanType === 'barcode' || scanType === 'all') && barcodeDetectorRef.current) {
       try {
         const barcodes = await barcodeDetectorRef.current.detect(imageData);
@@ -211,12 +223,13 @@ export default function ScannerPage() {
           codeFound = true;
         }
       } catch (e) {
-          // BarcodeDetector may fail
+          // BarcodeDetector may fail silently
       }
     }
     
+    // Continue scanning
     requestAnimationFrame(scanFrame);
-  }, [scanType, handleScanResult, isCooldown]);
+  }, [scanType, handleScanResult, isCooldown, hasPermission]);
   
   useEffect(() => {
     let animationFrameId: number;
@@ -301,7 +314,7 @@ export default function ScannerPage() {
   };
   
   const renderScanner = () => {
-    if (hasPermission === null && hasPermission !== false) {
+    if (hasPermission === null) {
       return (
         <div className="flex flex-col items-center justify-center text-center p-4 text-white bg-gray-900 h-full">
           <Loader2 className="w-16 h-16 text-gray-400 mb-4 animate-spin" />
@@ -345,7 +358,7 @@ export default function ScannerPage() {
   }
   
   const handleRestartCamera = () => {
-    if(hasPermission) {
+    if(hasPermission !== false) {
         startCamera();
     } else {
         toast({
@@ -427,7 +440,7 @@ export default function ScannerPage() {
             </div>
           </div>
 
-          {!isAutoScan && !streamRef.current && (
+          {!isAutoScan && !streamRef.current?.active && hasPermission && (
             <Button onClick={handleRestartCamera} className="w-full" variant="secondary">
                 <Camera className="mr-2 h-4 w-4" />
                 Mulai Ulang Kamera
@@ -464,4 +477,3 @@ export default function ScannerPage() {
     </div>
   );
 }
-
