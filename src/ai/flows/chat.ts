@@ -22,6 +22,7 @@ const prompt = ai.definePrompt({
   name: 'chatPrompt',
   input: { schema: ChatHistorySchema },
   output: { schema: z.string().nullable() },
+  model: 'googleai/gemini-2.0-flash',
   prompt: `You are a friendly and helpful AI assistant named Maudigi.
 Your role is to assist users of the "All-in-One Toolkit" application.
 Be concise and helpful.
