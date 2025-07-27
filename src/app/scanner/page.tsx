@@ -26,9 +26,10 @@ type ScanType = 'qr' | 'barcode' | 'all';
 export default function ScannerPage() {
   const [scannedHistory, setScannedHistory] = useState<ScannedItem[]>([]);
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
+  const [isCameraActive, setIsCameraActive] = useState(false);
   const [facingMode, setFacingMode] = useState<'user' | 'environment'>('environment');
   const [isFlashOn, setIsFlashOn] = useState(false);
-  const [isAutoScan, setIsAutoScan] = useState(true);
+  const [isAutoScan, setIsAutoScan] = useState(false);
   const [scanType, setScanType] = useState<ScanType>('all');
   const [isCooldown, setIsCooldown] = useState(false);
   
@@ -72,7 +73,7 @@ export default function ScannerPage() {
       if ('BarcodeDetector' in window) {
         try {
           const supportedFormats = await (window as any).BarcodeDetector.getSupportedFormats();
-          if (supportedFormats.includes('qr_code') && supportedFormats.includes('code_128')) {
+          if (Array.isArray(supportedFormats) && supportedFormats.includes('qr_code') && supportedFormats.includes('code_128')) {
              barcodeDetectorRef.current = new (window as any).BarcodeDetector({ formats: ['qr_code', 'code_128', 'ean_13', 'upc_a'] });
           }
         } catch (e) {
@@ -108,12 +109,15 @@ export default function ScannerPage() {
       streamRef.current = stream;
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
-        videoRef.current.play().catch(e => console.error("Video play failed:", e));
+        videoRef.current.onloadedmetadata = () => {
+          videoRef.current?.play().catch(e => console.error("Video play failed:", e));
+        }
       }
       setHasPermission(true);
     } catch (err) {
       console.error("Camera permission error:", err);
       setHasPermission(false);
+      setIsCameraActive(false);
       toast({
         variant: 'destructive',
         title: 'Izin Kamera Diperlukan',
@@ -123,11 +127,16 @@ export default function ScannerPage() {
   }, [facingMode, stopCamera, toast]);
   
   useEffect(() => {
-    startCamera();
+    if (isCameraActive) {
+      startCamera();
+    } else {
+      stopCamera();
+    }
+    
     return () => {
       stopCamera();
     };
-  }, [startCamera]);
+  }, [isCameraActive, startCamera, stopCamera]);
 
   const handleScanResult = useCallback((result: string) => {
     if (result && !scannedHistory.some(item => item.data === result) && !isCooldown) {
@@ -143,16 +152,16 @@ export default function ScannerPage() {
       });
 
       if (!isAutoScan) {
-        stopCamera();
+        setIsCameraActive(false);
       }
       
       setTimeout(() => setIsCooldown(false), 2000);
     }
-  }, [scannedHistory, isAutoScan, stopCamera, toast, isCooldown]);
+  }, [scannedHistory, isAutoScan, toast, isCooldown]);
   
   const scanFrame = useCallback(async () => {
-    if (!videoRef.current || !canvasRef.current || videoRef.current.paused || videoRef.current.ended || videoRef.current.readyState < 3 || isCooldown || !hasPermission) {
-        requestAnimationFrame(scanFrame);
+    if (!isCameraActive || !videoRef.current || !canvasRef.current || videoRef.current.paused || videoRef.current.ended || videoRef.current.readyState < 3 || isCooldown) {
+        if(isCameraActive) requestAnimationFrame(scanFrame);
         return;
     }
   
@@ -161,7 +170,7 @@ export default function ScannerPage() {
     const ctx = canvas.getContext('2d', { willReadFrequently: true });
     
     if (!ctx) {
-        requestAnimationFrame(scanFrame);
+        if(isCameraActive) requestAnimationFrame(scanFrame);
         return;
     }
   
@@ -169,7 +178,7 @@ export default function ScannerPage() {
     canvas.height = video.videoHeight;
 
     if (canvas.width === 0 || canvas.height === 0) {
-        requestAnimationFrame(scanFrame);
+        if(isCameraActive) requestAnimationFrame(scanFrame);
         return;
     }
 
@@ -198,19 +207,19 @@ export default function ScannerPage() {
       }
     }
     
-    requestAnimationFrame(scanFrame);
-  }, [scanType, handleScanResult, isCooldown, hasPermission]);
+    if(isCameraActive) requestAnimationFrame(scanFrame);
+  }, [scanType, handleScanResult, isCooldown, isCameraActive]);
   
   useEffect(() => {
     let animationFrameId: number;
-    if (hasPermission) {
+    if (isCameraActive) {
         const runScan = () => {
             animationFrameId = requestAnimationFrame(scanFrame);
         };
         runScan();
     }
     return () => cancelAnimationFrame(animationFrameId);
-  }, [hasPermission, scanFrame]);
+  }, [isCameraActive, scanFrame]);
 
   const copyToClipboard = (text: string, singleItem: boolean = false) => {
     navigator.clipboard.writeText(text);
@@ -286,15 +295,16 @@ export default function ScannerPage() {
   };
   
   const renderScanner = () => {
-    if (hasPermission === null) {
+    if (!isCameraActive) {
       return (
         <div className="flex flex-col items-center justify-center text-center p-4 text-white bg-gray-900 h-full">
-          <Loader2 className="w-16 h-16 text-gray-400 mb-4 animate-spin" />
-          <h3 className="text-xl font-bold">Memulai Kamera...</h3>
+          <Camera className="w-16 h-16 text-gray-400 mb-4" />
+          <h3 className="text-xl font-bold">Kamera Tidak Aktif</h3>
+          <p className="text-gray-400 text-sm mt-1">Klik tombol di bawah untuk memulai pemindaian.</p>
         </div>
       );
     }
-
+    
     if (hasPermission === false) {
       return (
          <div className="p-4 h-full flex items-center justify-center">
@@ -302,13 +312,13 @@ export default function ScannerPage() {
                 <Camera className="h-4 w-4" />
                 <AlertTitle>Izin Kamera Diperlukan</AlertTitle>
                 <AlertDescription>
-                   Aplikasi ini memerlukan izin kamera. Silakan aktifkan di pengaturan browser Anda dan segarkan halaman.
+                   Aplikasi ini memerlukan izin kamera. Silakan aktifkan di pengaturan browser Anda.
                 </AlertDescription>
             </Alert>
          </div>
       );
     }
-
+    
     return (
       <div className='w-full h-full relative'>
         <video ref={videoRef} className="w-full h-full object-cover" autoPlay playsInline muted />
@@ -328,19 +338,6 @@ export default function ScannerPage() {
       </div>
     );
   }
-  
-  const handleRestartCamera = () => {
-    if(hasPermission !== false) {
-        startCamera();
-    } else {
-        toast({
-            variant: "destructive",
-            title: "Izin Kamera Dibutuhkan",
-            description: "Tidak dapat memulai ulang kamera tanpa izin."
-        })
-    }
-  }
-
 
   return (
     <div className="container mx-auto px-4 py-8 pb-24">
@@ -380,6 +377,11 @@ export default function ScannerPage() {
           <div className="relative w-full aspect-square bg-gray-900 rounded-lg overflow-hidden flex items-center justify-center">
              {renderScanner()}
           </div>
+          
+          <Button onClick={() => setIsCameraActive(prev => !prev)} className="w-full">
+            <Camera className="mr-2 h-4 w-4" />
+            {isCameraActive ? 'Hentikan Pindai' : 'Mulai Pindai'}
+          </Button>
 
           <div className='space-y-2'>
               <Label htmlFor="zoom-slider">Zoom</Label>
@@ -391,7 +393,7 @@ export default function ScannerPage() {
                 max={streamRef.current?.getVideoTracks()[0]?.getCapabilities()?.zoom?.max ?? 10} 
                 step={0.1} 
                 onValueChange={handleZoom}
-                disabled={hasPermission !== true}
+                disabled={!isCameraActive}
               />
           </div>
           
@@ -411,13 +413,6 @@ export default function ScannerPage() {
                 <Label htmlFor="auto-scan-mode">Auto Scan</Label>
             </div>
           </div>
-
-          {!isAutoScan && streamRef.current && !streamRef.current.active && hasPermission && (
-            <Button onClick={handleRestartCamera} className="w-full" variant="secondary">
-                <Camera className="mr-2 h-4 w-4" />
-                Mulai Ulang Kamera
-            </Button>
-          )}
           
            <div className="space-y-3 max-h-48 overflow-y-auto pr-2">
             {scannedHistory.length > 0 ? (
@@ -435,7 +430,7 @@ export default function ScannerPage() {
                 </div>
               ))
             ) : (
-              <p className="text-muted-foreground text-center text-sm py-4">Belum ada pindaian. Arahkan kamera ke kode untuk memulai.</p>
+              <p className="text-muted-foreground text-center text-sm py-4">Belum ada pindaian. Klik "Mulai Pindai" untuk memulai.</p>
             )}
           </div>
           
@@ -454,3 +449,4 @@ export default function ScannerPage() {
     </div>
   );
 }
+
