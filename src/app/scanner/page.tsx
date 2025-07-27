@@ -39,27 +39,6 @@ export default function ScannerPage() {
   const barcodeDetectorRef = useRef<any | null>(null);
   const beepAudioRef = useRef<AudioContext | null>(null);
   
-  // Load history from localStorage once on mount
-  useEffect(() => {
-    try {
-      const storedHistory = localStorage.getItem('scannedHistory');
-      if (storedHistory) {
-        setScannedHistory(JSON.parse(storedHistory));
-      }
-    } catch (e) {
-      console.error("Failed to parse history from localStorage", e);
-      localStorage.setItem('scannedHistory', JSON.stringify([]));
-    }
-  }, []);
-
-  const saveHistoryToLocalStorage = (history: ScannedItem[]) => {
-    try {
-      localStorage.setItem('scannedHistory', JSON.stringify(history));
-    } catch (e) {
-      console.error("Failed to save history to localStorage", e);
-    }
-  };
-
   const initializeBeep = () => {
     if (typeof window !== 'undefined' && !beepAudioRef.current) {
         try {
@@ -88,7 +67,6 @@ export default function ScannerPage() {
     oscillator.stop(beepAudioRef.current.currentTime + 0.1);
   };
 
-  // Initialize Barcode Detector and Beep sound
   useEffect(() => {
     const initializeBarcodeDetector = async () => {
       if ('BarcodeDetector' in window) {
@@ -130,7 +108,6 @@ export default function ScannerPage() {
       streamRef.current = stream;
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
-        // The play() call is essential to start the video stream.
         videoRef.current.play().catch(e => console.error("Video play failed:", e));
       }
       setHasPermission(true);
@@ -145,10 +122,8 @@ export default function ScannerPage() {
     }
   }, [facingMode, stopCamera, toast]);
   
-  // Main effect for starting and stopping the camera
   useEffect(() => {
     startCamera();
-    // Cleanup function to stop the camera when the component unmounts or facingMode changes
     return () => {
       stopCamera();
     };
@@ -160,9 +135,7 @@ export default function ScannerPage() {
       setIsCooldown(true);
 
       const newScan: ScannedItem = { id: Date.now() + Math.random(), data: result };
-      const updatedHistory = [newScan, ...scannedHistory];
-      setScannedHistory(updatedHistory);
-      saveHistoryToLocalStorage(updatedHistory);
+      setScannedHistory(prevHistory => [newScan, ...prevHistory]);
       
       toast({
         title: 'Pemindaian Berhasil',
@@ -205,7 +178,6 @@ export default function ScannerPage() {
     
     let codeFound = false;
   
-    // QR Code Scanning
     if (!codeFound && (scanType === 'qr' || scanType === 'all')) {
       const code = jsQR(imageData.data, imageData.width, imageData.height);
       if (code && code.data) {
@@ -214,7 +186,6 @@ export default function ScannerPage() {
       }
     }
   
-    // Barcode Scanning
     if (!codeFound && (scanType === 'barcode' || scanType === 'all') && barcodeDetectorRef.current) {
       try {
         const barcodes = await barcodeDetectorRef.current.detect(imageData);
@@ -227,7 +198,6 @@ export default function ScannerPage() {
       }
     }
     
-    // Continue scanning
     requestAnimationFrame(scanFrame);
   }, [scanType, handleScanResult, isCooldown, hasPermission]);
   
@@ -251,9 +221,7 @@ export default function ScannerPage() {
   };
 
   const deleteItem = (id: number) => {
-    const newHistory = scannedHistory.filter(item => item.id !== id);
-    setScannedHistory(newHistory);
-    saveHistoryToLocalStorage(newHistory);
+    setScannedHistory(prevHistory => prevHistory.filter(item => item.id !== id));
   };
   
   const copyAll = () => {
@@ -261,6 +229,10 @@ export default function ScannerPage() {
     const allData = scannedHistory.map(item => item.data).join('\n');
     copyToClipboard(allData, false);
   }
+
+  const clearAllHistory = () => {
+    setScannedHistory([]);
+  };
 
   const toggleFacingMode = () => {
     setIsFlashOn(false);
@@ -440,7 +412,7 @@ export default function ScannerPage() {
             </div>
           </div>
 
-          {!isAutoScan && !streamRef.current?.active && hasPermission && (
+          {!isAutoScan && streamRef.current && !streamRef.current.active && hasPermission && (
             <Button onClick={handleRestartCamera} className="w-full" variant="secondary">
                 <Camera className="mr-2 h-4 w-4" />
                 Mulai Ulang Kamera
@@ -468,9 +440,14 @@ export default function ScannerPage() {
           </div>
           
            {scannedHistory.length > 0 && (
-                <Button onClick={copyAll} className="w-full">
-                    Salin Semua ({scannedHistory.length})
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button onClick={copyAll} className="w-full">
+                      <Copy className="mr-2 h-4 w-4" /> Salin Semua ({scannedHistory.length})
+                  </Button>
+                   <Button onClick={clearAllHistory} className="w-full" variant="destructive">
+                      <Trash2 className="mr-2 h-4 w-4" /> Hapus Semua
+                  </Button>
+                </div>
            )}
         </CardContent>
       </Card>
