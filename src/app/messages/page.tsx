@@ -13,7 +13,6 @@ export default function MessagesPage() {
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
-    const scrollAreaRef = useRef<HTMLDivElement>(null);
     const viewportRef = useRef<HTMLDivElement>(null);
 
     const scrollToBottom = () => {
@@ -66,7 +65,7 @@ export default function MessagesPage() {
                 </div>
             </CardHeader>
             <div className="flex-grow flex flex-col">
-                <ScrollArea className="flex-grow" ref={scrollAreaRef} viewportRef={viewportRef}>
+                <ScrollArea className="flex-grow" viewportRef={viewportRef}>
                     <div className="space-y-6 p-4 pb-24">
                         {messages.map((message, index) => (
                             <div key={index} className={cn("flex items-end gap-2", message.role === 'user' ? "justify-end" : "justify-start")}>
