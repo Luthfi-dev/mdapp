@@ -1,38 +1,27 @@
 
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import QrScanner from 'react-qr-scanner';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { 
-  Camera, 
-  Copy, 
-  Trash2, 
-  Zap, 
-  ZapOff, 
-  SwitchCamera,
-  HelpCircle,
-  X,
-  ClipboardCheck,
-  Power,
-  RotateCcw,
-  QrCode,
-  Barcode,
-  ZoomIn
+  Camera, Copy, Trash2, Zap, ZapOff, SwitchCamera, HelpCircle, X, ClipboardCheck, Power, RotateCcw, QrCode, Barcode, ZoomIn, Loader2
 } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from '@/components/ui/dialog';
 import { Slider } from '@/components/ui/slider';
-
+import jsQR from 'jsqr';
+import 'webrtc-adapter';
 
 interface ScannedItem {
   id: number;
   data: string;
 }
+
+type ScanType = 'qr' | 'barcode' | 'all';
 
 export default function ScannerPage() {
   const [scannedHistory, setScannedHistory] = useState<ScannedItem[]>([]);
@@ -41,12 +30,22 @@ export default function ScannerPage() {
   const [facingMode, setFacingMode] = useState<'user' | 'environment'>('environment');
   const [isFlashOn, setIsFlashOn] = useState(false);
   const [isAutoScan, setIsAutoScan] = useState(true);
+  const [scanType, setScanType] = useState<ScanType>('all');
   
   const { toast } = useToast();
   const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const barcodeDetectorRef = useRef<any | null>(null);
+  const scanIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Safely load history from localStorage only on the client, after the component has mounted.
   useEffect(() => {
+    if ('BarcodeDetector' in window) {
+      barcodeDetectorRef.current = new (window as any).BarcodeDetector({ formats: ['qr_code', 'code_128', 'ean_13', 'upc_a'] });
+    } else {
+      console.warn("Barcode Detector is not supported in this browser. QR code scanning will still work.");
+    }
+
     try {
       const storedHistory = localStorage.getItem('scannedHistory');
       if (storedHistory) {
@@ -54,74 +53,127 @@ export default function ScannerPage() {
       }
     } catch (e) {
       console.error("Failed to parse history from localStorage", e);
-      setScannedHistory([]); // Reset to empty array on error
+      setScannedHistory([]);
     }
   }, []);
 
-  // Save to localStorage whenever history changes.
   useEffect(() => {
     localStorage.setItem('scannedHistory', JSON.stringify(scannedHistory));
   }, [scannedHistory]);
 
-  useEffect(() => {
-    const requestCameraPermission = async () => {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-        stream.getTracks().forEach(track => track.stop());
-        setHasPermission(true);
-        setIsScanning(true);
-      } catch (err) {
-        console.error("Camera permission error:", err);
-        setHasPermission(false);
-      }
-    };
-    requestCameraPermission();
+  const stopCamera = useCallback(() => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
+    if(scanIntervalRef.current) {
+      clearInterval(scanIntervalRef.current);
+      scanIntervalRef.current = null;
+    }
+    setIsScanning(false);
   }, []);
 
-
-  const handleScanResult = (result: any) => {
-    if (result && result.text) {
-      const newScan: ScannedItem = {
-        id: Date.now(),
-        data: result.text,
-      };
-      
-      if (!scannedHistory.some(item => item.data === newScan.data)) {
-        setScannedHistory(prev => [newScan, ...prev]);
-        
-        toast({
-          title: 'Pemindaian Berhasil',
-          description: 'Data telah ditambahkan ke riwayat.',
-        });
-
-        if (!isAutoScan) {
-          setIsScanning(false);
-        } else {
-            // Restart scanning after a delay for auto-scan mode
-            setTimeout(() => setIsScanning(true), 2000);
+  const startCamera = useCallback(async () => {
+    stopCamera();
+    setHasPermission(null);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode,
+          zoom: true,
+          focusMode: 'continuous'
         }
+      });
+      streamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+      }
+      setHasPermission(true);
+      setIsScanning(true);
+    } catch (err) {
+      console.error("Camera permission error:", err);
+      setHasPermission(false);
+      toast({
+        variant: 'destructive',
+        title: 'Izin Kamera Diperlukan',
+        description: 'Pastikan tidak digunakan aplikasi lain dan berikan izin kamera di pengaturan browser.',
+      });
+    }
+  }, [facingMode, stopCamera, toast]);
+  
+  useEffect(() => {
+    startCamera();
+    return () => stopCamera();
+  }, [startCamera, stopCamera]);
+
+
+  const handleScanResult = useCallback((result: string) => {
+    if (result && !scannedHistory.some(item => item.data === result)) {
+      const newScan: ScannedItem = { id: Date.now(), data: result };
+      setScannedHistory(prev => [newScan, ...prev]);
+      
+      toast({
+        title: 'Pemindaian Berhasil',
+        description: 'Data telah ditambahkan ke riwayat.',
+      });
+
+      if (!isAutoScan) {
+        stopCamera();
       }
     }
-  };
+  }, [scannedHistory, isAutoScan, stopCamera, toast]);
 
-  const handleError = (error: any) => {
-    console.error('QR Scanner Error:', error);
-    if (hasPermission === false) {
-       toast({
-          variant: 'destructive',
-          title: 'Izin Kamera Diperlukan',
-          description: 'Harap berikan izin kamera di pengaturan browser.',
-        });
-    } else {
-        toast({
-          variant: 'destructive',
-          title: 'Gagal Memulai Kamera',
-          description: 'Pastikan tidak digunakan aplikasi lain dan coba lagi.',
-        });
-        setIsScanning(false); 
+  const scanFrame = useCallback(async () => {
+    if (!isScanning || !videoRef.current || !canvasRef.current) return;
+
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+    
+    if (!ctx || video.readyState !== video.HAVE_ENOUGH_DATA) {
+      requestAnimationFrame(scanFrame);
+      return;
     }
-  }
+
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    
+    // QR Code Scanning with jsQR
+    if (scanType === 'qr' || scanType === 'all') {
+      const code = jsQR(imageData.data, imageData.width, imageData.height, {
+        inversionAttempts: "dontInvert",
+      });
+      if (code) {
+        handleScanResult(code.data);
+        if (!isAutoScan) return; // Stop if not auto scanning
+      }
+    }
+
+    // Barcode Scanning with BarcodeDetector
+    if ((scanType === 'barcode' || scanType === 'all') && barcodeDetectorRef.current) {
+      try {
+        const barcodes = await barcodeDetectorRef.current.detect(imageData);
+        if (barcodes.length > 0) {
+          handleScanResult(barcodes[0].rawValue);
+          if (!isAutoScan) return; // Stop if not auto scanning
+        }
+      } catch (e) {
+        // console.error("Barcode detection failed:", e);
+      }
+    }
+    
+    requestAnimationFrame(scanFrame);
+  }, [isScanning, scanType, handleScanResult, isAutoScan]);
   
+  useEffect(() => {
+    if (isScanning && hasPermission) {
+        requestAnimationFrame(scanFrame);
+    }
+  }, [isScanning, hasPermission, scanFrame]);
+
+
   const copyToClipboard = (text: string, singleItem: boolean = false) => {
     navigator.clipboard.writeText(text);
     toast({
@@ -141,17 +193,15 @@ export default function ScannerPage() {
   }
 
   const toggleFacingMode = () => {
-    if (isFlashOn) {
-        toggleFlash();
-    }
+    setIsFlashOn(false); // Turn off flash when switching camera
     setFacingMode(prev => (prev === 'user' ? 'environment' : 'user'));
   };
 
   const toggleFlash = async () => {
-     if (videoRef.current && videoRef.current.srcObject) {
-        const stream = videoRef.current.srcObject as MediaStream;
-        const track = stream.getVideoTracks()[0];
-        if (track && track.getCapabilities().torch) {
+     if (streamRef.current) {
+        const track = streamRef.current.getVideoTracks()[0];
+        const hasTorch = 'torch' in track.getCapabilities();
+        if (hasTorch) {
             try {
                 await track.applyConstraints({ advanced: [{ torch: !isFlashOn }] });
                 setIsFlashOn(!isFlashOn);
@@ -166,23 +216,20 @@ export default function ScannerPage() {
   }
 
   const handleZoom = (value: number[]) => {
-      if(videoRef.current && videoRef.current.srcObject) {
-         const stream = videoRef.current.srcObject as MediaStream;
-         const track = stream.getVideoTracks()[0];
-         const capabilities = track.getCapabilities();
-         if ('zoom' in capabilities && capabilities.zoom) {
-            track.applyConstraints({ advanced: [{ zoom: value[0] }] });
-         } else {
-             console.warn("Zoom is not supported by this device's camera.");
-         }
-      }
+    if(streamRef.current) {
+       const track = streamRef.current.getVideoTracks()[0];
+       const capabilities = track.getCapabilities();
+       if ('zoom' in capabilities) {
+          track.applyConstraints({ advanced: [{ zoom: value[0] }] });
+       }
+    }
   }
-  
+
   const renderScanner = () => {
     if (hasPermission === null) {
       return (
         <div className="flex flex-col items-center justify-center text-center p-4 text-white bg-gray-900 h-full">
-          <Camera className="w-16 h-16 text-gray-400 mb-4 animate-pulse" />
+          <Loader2 className="w-16 h-16 text-gray-400 mb-4 animate-spin" />
           <h3 className="text-xl font-bold">Meminta Izin Kamera...</h3>
         </div>
       );
@@ -195,60 +242,32 @@ export default function ScannerPage() {
                 <Camera className="h-4 w-4" />
                 <AlertTitle>Izin Kamera Diperlukan</AlertTitle>
                 <AlertDescription>
-                    Harap berikan izin akses kamera di pengaturan browser Anda untuk menggunakan pemindai. Kemudian, segarkan halaman.
+                    Harap berikan izin akses kamera di pengaturan browser Anda. Kemudian, segarkan halaman.
                 </AlertDescription>
             </Alert>
          </div>
       );
     }
-    
-    if (isScanning) {
-       return (
-          <>
-              <QrScanner
-                  onScan={handleScanResult}
-                  onError={handleError}
-                  constraints={{ 
-                      video: { 
-                          facingMode,
-                          focusMode: 'continuous',
-                      } 
-                  }}
-                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-              />
-              <div className="absolute inset-0 bg-transparent pointer-events-none">
-                <div className="absolute inset-0 border-[20px] border-black/30 shadow-[0_0_0_2000px_rgba(0,0,0,0.3)] rounded-2xl" />
-                <div className="absolute w-2/3 max-w-[300px] aspect-square top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
-                   <div className="w-full h-full border-4 border-white/80 rounded-2xl animate-pulse" />
-                </div>
-                 
-                 <div className="absolute top-4 left-4 right-4 flex justify-between items-center pointer-events-auto">
-                    <div className="flex items-center gap-2">
-                         <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full text-white bg-black/50 hover:bg-white/20 hover:text-white" onClick={toggleFlash}>
-                              {isFlashOn ? <ZapOff /> : <Zap />}
-                          </Button>
-                          <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full text-white bg-black/50 hover:bg-white/20 hover:text-white" onClick={toggleFacingMode}>
-                              <SwitchCamera />
-                          </Button>
-                    </div>
-                 </div>
-              </div>
-          </>
-      )
-    } else {
-        return (
-            <div className="flex flex-col items-center justify-center text-center p-4 text-white bg-gray-900 h-full">
-                <ClipboardCheck className="w-16 h-16 text-green-400 mb-4" />
-                <h3 className="text-xl font-bold">Pindai Selesai!</h3>
-                <p className="text-gray-300 mb-6">Hasil pindaian Anda telah ditambahkan ke riwayat di bawah.</p>
-                <Button onClick={() => setIsScanning(true)}>
-                   <RotateCcw className="mr-2"/> Mulai Pindai Baru
-                </Button>
-            </div>
-        );
-    }
-  }
 
+    return (
+      <div className='w-full h-full relative'>
+        <video ref={videoRef} className="w-full h-full object-cover" autoPlay playsInline muted />
+        <canvas ref={canvasRef} className="hidden" />
+        <div className="absolute inset-0 border-[20px] border-black/30 shadow-[0_0_0_2000px_rgba(0,0,0,0.3)] rounded-2xl pointer-events-none" />
+        <div className="absolute w-2/3 max-w-[300px] aspect-square top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none">
+           <div className="w-full h-full border-4 border-white/80 rounded-2xl animate-pulse" />
+        </div>
+        <div className="absolute top-4 left-4 right-4 flex justify-between items-center">
+          <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full text-white bg-black/50 hover:bg-white/20 hover:text-white" onClick={toggleFlash}>
+            {isFlashOn ? <ZapOff /> : <Zap />}
+          </Button>
+          <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full text-white bg-black/50 hover:bg-white/20 hover:text-white" onClick={toggleFacingMode}>
+            <SwitchCamera />
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto px-4 py-8 pb-24">
@@ -294,21 +313,24 @@ export default function ScannerPage() {
                 id="zoom-slider"
                 defaultValue={[1]} 
                 min={1} 
-                max={5} 
+                max={videoRef.current?.srcObject ? (streamRef.current?.getVideoTracks()[0].getCapabilities().zoom?.max ?? 1) : 1} 
                 step={0.1} 
                 onValueChange={handleZoom}
                 disabled={!isScanning || hasPermission !== true}
               />
           </div>
           
-           <div className="flex items-center justify-center gap-4">
-              <Button variant="outline" className="flex-1">
-                <Barcode className="mr-2"/> Barcode
-              </Button>
-               <Button variant="outline" className="flex-1">
-                <QrCode className="mr-2"/> QR Code
-              </Button>
-            </div>
+          <div className="flex items-center justify-center gap-4">
+            <Button variant={scanType === 'barcode' ? "default" : "outline"} className="flex-1" onClick={() => setScanType('barcode')}>
+              <Barcode className="mr-2"/> Barcode
+            </Button>
+            <Button variant={scanType === 'qr' ? "default" : "outline"} className="flex-1" onClick={() => setScanType('qr')}>
+              <QrCode className="mr-2"/> QR Code
+            </Button>
+            <Button variant={scanType === 'all' ? "default" : "outline"} onClick={() => setScanType('all')}>
+              All
+            </Button>
+          </div>
 
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-semibold">Riwayat Pindaian</h3>
