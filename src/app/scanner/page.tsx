@@ -32,28 +32,8 @@ interface ScannedItem {
   data: string;
 }
 
-// Safely initialize state from localStorage
-const getInitialHistory = (): ScannedItem[] => {
-  if (typeof window === 'undefined') {
-    return [];
-  }
-  try {
-    const storedHistory = localStorage.getItem('scannedHistory');
-    if (storedHistory) {
-      const parsed = JSON.parse(storedHistory);
-      // Basic validation to ensure it's an array
-      return Array.isArray(parsed) ? parsed : [];
-    }
-    return [];
-  } catch (error) {
-    console.error("Failed to parse history from localStorage", error);
-    return [];
-  }
-};
-
-
 export default function ScannerPage() {
-  const [scannedHistory, setScannedHistory] = useState<ScannedItem[]>(getInitialHistory);
+  const [scannedHistory, setScannedHistory] = useState<ScannedItem[]>([]);
   const [isScanning, setIsScanning] = useState(false);
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [facingMode, setFacingMode] = useState<'user' | 'environment'>('environment');
@@ -63,13 +43,28 @@ export default function ScannerPage() {
   const { toast } = useToast();
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
+  // Effect to load history from localStorage only on the client side
+  useEffect(() => {
+    try {
+      const storedHistory = localStorage.getItem('scannedHistory');
+      if (storedHistory) {
+        const parsed = JSON.parse(storedHistory);
+        if (Array.isArray(parsed)) {
+          setScannedHistory(parsed);
+        }
+      }
+    } catch (error) {
+      console.error("Failed to parse history from localStorage", error);
+    }
+  }, []);
+
   useEffect(() => {
     const requestCameraPermission = async () => {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ 
             video: { 
                 facingMode: 'environment',
-                focusMode: 'continuous' // Enable auto-focus
+                focusMode: 'continuous'
             } 
         });
         stream.getTracks().forEach(track => track.stop());
@@ -83,8 +78,8 @@ export default function ScannerPage() {
     requestCameraPermission();
   }, []);
 
+  // Effect to save history to localStorage whenever it changes
   useEffect(() => {
-    // Save history to localStorage whenever it changes
     try {
         localStorage.setItem('scannedHistory', JSON.stringify(scannedHistory));
     } catch (error) {
