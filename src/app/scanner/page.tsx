@@ -46,7 +46,7 @@ export default function ScannerPage() {
   const { toast } = useToast();
   const scannerRef = useRef<any>(null);
 
-  // Safely load from localStorage ONLY on the client side
+  // Safely load from localStorage ONLY on the client side, AFTER the component has mounted.
   useEffect(() => {
     try {
       const storedHistory = localStorage.getItem('scannedHistory');
@@ -62,9 +62,13 @@ export default function ScannerPage() {
     }
   }, []);
 
-  // Save to localStorage whenever history changes
+  // Save to localStorage whenever history changes. This runs after the initial load.
   useEffect(() => {
-    localStorage.setItem('scannedHistory', JSON.stringify(scannedHistory));
+    // We don't run this on the initial render to avoid overwriting the loaded state
+    // with an empty array before the history has a chance to be loaded from localStorage.
+    if (scannedHistory.length > 0 || localStorage.getItem('scannedHistory')) {
+      localStorage.setItem('scannedHistory', JSON.stringify(scannedHistory));
+    }
   }, [scannedHistory]);
 
 
@@ -91,17 +95,18 @@ export default function ScannerPage() {
         data: result.text,
       };
       
-      if (scannedHistory.some(item => item.data === newScan.data)) return;
+      // Check if the item already exists in the history before adding
+      if (!scannedHistory.some(item => item.data === newScan.data)) {
+        setScannedHistory(prev => [newScan, ...prev]);
+        
+        toast({
+          title: 'Pemindaian Berhasil',
+          description: 'Data telah ditambahkan ke riwayat.',
+        });
 
-      setScannedHistory(prev => [newScan, ...prev]);
-      
-      toast({
-        title: 'Pemindaian Berhasil',
-        description: 'Data telah ditambahkan ke riwayat.',
-      });
-
-      if (!isAutoScan) {
-        setIsScanning(false);
+        if (!isAutoScan) {
+          setIsScanning(false);
+        }
       }
     }
   };
@@ -353,5 +358,3 @@ export default function ScannerPage() {
     </div>
   );
 }
-
-    
