@@ -26,6 +26,7 @@ export default function WordToPdfPage() {
         title: 'File Tidak Valid',
         description: 'Silakan pilih file dengan format .docx.',
       });
+      setFile(null);
     }
   };
 
