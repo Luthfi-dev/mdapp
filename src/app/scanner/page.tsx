@@ -51,7 +51,7 @@ export default function ScannerPage() {
     }
   };
 
-  const playBeep = () => {
+  const playBeep = useCallback(() => {
     if (!beepAudioRef.current) return;
     const oscillator = beepAudioRef.current.createOscillator();
     const gainNode = beepAudioRef.current.createGain();
@@ -66,7 +66,7 @@ export default function ScannerPage() {
     
     oscillator.start();
     oscillator.stop(beepAudioRef.current.currentTime + 0.1);
-  };
+  }, []);
 
   useEffect(() => {
     const initializeBarcodeDetector = async () => {
@@ -82,7 +82,6 @@ export default function ScannerPage() {
       }
     };
     
-    initializeBeep();
     initializeBarcodeDetector();
   }, []);
   
@@ -139,25 +138,23 @@ export default function ScannerPage() {
   }, [isCameraActive, startCamera, stopCamera]);
 
   const handleScanResult = useCallback((result: string) => {
-    if (result && !scannedHistory.some(item => item.data === result) && !isCooldown) {
-      playBeep();
-      setIsCooldown(true);
+    playBeep();
+    setIsCooldown(true);
 
-      const newScan: ScannedItem = { id: Date.now() + Math.random(), data: result };
-      setScannedHistory(prevHistory => [newScan, ...prevHistory]);
-      
-      toast({
-        title: 'Pemindaian Berhasil',
-        description: 'Data telah ditambahkan ke riwayat.',
-      });
+    const newScan: ScannedItem = { id: Date.now() + Math.random(), data: result };
+    setScannedHistory(prevHistory => [newScan, ...prevHistory]);
+    
+    toast({
+      title: 'Pemindaian Berhasil',
+      description: 'Data telah ditambahkan ke riwayat.',
+    });
 
-      if (!isAutoScan) {
-        setIsCameraActive(false);
-      }
-      
-      setTimeout(() => setIsCooldown(false), 2000);
+    if (!isAutoScan) {
+      setIsCameraActive(false);
     }
-  }, [scannedHistory, isAutoScan, toast, isCooldown]);
+    
+    setTimeout(() => setIsCooldown(false), 2000);
+  }, [isAutoScan, playBeep, toast]);
   
   const scanFrame = useCallback(async () => {
     if (!isCameraActive || !videoRef.current || !canvasRef.current || videoRef.current.paused || videoRef.current.ended || videoRef.current.readyState < 3 || isCooldown) {
@@ -187,9 +184,12 @@ export default function ScannerPage() {
     
     let codeFound = false;
   
+    // Logic to prevent duplicate scans within cooldown
+    const isAlreadyScanned = (data: string) => scannedHistory.some(item => item.data === data);
+
     if (!codeFound && (scanType === 'qr' || scanType === 'all')) {
       const code = jsQR(imageData.data, imageData.width, imageData.height);
-      if (code && code.data) {
+      if (code && code.data && !isAlreadyScanned(code.data)) {
         handleScanResult(code.data);
         codeFound = true;
       }
@@ -198,7 +198,7 @@ export default function ScannerPage() {
     if (!codeFound && (scanType === 'barcode' || scanType === 'all') && barcodeDetectorRef.current) {
       try {
         const barcodes = await barcodeDetectorRef.current.detect(imageData);
-        if (barcodes.length > 0) {
+        if (barcodes.length > 0 && barcodes[0].rawValue && !isAlreadyScanned(barcodes[0].rawValue)) {
           handleScanResult(barcodes[0].rawValue);
           codeFound = true;
         }
@@ -208,7 +208,7 @@ export default function ScannerPage() {
     }
     
     if(isCameraActive) requestAnimationFrame(scanFrame);
-  }, [scanType, handleScanResult, isCooldown, isCameraActive]);
+  }, [isCameraActive, isCooldown, scanType, handleScanResult, scannedHistory]);
   
   useEffect(() => {
     let animationFrameId: number;
@@ -242,6 +242,11 @@ export default function ScannerPage() {
   const clearAllHistory = () => {
     setScannedHistory([]);
   };
+  
+  const handleStartScanClick = () => {
+    initializeBeep();
+    setIsCameraActive(prev => !prev)
+  }
 
   const toggleFacingMode = () => {
     setIsFlashOn(false);
@@ -383,7 +388,7 @@ export default function ScannerPage() {
              {renderScanner()}
           </div>
           
-          <Button onClick={() => setIsCameraActive(prev => !prev)} className="w-full">
+          <Button onClick={handleStartScanClick} className="w-full">
             <Camera className="mr-2 h-4 w-4" />
             {isCameraActive ? 'Hentikan Pindai' : 'Mulai Pindai'}
           </Button>
@@ -454,3 +459,5 @@ export default function ScannerPage() {
     </div>
   );
 }
+
+    
