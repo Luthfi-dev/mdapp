@@ -37,15 +37,11 @@ export default function ScannerPage() {
   const streamRef = useRef<MediaStream | null>(null);
   const barcodeDetectorRef = useRef<any | null>(null);
 
-  // Load history from localStorage only on client-side mount
   useEffect(() => {
     try {
       const storedHistory = localStorage.getItem('scannedHistory');
       if (storedHistory) {
-        const parsedHistory = JSON.parse(storedHistory);
-        if (Array.isArray(parsedHistory)) {
-          setScannedHistory(parsedHistory);
-        }
+        setScannedHistory(JSON.parse(storedHistory));
       }
     } catch (e) {
       console.error("Failed to parse history from localStorage", e);
@@ -54,12 +50,13 @@ export default function ScannerPage() {
 
     if ('BarcodeDetector' in window) {
       try {
-        barcodeDetectorRef.current = new (window as any).BarcodeDetector({ formats: ['qr_code', 'code_128', 'ean_13', 'upc_a'] });
+        const supportedFormats = (window as any).BarcodeDetector.getSupportedFormats();
+        if (supportedFormats.includes('qr_code') && supportedFormats.includes('code_128')) {
+           barcodeDetectorRef.current = new (window as any).BarcodeDetector({ formats: ['qr_code', 'code_128', 'ean_13', 'upc_a'] });
+        }
       } catch (e) {
         console.error('Barcode Detector could not be initialized:', e);
       }
-    } else {
-      console.warn("Barcode Detector is not supported in this browser. Barcode scanning will be unavailable.");
     }
   }, []);
   
@@ -95,7 +92,6 @@ export default function ScannerPage() {
       streamRef.current = stream;
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
-        // The onloadedmetadata event is more reliable
         videoRef.current.onloadedmetadata = () => {
             videoRef.current?.play();
         };
@@ -115,17 +111,15 @@ export default function ScannerPage() {
   useEffect(() => {
     startCamera();
     return () => stopCamera();
-  }, [startCamera, stopCamera]);
+  }, [startCamera]);
 
   const handleScanResult = useCallback((result: string) => {
     if (result && !scannedHistory.some(item => item.data === result)) {
-      const newScan: ScannedItem = { id: Date.now(), data: result };
+      const newScan: ScannedItem = { id: Date.now() + Math.random(), data: result };
       
-      setScannedHistory(prev => {
-        const newHistory = [newScan, ...prev];
-        saveHistoryToLocalStorage(newHistory);
-        return newHistory;
-      });
+      const newHistory = [newScan, ...scannedHistory];
+      setScannedHistory(newHistory);
+      saveHistoryToLocalStorage(newHistory);
       
       toast({
         title: 'Pemindaian Berhasil',
@@ -140,7 +134,9 @@ export default function ScannerPage() {
   
   const scanFrame = useCallback(async () => {
     if (!videoRef.current || !canvasRef.current || videoRef.current.paused || videoRef.current.ended || videoRef.current.readyState < 3) {
-      requestAnimationFrame(scanFrame);
+      if (isAutoScan || scannedHistory.length === 0) {
+        requestAnimationFrame(scanFrame);
+      }
       return;
     }
   
@@ -149,8 +145,10 @@ export default function ScannerPage() {
     const ctx = canvas.getContext('2d', { willReadFrequently: true });
     
     if (!ctx) {
+      if (isAutoScan || scannedHistory.length === 0) {
         requestAnimationFrame(scanFrame);
-        return;
+      }
+      return;
     }
   
     canvas.width = video.videoWidth;
@@ -176,26 +174,25 @@ export default function ScannerPage() {
           codeFound = true;
         }
       } catch (e) {
-        // BarcodeDetector may fail
+          // BarcodeDetector may fail
       }
     }
     
-    if (!codeFound || isAutoScan) {
+    if (isAutoScan || scannedHistory.length === 0) {
       requestAnimationFrame(scanFrame);
     }
-  }, [scanType, handleScanResult, isAutoScan]);
+  }, [scanType, handleScanResult, isAutoScan, scannedHistory]);
   
   useEffect(() => {
     let animationFrameId: number;
-    if (hasPermission) {
+    if (hasPermission && (isAutoScan || scannedHistory.length === 0)) {
         const runScan = () => {
             scanFrame();
-            animationFrameId = requestAnimationFrame(runScan);
         };
         animationFrameId = requestAnimationFrame(runScan);
     }
     return () => cancelAnimationFrame(animationFrameId);
-  }, [hasPermission, scanFrame]);
+  }, [hasPermission, scanFrame, isAutoScan, scannedHistory.length]);
 
   const copyToClipboard = (text: string, singleItem: boolean = false) => {
     navigator.clipboard.writeText(text);
@@ -206,11 +203,9 @@ export default function ScannerPage() {
   };
 
   const deleteItem = (id: number) => {
-    setScannedHistory(prev => {
-      const newHistory = prev.filter(item => item.id !== id);
-      saveHistoryToLocalStorage(newHistory);
-      return newHistory;
-    });
+    const newHistory = scannedHistory.filter(item => item.id !== id);
+    setScannedHistory(newHistory);
+    saveHistoryToLocalStorage(newHistory);
   };
   
   const copyAll = () => {
@@ -228,8 +223,10 @@ export default function ScannerPage() {
      if (streamRef.current) {
         const track = streamRef.current.getVideoTracks()[0];
         const capabilities = track.getCapabilities();
-        if ('torch' in capabilities) {
+        // @ts-ignore
+        if (capabilities.torch) {
             try {
+                // @ts-ignore
                 await track.applyConstraints({ advanced: [{ torch: !isFlashOn }] });
                 setIsFlashOn(!isFlashOn);
             } catch (error) {
@@ -245,8 +242,11 @@ export default function ScannerPage() {
   const handleZoom = (value: number[]) => {
     if(streamRef.current) {
        const track = streamRef.current.getVideoTracks()[0];
+       // @ts-ignore
        const capabilities = track.getCapabilities();
-       if ('zoom' in capabilities && capabilities.zoom) {
+       // @ts-ignore
+       if (capabilities.zoom) {
+          // @ts-ignore
           track.applyConstraints({ advanced: [{ zoom: value[0] }] });
        }
     }
@@ -306,9 +306,11 @@ export default function ScannerPage() {
         <CardHeader>
             <CardTitle className="text-2xl font-headline">Pemindai Cerdas</CardTitle>
             <CardDescription>Arahkan kamera ke kode untuk memindai.</CardDescription>
-             <Dialog>
+        </CardHeader>
+        <CardContent className="space-y-6">
+           <Dialog>
               <DialogTrigger asChild>
-                  <Button variant="outline" className="w-full mt-4">
+                  <Button variant="outline" className="w-full">
                     <HelpCircle className="mr-2"/> Cara Penggunaan
                   </Button>
               </DialogTrigger>
@@ -332,8 +334,7 @@ export default function ScannerPage() {
                   </DialogClose>
               </DialogContent>
             </Dialog>
-        </CardHeader>
-        <CardContent className="space-y-6">
+
           <div className="relative w-full aspect-square bg-gray-900 rounded-lg overflow-hidden flex items-center justify-center">
              {renderScanner()}
           </div>
@@ -344,6 +345,7 @@ export default function ScannerPage() {
                 id="zoom-slider"
                 defaultValue={[1]} 
                 min={1} 
+                // @ts-ignore
                 max={streamRef.current?.getVideoTracks()[0]?.getCapabilities()?.zoom?.max ?? 10} 
                 step={0.1} 
                 onValueChange={handleZoom}
@@ -398,5 +400,3 @@ export default function ScannerPage() {
     </div>
   );
 }
-
-    
