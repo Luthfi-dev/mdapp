@@ -438,7 +438,7 @@ export default function ScannerPage() {
            {scannedHistory.length > 0 && (
                 <div className="flex items-center gap-2">
                   <Button onClick={copyAll} className="w-full">
-                      <Copy className="mr-2 h-4 w-4" /> Salin All ({scannedHistory.length})
+                      <Copy className="mr-2 h-4 w-4" /> Salin All
                   </Button>
                    <Button onClick={clearAllHistory} className="w-full" variant="destructive">
                       <Trash2 className="mr-2 h-4 w-4" /> Clear All
