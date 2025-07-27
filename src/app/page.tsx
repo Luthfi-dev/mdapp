@@ -49,7 +49,7 @@ export default function HomePage() {
     Autoplay({ delay: 2000, stopOnInteraction: true, stopOnMouseEnter: true })
   )
   return (
-    <div className="flex flex-col h-full bg-background">
+    <div className="flex flex-col h-full bg-background overflow-x-hidden">
       <header className="p-6 pb-8">
         <div className="flex justify-between items-center mb-6">
             <div className="flex flex-col">
@@ -80,7 +80,7 @@ export default function HomePage() {
             </div>
         </section>
 
-        <section id="interactive-cards" className="mb-8 -mx-6">
+        <section id="interactive-cards" className="mb-8 -mx-4">
           <Carousel
             opts={{
               align: "center",
@@ -92,17 +92,17 @@ export default function HomePage() {
             onMouseLeave={plugin.current.reset}
           >
             <CarouselContent>
-              <CarouselItem className="basis-4/5 md:basis-1/2 pl-6">
+              <CarouselItem className="basis-4/5 md:basis-1/2 pl-4">
                 <div className="p-1 h-36">
                   <DailyQuizCard />
                 </div>
               </CarouselItem>
-              <CarouselItem className="basis-4/5 md:basis-1/2 pl-6">
+              <CarouselItem className="basis-4/5 md:basis-1/2 pl-4">
                 <div className="p-1 h-36">
                  <LatihanSoalCard />
                 </div>
               </CarouselItem>
-               <CarouselItem className="basis-4/5 md:basis-1/2 pl-6">
+               <CarouselItem className="basis-4/5 md:basis-1/2 pl-4">
                 <div className="p-1 h-36">
                   <DailyQuizCard />
                 </div>
