@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Slider } from '@/components/ui/slider';
 import jsQR from 'jsqr';
 import 'webrtc-adapter';
+import { Label } from '@/components/ui/label';
 
 interface ScannedItem {
   id: number;
