@@ -12,19 +12,16 @@ import { z } from 'zod';
 import mammoth from 'mammoth';
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 import htmlToDocx from 'html-to-docx';
-
-// Schema for PDF to Word
-export const PdfToWordInputSchema = z.object({
-  fileDataUri: z.string().describe("A PDF file encoded as a data URI."),
-  filename: z.string().describe('The original name of the file.'),
-});
-export type PdfToWordInput = z.infer<typeof PdfToWordInputSchema>;
-
-export const PdfToWordOutputSchema = z.object({
-  docxDataUri: z.string().optional().describe('The content of the document as a DOCX data uri.'),
-  error: z.string().optional(),
-});
-export type PdfToWordOutput = z.infer<typeof PdfToWordOutputSchema>;
+import {
+    PdfToWordInputSchema,
+    PdfToWordOutputSchema,
+    WordToPdfInputSchema,
+    WordToPdfOutputSchema,
+    type PdfToWordInput,
+    type PdfToWordOutput,
+    type WordToPdfInput,
+    type WordToPdfOutput
+} from './schemas';
 
 
 const pdfToWordPrompt = ai.definePrompt({
@@ -75,20 +72,6 @@ const convertPdfToWordFlow = ai.defineFlow(
 export async function convertPdfToWord(input: PdfToWordInput): Promise<PdfToWordOutput> {
   return await convertPdfToWordFlow(input);
 }
-
-
-// Schema for Word to PDF
-export const WordToPdfInputSchema = z.object({
-  fileDataUri: z.string().describe("A DOCX file encoded as a data URI."),
-  filename: z.string().describe('The original name of the file.'),
-});
-export type WordToPdfInput = z.infer<typeof WordToPdfInputSchema>;
-
-export const WordToPdfOutputSchema = z.object({
-  fileDataUri: z.string().optional().describe('The converted PDF file as a data URI.'),
-  error: z.string().optional(),
-});
-export type WordToPdfOutput = z.infer<typeof WordToPdfOutputSchema>;
 
 
 const convertWordToPdfFlow = ai.defineFlow(
