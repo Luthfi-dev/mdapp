@@ -40,26 +40,39 @@ export default function ScannerPage() {
   const scanIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    if ('BarcodeDetector' in window) {
-      barcodeDetectorRef.current = new (window as any).BarcodeDetector({ formats: ['qr_code', 'code_128', 'ean_13', 'upc_a'] });
-    } else {
-      console.warn("Barcode Detector is not supported in this browser. QR code scanning will still work.");
-    }
-
+    // Load history from localStorage only once on mount
     try {
       const storedHistory = localStorage.getItem('scannedHistory');
       if (storedHistory) {
-        setScannedHistory(JSON.parse(storedHistory));
+        const parsedHistory = JSON.parse(storedHistory);
+        if (Array.isArray(parsedHistory)) {
+          setScannedHistory(parsedHistory);
+        }
       }
     } catch (e) {
       console.error("Failed to parse history from localStorage", e);
-      setScannedHistory([]);
+      localStorage.removeItem('scannedHistory'); // Clear corrupted data
+    }
+
+    if ('BarcodeDetector' in window) {
+      try {
+        barcodeDetectorRef.current = new (window as any).BarcodeDetector({ formats: ['qr_code', 'code_128', 'ean_13', 'upc_a'] });
+      } catch (e) {
+        console.error('Barcode Detector could not be initialized:', e);
+      }
+    } else {
+      console.warn("Barcode Detector is not supported in this browser. Barcode scanning will be unavailable.");
     }
   }, []);
+  
+  const saveHistoryToLocalStorage = (history: ScannedItem[]) => {
+    try {
+      localStorage.setItem('scannedHistory', JSON.stringify(history));
+    } catch (e) {
+      console.error("Failed to save history to localStorage", e);
+    }
+  };
 
-  useEffect(() => {
-    localStorage.setItem('scannedHistory', JSON.stringify(scannedHistory));
-  }, [scannedHistory]);
 
   const stopCamera = useCallback(() => {
     if (streamRef.current) {
@@ -110,7 +123,12 @@ export default function ScannerPage() {
   const handleScanResult = useCallback((result: string) => {
     if (result && !scannedHistory.some(item => item.data === result)) {
       const newScan: ScannedItem = { id: Date.now(), data: result };
-      setScannedHistory(prev => [newScan, ...prev]);
+      
+      setScannedHistory(prev => {
+        const newHistory = [newScan, ...prev];
+        saveHistoryToLocalStorage(newHistory);
+        return newHistory;
+      });
       
       toast({
         title: 'Pemindaian Berhasil',
@@ -124,11 +142,11 @@ export default function ScannerPage() {
   }, [scannedHistory, isAutoScan, stopCamera, toast]);
 
   const scanFrame = useCallback(async () => {
-    if (!isScanning || !videoRef.current || !canvasRef.current) return;
+    if (!isScanning || !videoRef.current || !canvasRef.current || !videoRef.current.videoWidth) return;
 
     const video = videoRef.current;
     const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
     
     if (!ctx || video.readyState !== video.HAVE_ENOUGH_DATA) {
       requestAnimationFrame(scanFrame);
@@ -140,31 +158,35 @@ export default function ScannerPage() {
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
     
+    let codeFound = false;
+
     // QR Code Scanning with jsQR
-    if (scanType === 'qr' || scanType === 'all') {
+    if (!codeFound && (scanType === 'qr' || scanType === 'all')) {
       const code = jsQR(imageData.data, imageData.width, imageData.height, {
         inversionAttempts: "dontInvert",
       });
       if (code) {
         handleScanResult(code.data);
-        if (!isAutoScan) return; // Stop if not auto scanning
+        codeFound = true;
       }
     }
 
     // Barcode Scanning with BarcodeDetector
-    if ((scanType === 'barcode' || scanType === 'all') && barcodeDetectorRef.current) {
+    if (!codeFound && (scanType === 'barcode' || scanType === 'all') && barcodeDetectorRef.current) {
       try {
         const barcodes = await barcodeDetectorRef.current.detect(imageData);
         if (barcodes.length > 0) {
           handleScanResult(barcodes[0].rawValue);
-          if (!isAutoScan) return; // Stop if not auto scanning
+          codeFound = true;
         }
       } catch (e) {
-        // console.error("Barcode detection failed:", e);
+        // BarcodeDetector may fail if format is not supported
       }
     }
     
-    requestAnimationFrame(scanFrame);
+    if (!codeFound || isAutoScan) {
+      requestAnimationFrame(scanFrame);
+    }
   }, [isScanning, scanType, handleScanResult, isAutoScan]);
   
   useEffect(() => {
@@ -183,7 +205,11 @@ export default function ScannerPage() {
   };
 
   const deleteItem = (id: number) => {
-    setScannedHistory(prev => prev.filter(item => item.id !== id));
+    setScannedHistory(prev => {
+      const newHistory = prev.filter(item => item.id !== id);
+      saveHistoryToLocalStorage(newHistory);
+      return newHistory;
+    });
   };
   
   const copyAll = () => {
@@ -200,8 +226,8 @@ export default function ScannerPage() {
   const toggleFlash = async () => {
      if (streamRef.current) {
         const track = streamRef.current.getVideoTracks()[0];
-        const hasTorch = 'torch' in track.getCapabilities();
-        if (hasTorch) {
+        const capabilities = track.getCapabilities();
+        if ('torch' in capabilities) {
             try {
                 await track.applyConstraints({ advanced: [{ torch: !isFlashOn }] });
                 setIsFlashOn(!isFlashOn);
@@ -313,7 +339,7 @@ export default function ScannerPage() {
                 id="zoom-slider"
                 defaultValue={[1]} 
                 min={1} 
-                max={videoRef.current?.srcObject ? (streamRef.current?.getVideoTracks()[0].getCapabilities().zoom?.max ?? 1) : 1} 
+                max={streamRef.current?.getVideoTracks()[0].getCapabilities().zoom?.max ?? 10} 
                 step={0.1} 
                 onValueChange={handleZoom}
                 disabled={!isScanning || hasPermission !== true}
@@ -370,3 +396,5 @@ export default function ScannerPage() {
     </div>
   );
 }
+
+    
