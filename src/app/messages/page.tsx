@@ -55,7 +55,7 @@ export default function MessagesPage() {
     };
 
     return (
-        <div className="flex flex-col h-[calc(100vh-80px)] bg-background">
+        <Card className="flex flex-col h-[calc(100vh-80px)] bg-background rounded-none border-0">
              <CardHeader className="flex flex-row items-center gap-3 border-b bg-background z-10 shrink-0">
                  <Avatar>
                     <AvatarFallback className="bg-primary text-primary-foreground"><Bot /></AvatarFallback>
@@ -65,8 +65,8 @@ export default function MessagesPage() {
                     <p className="text-sm text-muted-foreground">Online</p>
                 </div>
             </CardHeader>
-            <div className="flex-grow flex flex-col overflow-hidden">
-                <ScrollArea className="flex-grow" viewportRef={viewportRef}>
+            <CardContent className="flex-grow p-0 overflow-hidden">
+                <ScrollArea className="h-full" viewportRef={viewportRef}>
                     <div className="space-y-6 p-4">
                         {messages.map((message, index) => (
                             <div key={index} className={cn("flex items-end gap-2", message.role === 'user' ? "justify-end" : "justify-start")}>
@@ -102,21 +102,21 @@ export default function MessagesPage() {
                         )}
                     </div>
                 </ScrollArea>
-                <CardFooter className="p-4 border-t bg-background shrink-0">
-                    <form onSubmit={handleSubmit} className="flex w-full items-center gap-2">
-                        <Input
-                            value={input}
-                            onChange={(e) => setInput(e.target.value)}
-                            placeholder="Ketik pesan Anda..."
-                            className="flex-grow rounded-full h-12 px-5"
-                            disabled={isLoading}
-                        />
-                        <Button type="submit" size="icon" className="rounded-full w-12 h-12" disabled={isLoading || !input.trim()}>
-                            <Send className="h-5 w-5" />
-                        </Button>
-                    </form>
-                </CardFooter>
-            </div>
-        </div>
+            </CardContent>
+            <CardFooter className="p-4 border-t bg-background shrink-0">
+                <form onSubmit={handleSubmit} className="flex w-full items-center gap-2">
+                    <Input
+                        value={input}
+                        onChange={(e) => setInput(e.target.value)}
+                        placeholder="Ketik pesan Anda..."
+                        className="flex-grow rounded-full h-12 px-5"
+                        disabled={isLoading}
+                    />
+                    <Button type="submit" size="icon" className="rounded-full w-12 h-12" disabled={isLoading || !input.trim()}>
+                        <Send className="h-5 w-5" />
+                    </Button>
+                </form>
+            </CardFooter>
+        </Card>
     );
 }
