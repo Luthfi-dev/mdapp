@@ -7,23 +7,19 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Download, Loader2, FileCode2, FileText, ArrowRightLeft } from 'lucide-react';
-import mammoth from 'mammoth';
-import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
+import { Loader2, FileCode2, FileText, ArrowRightLeft } from 'lucide-react';
+import { saveAs } from 'file-saver';
+import { convertWordToPdf } from '@/ai/flows/file-converter';
 
 export default function WordToPdfPage() {
   const [file, setFile] = useState<File | null>(null);
   const [isConverting, setIsConverting] = useState(false);
-  const [convertedFileUrl, setConvertedFileUrl] = useState<string | null>(null);
-  const [previewContent, setPreviewContent] = useState<string | null>(null);
   const { toast } = useToast();
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
     if (selectedFile && (selectedFile.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || selectedFile.name.endsWith('.docx'))) {
       setFile(selectedFile);
-      setConvertedFileUrl(null);
-      setPreviewContent(null);
     } else {
       toast({
         variant: 'destructive',
@@ -32,30 +28,14 @@ export default function WordToPdfPage() {
       });
     }
   };
+
+  const toBase64 = (file: File) => new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = error => reject(error);
+  });
   
-  const convertHtmlToPdf = async (html: string): Promise<Uint8Array> => {
-    const pdfDoc = await PDFDocument.create();
-    const page = pdfDoc.addPage();
-    const { width, height } = page.getSize();
-    const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
-
-    // This is a very basic conversion. It does not handle complex HTML styling.
-    // It simply draws the text content.
-    const textContent = new DOMParser().parseFromString(html, 'text/html').body.textContent || '';
-    
-    page.drawText(textContent, {
-      x: 50,
-      y: height - 4 * 50,
-      font,
-      size: 12,
-      color: rgb(0, 0, 0),
-      maxWidth: width - 100,
-      lineHeight: 15,
-    });
-    
-    return pdfDoc.save();
-  };
-
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!file) {
@@ -68,28 +48,24 @@ export default function WordToPdfPage() {
     }
 
     setIsConverting(true);
-    setConvertedFileUrl(null);
-    setPreviewContent(null);
 
     try {
-      const arrayBuffer = await file.arrayBuffer();
+      const dataUri = await toBase64(file);
+      const result = await convertWordToPdf({ fileDataUri: dataUri, filename: file.name });
       
-      // 1. Convert DOCX to HTML using Mammoth
-      const { value: htmlResult } = await mammoth.convertToHtml({ arrayBuffer });
-      setPreviewContent(htmlResult);
+      if (result.error) {
+        throw new Error(result.error);
+      }
 
-      // 2. Convert HTML to PDF using pdf-lib
-      const pdfBytes = await convertHtmlToPdf(htmlResult);
-      
-      // 3. Create a Blob and URL for download
-      const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-      const url = URL.createObjectURL(blob);
-      setConvertedFileUrl(url);
-
-      toast({
-        title: 'Konversi Berhasil',
-        description: 'File Word Anda telah dikonversi menjadi PDF.',
-      });
+      if(result.fileDataUri){
+        saveAs(result.fileDataUri, getTargetFilename());
+         toast({
+          title: 'Konversi Berhasil',
+          description: 'File Word Anda telah dikonversi menjadi PDF.',
+        });
+      } else {
+        throw new Error('Konversi gagal: tidak ada file yang diterima.');
+      }
 
     } catch (error) {
       console.error(error);
@@ -137,29 +113,10 @@ export default function WordToPdfPage() {
                   Mengonversi...
                 </>
               ) : (
-                'Konversi ke PDF'
+                'Konversi ke PDF & Unduh'
               )}
             </Button>
           </form>
-
-          {convertedFileUrl && (
-             <div className="mt-8 border-t pt-6 space-y-4">
-              <h3 className="text-lg font-medium text-primary text-center">Pratinjau & Unduh</h3>
-              <div className="border rounded-md p-4 bg-secondary max-h-60 overflow-y-auto">
-                 {previewContent && (
-                    <div className="prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: previewContent }} />
-                 )}
-              </div>
-              <div className="text-center">
-                <Button asChild>
-                    <a href={convertedFileUrl} download={getTargetFilename()}>
-                    <Download className="mr-2 h-4 w-4" />
-                    Unduh File PDF
-                    </a>
-                </Button>
-              </div>
-            </div>
-          )}
         </CardContent>
       </Card>
     </div>

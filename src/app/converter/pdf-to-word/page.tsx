@@ -7,9 +7,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Download, Loader2, FileText, FileCode2, ArrowRightLeft } from 'lucide-react';
-import { convertPdfToWord } from '@/ai/flows/file-converter';
+import { Loader2, FileText, FileCode2, ArrowRightLeft } from 'lucide-react';
 import { saveAs } from 'file-saver';
+import { convertPdfToWord } from '@/ai/flows/file-converter';
+import htmlToDocx from 'html-to-docx';
 
 export default function PdfToWordPage() {
   const [file, setFile] = useState<File | null>(null);
@@ -52,15 +53,23 @@ export default function PdfToWordPage() {
 
     try {
       const dataUri = await toBase64(file);
-      const result = await convertPdfToWord({ pdfDataUri: dataUri, filename: file.name });
       
-      const docBlob = new Blob([`<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body>${result.htmlContent}</body></html>`], { type: 'application/msword' });
-      saveAs(docBlob, getTargetFilename());
-
-      toast({
-        title: 'Konversi Berhasil',
-        description: 'File PDF Anda telah berhasil dikonversi ke Word.',
-      });
+      const result = await convertPdfToWord({ fileDataUri: dataUri, filename: file.name });
+      
+      if (result.error) {
+         throw new Error(result.error);
+      }
+      
+      if (result.htmlContent) {
+        const fileBuffer = await htmlToDocx(result.htmlContent);
+        saveAs(fileBuffer as Blob, getTargetFilename());
+        toast({
+          title: 'Konversi Berhasil',
+          description: 'File PDF Anda telah berhasil dikonversi ke Word.',
+        });
+      } else {
+        throw new Error('Konversi gagal: tidak ada konten yang diterima.');
+      }
 
     } catch (error) {
       console.error(error);
@@ -76,9 +85,9 @@ export default function PdfToWordPage() {
   };
 
   const getTargetFilename = () => {
-    if (!file) return 'converted.doc';
+    if (!file) return 'converted.docx';
     const originalName = file.name.substring(0, file.name.lastIndexOf('.'));
-    return `${originalName}.doc`;
+    return `${originalName}.docx`;
   };
 
   return (
@@ -90,8 +99,8 @@ export default function PdfToWordPage() {
             <ArrowRightLeft className="w-8 h-8 text-muted-foreground" />
             <FileCode2 className="w-12 h-12 text-blue-500" />
           </div>
-          <CardTitle className="text-2xl font-headline">PDF ke Word (AI)</CardTitle>
-          <CardDescription>Unggah file PDF Anda untuk diubah menjadi dokumen Word (.doc) menggunakan AI.</CardDescription>
+          <CardTitle className="text-2xl font-headline">PDF ke Word (AI Layout)</CardTitle>
+          <CardDescription>Unggah file PDF Anda untuk diubah menjadi dokumen Word (.docx) dengan analisis tata letak oleh AI.</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
@@ -113,7 +122,7 @@ export default function PdfToWordPage() {
             </Button>
           </form>
             <div className="mt-6 text-center text-sm text-muted-foreground">
-                <p>Konversi ini didukung oleh AI untuk mengekstrak teks. Hasilnya mungkin memerlukan penyesuaian tata letak manual.</p>
+                <p>Didukung oleh AI untuk menganalisis dan mempertahankan tata letak. Hasil mungkin memerlukan penyesuaian manual.</p>
             </div>
         </CardContent>
       </Card>
