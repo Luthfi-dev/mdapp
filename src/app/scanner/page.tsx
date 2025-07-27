@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { 
-  Camera, Copy, Trash2, Zap, ZapOff, SwitchCamera, HelpCircle, X, Power, QrCode, Barcode, ZoomIn, Loader2
+  Camera, Copy, Trash2, Zap, ZapOff, SwitchCamera, HelpCircle, X, Power, QrCode, Barcode, ZoomIn
 } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
@@ -214,9 +214,9 @@ export default function ScannerPage() {
     let animationFrameId: number;
     if (isCameraActive) {
         const runScan = () => {
-            animationFrameId = requestAnimationFrame(scanFrame);
+            scanFrame();
         };
-        runScan();
+        animationFrameId = requestAnimationFrame(runScan);
     }
     return () => cancelAnimationFrame(animationFrameId);
   }, [isCameraActive, scanFrame]);
@@ -286,9 +286,14 @@ export default function ScannerPage() {
     setScanType(prev => {
         const newType = prev === type ? 'all' : type;
         if(barcodeDetectorRef.current?.formats) {
-            if (newType === 'qr') barcodeDetectorRef.current.formats = ['qr_code'];
-            else if(newType === 'barcode') barcodeDetectorRef.current.formats = ['code_128', 'ean_13', 'upc_a'];
-            else barcodeDetectorRef.current.formats = ['qr_code', 'code_128', 'ean_13', 'upc_a'];
+            if (newType === 'qr') {
+              // Only allow QR code scanning with jsQR
+            } else if(newType === 'barcode') {
+              barcodeDetectorRef.current.formats = ['code_128', 'ean_13', 'upc_a'];
+            }
+            else { 
+              barcodeDetectorRef.current.formats = ['qr_code', 'code_128', 'ean_13', 'upc_a'];
+            }
         }
         return newType;
     });
@@ -437,10 +442,10 @@ export default function ScannerPage() {
            {scannedHistory.length > 0 && (
                 <div className="flex items-center gap-2">
                   <Button onClick={copyAll} className="w-full">
-                      <Copy className="mr-2 h-4 w-4" /> Salin Semua ({scannedHistory.length})
+                      <Copy className="mr-2 h-4 w-4" /> Salin All ({scannedHistory.length})
                   </Button>
                    <Button onClick={clearAllHistory} className="w-full" variant="destructive">
-                      <Trash2 className="mr-2 h-4 w-4" /> Hapus Semua
+                      <Trash2 className="mr-2 h-4 w-4" /> Clear All
                   </Button>
                 </div>
            )}
@@ -449,4 +454,3 @@ export default function ScannerPage() {
     </div>
   );
 }
-
