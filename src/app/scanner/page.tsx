@@ -63,17 +63,17 @@ export default function ScannerPage() {
     requestCameraPermission();
 
     // Load history from localStorage
-    const storedHistory = localStorage.getItem('scannedHistory');
-    if (storedHistory) {
-      try {
+    try {
+      const storedHistory = localStorage.getItem('scannedHistory');
+      if (storedHistory) {
         const parsedHistory = JSON.parse(storedHistory);
         if (Array.isArray(parsedHistory)) {
           setScannedHistory(parsedHistory);
         }
-      } catch (error) {
-        console.error("Failed to parse history from localStorage", error);
-        setScannedHistory([]);
       }
+    } catch (error) {
+      console.error("Failed to parse history from localStorage", error);
+      setScannedHistory([]); // Ensure it's always an array
     }
   }, []);
 
@@ -240,43 +240,48 @@ export default function ScannerPage() {
     <div className="container mx-auto px-4 py-8 pb-24">
       <Card className="max-w-2xl mx-auto overflow-hidden shadow-xl rounded-2xl">
         <CardHeader>
-          <div className="flex justify-between items-center">
-            <div>
-              <CardTitle className="text-2xl font-headline">Pemindai Cerdas</CardTitle>
-              <CardDescription>Arahkan kamera ke kode untuk memindai.</CardDescription>
-            </div>
-             <Dialog>
-                <DialogTrigger asChild>
-                    <Button variant="outline" className="shrink-0">
-                      <HelpCircle className="mr-2"/> Cara Penggunaan
+            <CardTitle className="text-2xl font-headline">Pemindai Cerdas</CardTitle>
+            <CardDescription>Arahkan kamera ke kode untuk memindai.</CardDescription>
+            <Dialog>
+              <DialogTrigger asChild>
+                  <Button variant="outline" className="w-full mt-2">
+                    <HelpCircle className="mr-2"/> Cara Penggunaan
+                  </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-md rounded-2xl shadow-2xl">
+                  <DialogHeader>
+                  <DialogTitle className="text-xl text-center font-bold">Panduan Penggunaan Pemindai</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4 text-sm text-muted-foreground pt-2">
+                      <p className="flex items-start gap-3"><Camera className="w-6 h-6 text-primary shrink-0 mt-0.5"/> <span>Arahkan kamera Anda ke QR Code atau Barcode. Pemindaian akan terjadi secara otomatis ketika kode terdeteksi dengan jelas.</span></p>
+                      <p className="flex items-start gap-3"><Zap className="w-6 h-6 text-primary shrink-0 mt-0.5"/><span>Gunakan ikon **Flash** untuk menyalakan lampu senter perangkat dalam kondisi gelap agar pemindaian lebih mudah.</span></p>
+                      <p className="flex items-start gap-3"><SwitchCamera className="w-6 h-6 text-primary shrink-0 mt-0.5"/><span>Gunakan ikon **Ganti Kamera** untuk beralih antara kamera depan dan belakang sesuai kebutuhan Anda.</span></p>
+                      <p className="flex items-start gap-3"><Power className="w-6 h-6 text-primary shrink-0 mt-0.5"/><span>Aktifkan **'Auto Scan'** untuk memulai pemindaian baru secara otomatis 2 detik setelah pemindaian sebelumnya berhasil. Sangat efisien untuk memindai banyak kode secara berurutan.</span></p>
+                        <p className="flex items-start gap-3"><Copy className="w-6 h-6 text-primary shrink-0 mt-0.5"/><span>Setiap hasil pindaian akan muncul di riwayat. Anda dapat **menyalin** satu per satu atau **menyalin semua** hasil sekaligus dengan pemisah koma.</span></p>
+                  </div>
+                  <DialogClose asChild>
+                      <Button type="button" variant="ghost" size="icon" className="absolute right-4 top-4 rounded-full h-8 w-8">
+                        <X className="h-4 w-4" />
+                        <span className="sr-only">Tutup</span>
                     </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-md rounded-2xl shadow-2xl">
-                    <DialogHeader>
-                    <DialogTitle className="text-xl text-center font-bold">Panduan Penggunaan Pemindai</DialogTitle>
-                    </DialogHeader>
-                    <div className="space-y-4 text-sm text-muted-foreground pt-2">
-                        <p className="flex items-start gap-3"><Camera className="w-6 h-6 text-primary shrink-0 mt-0.5"/> <span>Arahkan kamera Anda ke QR Code atau Barcode. Pemindaian akan terjadi secara otomatis ketika kode terdeteksi dengan jelas.</span></p>
-                        <p className="flex items-start gap-3"><Zap className="w-6 h-6 text-primary shrink-0 mt-0.5"/><span>Gunakan ikon **Flash** untuk menyalakan lampu senter perangkat dalam kondisi gelap agar pemindaian lebih mudah.</span></p>
-                        <p className="flex items-start gap-3"><SwitchCamera className="w-6 h-6 text-primary shrink-0 mt-0.5"/><span>Gunakan ikon **Ganti Kamera** untuk beralih antara kamera depan dan belakang sesuai kebutuhan Anda.</span></p>
-                        <p className="flex items-start gap-3"><Power className="w-6 h-6 text-primary shrink-0 mt-0.5"/><span>Aktifkan **'Auto Scan'** untuk memulai pemindaian baru secara otomatis 2 detik setelah pemindaian sebelumnya berhasil. Sangat efisien untuk memindai banyak kode secara berurutan.</span></p>
-                         <p className="flex items-start gap-3"><Copy className="w-6 h-6 text-primary shrink-0 mt-0.5"/><span>Setiap hasil pindaian akan muncul di riwayat. Anda dapat **menyalin** satu per satu atau **menyalin semua** hasil sekaligus dengan pemisah koma.</span></p>
-                    </div>
-                    <DialogClose asChild>
-                        <Button type="button" variant="ghost" size="icon" className="absolute right-4 top-4 rounded-full h-8 w-8">
-                          <X className="h-4 w-4" />
-                          <span className="sr-only">Tutup</span>
-                      </Button>
-                    </DialogClose>
-                </DialogContent>
+                  </DialogClose>
+              </DialogContent>
             </Dialog>
-          </div>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="relative w-full aspect-square bg-gray-900 rounded-lg overflow-hidden flex items-center justify-center">
              {renderScanner()}
           </div>
           
+           <div className="flex items-center justify-center gap-4">
+              <Button variant="outline" className="flex-1">
+                <Barcode className="mr-2"/> Barcode
+              </Button>
+               <Button variant="outline" className="flex-1">
+                <QrCode className="mr-2"/> QR Code
+              </Button>
+            </div>
+
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-semibold">Riwayat Pindaian</h3>
             <div className="flex items-center space-x-2">
