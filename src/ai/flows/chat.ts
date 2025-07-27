@@ -31,6 +31,27 @@ Here is the conversation history:
 {{role}}: {{content}}
 {{/each}}
 model:`,
+  // Loosen safety settings for free-tier keys.
+  config: {
+    safetySettings: [
+      {
+        category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
+        threshold: 'BLOCK_ONLY_HIGH',
+      },
+      {
+        category: 'HARM_CATEGORY_HATE_SPEECH',
+        threshold: 'BLOCK_ONLY_HIGH',
+      },
+      {
+        category: 'HARM_CATEGORY_HARASSMENT',
+        threshold: 'BLOCK_ONLY_HIGH',
+      },
+      {
+        category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
+        threshold: 'BLOCK_ONLY_HIGH',
+      },
+    ],
+  },
 });
 
 
@@ -44,7 +65,7 @@ const chatFlow = ai.defineFlow(
     const { output } = await prompt(history);
     return {
         role: 'model',
-        content: output || "Maaf, saya tidak bisa merespon saat ini.",
+        content: output || "Maaf, saya tidak bisa merespon saat ini. Coba lagi nanti.",
     };
   }
 );
