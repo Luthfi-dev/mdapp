@@ -4,7 +4,7 @@ import './globals.css';
 import { cn } from "@/lib/utils"
 import { Toaster } from "@/components/ui/toaster"
 import BottomNavBar from '@/components/BottomNavBar';
-import { Input } from '@/components/ui/input';
+import { ThemeProvider } from '@/components/ThemeProvider';
 
 export const metadata: Metadata = {
   title: 'All-in-One Toolkit',
@@ -13,7 +13,10 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: '#7C3AED',
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#1D88FE' },
+    { media: '(prefers-color-scheme: dark)', color: '#0F172A' },
+  ],
   width: 'device-width',
   initialScale: 1,
   maximumScale: 1,
@@ -33,11 +36,18 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=PT+Sans:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet" />
       </head>
       <body className={cn("font-body antialiased min-h-screen flex flex-col bg-background")}>
-        <main className="flex-grow">
-          {children}
-        </main>
-        <BottomNavBar />
-        <Toaster />
+        <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
+        >
+            <main className="flex-grow">
+              {children}
+            </main>
+            <BottomNavBar />
+            <Toaster />
+        </ThemeProvider>
       </body>
     </html>
   );

@@ -3,12 +3,15 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
-import { ArrowRight, BrainCircuit, Edit, FileText, Grid3x3, Moon, Search } from "lucide-react";
+import { ArrowRight, BrainCircuit, Edit, FileText, Grid3x3, Moon, Search, Sun, Gift } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import Autoplay from "embla-carousel-autoplay"
 import React from "react";
 import Link from "next/link";
 import { ScanLine } from "lucide-react";
+import { useTheme } from "next-themes";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { cn } from "@/lib/utils";
 
 const CategoryCard = ({ icon, label, href }: { icon: React.ReactNode, label: string, href: string }) => (
   <Link href={href} className="flex flex-col items-center gap-2 flex-shrink-0 w-20 text-center">
@@ -50,39 +53,55 @@ const LatihanSoalCard = () => (
 export default function HomePage() {
    const plugin = React.useRef(
     Autoplay({ delay: 3000, stopOnInteraction: true, stopOnMouseEnter: true })
-  )
+   )
+   const { theme, setTheme } = useTheme();
+   const isMobile = useIsMobile();
+   
   return (
     <div className="flex flex-col h-full bg-background overflow-x-hidden">
-       <header className="bg-primary text-primary-foreground p-6 pb-16 rounded-b-[40px] shadow-lg">
-        <div className="flex justify-between items-center mb-6">
+      <header className="bg-primary text-primary-foreground p-6 pb-20 rounded-b-[40px] shadow-lg">
+        <div className="flex justify-between items-center mb-4">
             <div className="flex flex-col">
                 <p className="opacity-80 text-sm">Selamat Datang!</p>
                 <h1 className="text-2xl font-bold">John Doe</h1>
             </div>
-            <Button variant="ghost" size="icon" className="rounded-full">
-              <Moon className="h-5 w-5" />
+            <Button variant="ghost" size="icon" className="rounded-full" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
+              <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+              <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+              <span className="sr-only">Toggle theme</span>
             </Button>
         </div>
-         <div className="relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-primary-foreground/60" />
-            <Input
-              type="search"
-              placeholder="Cari tool yg kamu butuhkan"
-              className="w-full rounded-full bg-primary/80 text-primary-foreground placeholder:text-primary-foreground/60 pl-11 pr-4 py-2 h-12 border-0 focus-visible:ring-2 focus-visible:ring-primary-foreground"
-            />
+        <div className="bg-primary-foreground/20 backdrop-blur-sm p-3 rounded-2xl flex justify-between items-center">
+            <div>
+                <p className="text-sm opacity-80">Poin Anda</p>
+                <p className="text-2xl font-bold">1,250</p>
+            </div>
+            <Button variant="secondary" className="bg-white/90 hover:bg-white text-primary rounded-full font-bold">
+                <Gift className="mr-2 h-4 w-4"/>
+                Klaim Poin
+            </Button>
         </div>
       </header>
-
-      <main className="flex-1 flex flex-col">
-        <div className="w-full">
-          <section id="features" className="mb-8 -mt-10 z-10 px-6">
-              <div className="flex justify-center items-start bg-card p-2 rounded-2xl shadow-md gap-2">
-                  <CategoryCard href="/converter" icon={<FileText className="text-primary" />} label="Konversi File" />
-                  <CategoryCard href="/scanner" icon={<ScanLine className="text-primary" />} label="Scanner" />
-                  <CategoryCard href="/apps" icon={<Grid3x3 className="text-primary" />} label="Semua App" />
-              </div>
-          </section>
+      
+      <main className="flex-1 flex flex-col -mt-10 z-10">
+        <div className="w-full px-6">
+             <div className="relative mb-8">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                <Input
+                  type="search"
+                  placeholder="Cari tool yg kamu butuhkan"
+                  className="w-full rounded-full bg-card text-foreground placeholder:text-muted-foreground pl-11 pr-4 py-2 h-12 border-2 border-transparent focus-visible:border-primary focus-visible:ring-0"
+                />
+            </div>
         </div>
+
+        <section id="features" className="mb-8 px-6">
+            <div className="flex justify-around items-start bg-card p-2 rounded-2xl shadow-md">
+                <CategoryCard href="/converter" icon={<FileText className="text-primary" />} label="Konversi File" />
+                <CategoryCard href="/scanner" icon={<ScanLine className="text-primary" />} label="Scanner" />
+                <CategoryCard href="/apps" icon={<Grid3x3 className="text-primary" />} label="Semua App" />
+            </div>
+        </section>
 
         <section id="interactive-cards" className="mb-8 w-full">
           <Carousel
@@ -116,10 +135,10 @@ export default function HomePage() {
         </section>
         
         <div className="px-6">
-          <section id="insights" className="pb-28">
+          <section id="recommendations" className="pb-28">
               <div className="flex justify-between items-center mb-4">
                   <h2 className="text-xl font-bold flex items-center gap-2">Rekomendasi untuk Anda</h2>
-                  <a href="#" className="text-sm text-primary font-semibold">Lihat Semua</a>
+                  <Link href="#" className="text-sm text-primary font-semibold">Lihat Semua</Link>
               </div>
               <div className="space-y-4">
                    <Card className="shadow-sm border-0 bg-card">
@@ -129,9 +148,11 @@ export default function HomePage() {
                               <h3 className="font-bold leading-tight">Tips Belajar Efektif di Era Digital</h3>
                               <p className="text-sm text-muted-foreground mt-1">Maksimalkan waktumu dengan metode yang terbukti.</p>
                           </div>
-                          <Button variant="ghost" size="icon" className="rounded-full shrink-0">
-                              <ArrowRight className="w-4 h-4 text-muted-foreground"/>
-                          </Button>
+                          {!isMobile && (
+                            <Button variant="ghost" size="icon" className="rounded-full shrink-0">
+                                <ArrowRight className="w-4 h-4 text-muted-foreground"/>
+                            </Button>
+                          )}
                       </CardContent>
                   </Card>
                    <Card className="shadow-sm border-0 bg-card">
@@ -141,9 +162,11 @@ export default function HomePage() {
                               <h3 className="font-bold leading-tight">Teknologi dalam Pendidikan</h3>
                               <p className="text-sm text-muted-foreground mt-1">Peran AI dan teknologi dalam proses belajar.</p>
                           </div>
-                          <Button variant="ghost" size="icon" className="rounded-full shrink-0">
-                              <ArrowRight className="w-4 h-4 text-muted-foreground"/>
-                          </Button>
+                           {!isMobile && (
+                            <Button variant="ghost" size="icon" className="rounded-full shrink-0">
+                                <ArrowRight className="w-4 h-4 text-muted-foreground"/>
+                            </Button>
+                          )}
                       </CardContent>
                   </Card>
               </div>
@@ -153,3 +176,5 @@ export default function HomePage() {
     </div>
   );
 }
+
+    
