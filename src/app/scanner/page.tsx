@@ -18,11 +18,14 @@ import {
   X,
   ClipboardCheck,
   Power,
-  RotateCcw
+  RotateCcw,
+  QrCode,
+  Barcode
 } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from '@/components/ui/dialog';
+import { cn } from '@/lib/utils';
 
 interface ScannedItem {
   id: number;
@@ -41,10 +44,15 @@ export default function ScannerPage() {
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
   useEffect(() => {
-    const checkCameraPermission = async () => {
+    const requestCameraPermission = async () => {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-        stream.getTracks().forEach(track => track.stop()); // Stop the stream immediately, we just needed to check permission
+        const stream = await navigator.mediaDevices.getUserMedia({ 
+            video: { 
+                facingMode: 'environment',
+                focusMode: 'continuous' // Enable auto-focus
+            } 
+        });
+        stream.getTracks().forEach(track => track.stop());
         setHasPermission(true);
         setIsScanning(true);
       } catch (err) {
@@ -52,7 +60,7 @@ export default function ScannerPage() {
         setHasPermission(false);
       }
     };
-    checkCameraPermission();
+    requestCameraPermission();
   }, []);
 
   const handleScanResult = (result: any) => {
@@ -61,11 +69,14 @@ export default function ScannerPage() {
         id: Date.now(),
         data: result.text,
       };
+      // Prevent duplicate scans
+      if (scannedHistory.some(item => item.data === newScan.data)) return;
+
       setScannedHistory(prev => [newScan, ...prev]);
       setIsScanning(false);
       toast({
-        title: 'Scan Successful',
-        description: 'Data added to history.',
+        title: 'Pemindaian Berhasil',
+        description: 'Data telah ditambahkan ke riwayat.',
       });
 
       if (isAutoScan) {
@@ -76,19 +87,21 @@ export default function ScannerPage() {
 
   const handleError = (error: any) => {
     console.error('QR Scanner Error:', error);
-    setIsScanning(false);
-    toast({
-      variant: 'destructive',
-      title: 'Scan Error',
-      description: 'Could not start video source. Please check camera permissions and ensure another app is not using the camera.',
-    });
+    if(isScanning) { // Only show toast if scanning was active
+        setIsScanning(false);
+        toast({
+          variant: 'destructive',
+          title: 'Gagal Memulai Kamera',
+          description: 'Tidak dapat memulai sumber video. Pastikan izin kamera diberikan dan kamera tidak digunakan oleh aplikasi lain.',
+        });
+    }
   }
   
   const copyToClipboard = (text: string, singleItem: boolean = false) => {
     navigator.clipboard.writeText(text);
     toast({
-      title: 'Copied to Clipboard!',
-      description: singleItem ? 'Scanned data copied.' : 'All scanned data copied.',
+      title: 'Berhasil Disalin!',
+      description: singleItem ? 'Data pindaian disalin ke clipboard.' : 'Semua data pindaian disalin ke clipboard.',
     });
   };
 
@@ -103,6 +116,10 @@ export default function ScannerPage() {
   }
 
   const toggleFacingMode = () => {
+    // Turn off flash before switching camera
+    if (isFlashOn) {
+        toggleFlash();
+    }
     setFacingMode(prev => (prev === 'user' ? 'environment' : 'user'));
   };
 
@@ -110,21 +127,18 @@ export default function ScannerPage() {
      if (videoRef.current && videoRef.current.srcObject) {
         const stream = videoRef.current.srcObject as MediaStream;
         const track = stream.getVideoTracks()[0];
-        if (track) {
-            const capabilities = track.getCapabilities();
-            if (capabilities.torch) {
-                try {
-                    await track.applyConstraints({
-                        advanced: [{ torch: !isFlashOn }]
-                    });
-                    setIsFlashOn(!isFlashOn);
-                } catch (error) {
-                    console.error("Failed to toggle flash:", error);
-                    toast({ variant: "destructive", title: "Flash Error", description: "Could not toggle the flash."});
-                }
-            } else {
-                toast({ title: "Flash Not Supported", description: "This device does not support flash control."});
+        if (track && track.getCapabilities().torch) {
+            try {
+                await track.applyConstraints({
+                    advanced: [{ torch: !isFlashOn }]
+                });
+                setIsFlashOn(!isFlashOn);
+            } catch (error) {
+                console.error("Gagal menyalakan flash:", error);
+                toast({ variant: "destructive", title: "Flash Error", description: "Tidak dapat mengaktifkan flash."});
             }
+        } else {
+            toast({ title: "Flash Tidak Didukung", description: "Perangkat ini tidak mendukung kontrol flash."});
         }
     }
   }
@@ -134,7 +148,7 @@ export default function ScannerPage() {
       return (
         <div className="flex flex-col items-center justify-center text-center p-4 text-white">
           <Camera className="w-16 h-16 text-gray-400 mb-4 animate-pulse" />
-          <h3 className="text-xl font-bold">Checking Camera...</h3>
+          <h3 className="text-xl font-bold">Memeriksa Kamera...</h3>
         </div>
       );
     }
@@ -144,9 +158,9 @@ export default function ScannerPage() {
          <div className="p-4">
             <Alert variant="destructive">
                 <Camera className="h-4 w-4" />
-                <AlertTitle>Camera Permission Required</AlertTitle>
+                <AlertTitle>Izin Kamera Diperlukan</AlertTitle>
                 <AlertDescription>
-                    Please grant camera access in your browser settings to use the scanner. Then, refresh the page.
+                    Harap berikan izin akses kamera di pengaturan browser Anda untuk menggunakan pemindai. Kemudian, segarkan halaman.
                 </AlertDescription>
             </Alert>
          </div>
@@ -157,11 +171,11 @@ export default function ScannerPage() {
        return (
           <>
               <QrScanner
-                  delay={300}
+                  delay={500}
                   onError={handleError}
                   onScan={handleScanResult}
                   style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                  constraints={{ video: { facingMode } }}
+                  constraints={{ video: { facingMode, focusMode: 'continuous' } }}
                   onLoad={(...args: any[]) => {
                       if (args[0]?.target) {
                           videoRef.current = args[0].target;
@@ -169,40 +183,22 @@ export default function ScannerPage() {
                   }}
               />
               <div className="absolute inset-0 bg-transparent pointer-events-none">
-                  <div className="absolute top-4 left-4 right-4 flex justify-between items-center pointer-events-auto">
-                      <div className="flex items-center gap-2 rounded-full bg-black/50 p-2">
-                          <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full text-white hover:bg-white/20 hover:text-white" onClick={toggleFlash}>
+                {/* Overlay UI */}
+                <div className="absolute inset-0 border-[20px] border-black/30 shadow-[0_0_0_2000px_rgba(0,0,0,0.3)] rounded-2xl" />
+                <div className="absolute w-2/3 max-w-[300px] aspect-square top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
+                   <div className="w-full h-full border-4 border-white/80 rounded-2xl animate-pulse" />
+                </div>
+                 
+                 <div className="absolute top-4 left-4 right-4 flex justify-between items-center pointer-events-auto">
+                    <div className="flex items-center gap-2">
+                         <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full text-white bg-black/50 hover:bg-white/20 hover:text-white" onClick={toggleFlash}>
                               {isFlashOn ? <ZapOff /> : <Zap />}
                           </Button>
-                          <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full text-white hover:bg-white/20 hover:text-white" onClick={toggleFacingMode}>
+                          <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full text-white bg-black/50 hover:bg-white/20 hover:text-white" onClick={toggleFacingMode}>
                               <SwitchCamera />
                           </Button>
-                      </div>
-                       <Dialog>
-                          <DialogTrigger asChild>
-                               <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full text-white bg-black/50 hover:bg-white/20 hover:text-white pointer-events-auto">
-                                  <HelpCircle />
-                              </Button>
-                          </DialogTrigger>
-                          <DialogContent className="max-w-sm rounded-2xl shadow-2xl">
-                              <DialogHeader>
-                              <DialogTitle className="text-xl text-center font-bold">How to Use Scanner</DialogTitle>
-                              </DialogHeader>
-                              <div className="space-y-4 text-sm text-muted-foreground pt-2">
-                                  <p className="flex items-start gap-3"><Camera className="w-5 h-5 text-primary shrink-0 mt-0.5"/> <span>Point your camera at a QR or Barcode. The scan will happen automatically.</span></p>
-                                  <p className="flex items-start gap-3"><Zap className="w-5 h-5 text-primary shrink-0 mt-0.5"/><span>Use the flash icon to toggle your device's flashlight in dark conditions.</span></p>
-                                  <p className="flex items-start gap-3"><SwitchCamera className="w-5 h-5 text-primary shrink-0 mt-0.5"/><span>Use the camera switch icon to flip between front and rear cameras.</span></p>
-                                  <p className="flex items-start gap-3"><Power className="w-5 h-5 text-primary shrink-0 mt-0.5"/><span>Enable 'Auto Scan' to automatically start a new scan 2 seconds after a successful one.</span></p>
-                              </div>
-                              <DialogClose asChild>
-                                 <Button type="button" variant="ghost" size="icon" className="absolute right-4 top-4 rounded-full h-8 w-8">
-                                    <X className="h-4 w-4" />
-                                    <span className="sr-only">Close</span>
-                                </Button>
-                              </DialogClose>
-                          </DialogContent>
-                      </Dialog>
-                  </div>
+                    </div>
+                 </div>
               </div>
           </>
       )
@@ -210,10 +206,10 @@ export default function ScannerPage() {
         return (
             <div className="flex flex-col items-center justify-center text-center p-4 text-white">
                 <ClipboardCheck className="w-16 h-16 text-green-400 mb-4" />
-                <h3 className="text-xl font-bold">Scan Complete!</h3>
-                <p className="text-gray-300 mb-6">Your result has been added to the history below.</p>
+                <h3 className="text-xl font-bold">Pindai Selesai!</h3>
+                <p className="text-gray-300 mb-6">Hasil pindaian Anda telah ditambahkan ke riwayat di bawah.</p>
                 <Button onClick={() => setIsScanning(true)}>
-                   <RotateCcw className="mr-2"/> Start New Scan
+                   <RotateCcw className="mr-2"/> Mulai Pindai Baru
                 </Button>
             </div>
         );
@@ -223,10 +219,39 @@ export default function ScannerPage() {
 
   return (
     <div className="container mx-auto px-4 py-8 pb-24">
-      <Card className="max-w-2xl mx-auto overflow-hidden">
+      <Card className="max-w-2xl mx-auto overflow-hidden shadow-xl rounded-2xl">
         <CardHeader>
-          <CardTitle className="text-2xl font-headline">QR/Barcode Scanner</CardTitle>
-          <CardDescription>Point your camera at a code to scan it.</CardDescription>
+          <div className="flex justify-between items-center">
+            <div>
+              <CardTitle className="text-2xl font-headline">Pemindai Cerdas</CardTitle>
+              <CardDescription>Arahkan kamera ke kode untuk memindai.</CardDescription>
+            </div>
+             <Dialog>
+                <DialogTrigger asChild>
+                    <Button variant="outline" className="shrink-0">
+                      <HelpCircle className="mr-2"/> Cara Penggunaan
+                    </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-md rounded-2xl shadow-2xl">
+                    <DialogHeader>
+                    <DialogTitle className="text-xl text-center font-bold">Panduan Penggunaan Pemindai</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4 text-sm text-muted-foreground pt-2">
+                        <p className="flex items-start gap-3"><Camera className="w-6 h-6 text-primary shrink-0 mt-0.5"/> <span>Arahkan kamera Anda ke QR Code atau Barcode. Pemindaian akan terjadi secara otomatis ketika kode terdeteksi dengan jelas.</span></p>
+                        <p className="flex items-start gap-3"><Zap className="w-6 h-6 text-primary shrink-0 mt-0.5"/><span>Gunakan ikon **Flash** untuk menyalakan lampu senter perangkat dalam kondisi gelap agar pemindaian lebih mudah.</span></p>
+                        <p className="flex items-start gap-3"><SwitchCamera className="w-6 h-6 text-primary shrink-0 mt-0.5"/><span>Gunakan ikon **Ganti Kamera** untuk beralih antara kamera depan dan belakang sesuai kebutuhan Anda.</span></p>
+                        <p className="flex items-start gap-3"><Power className="w-6 h-6 text-primary shrink-0 mt-0.5"/><span>Aktifkan **'Auto Scan'** untuk memulai pemindaian baru secara otomatis 2 detik setelah pemindaian sebelumnya berhasil. Sangat efisien untuk memindai banyak kode secara berurutan.</span></p>
+                         <p className="flex items-start gap-3"><Copy className="w-6 h-6 text-primary shrink-0 mt-0.5"/><span>Setiap hasil pindaian akan muncul di riwayat. Anda dapat **menyalin** satu per satu atau **menyalin semua** hasil sekaligus dengan pemisah koma.</span></p>
+                    </div>
+                    <DialogClose asChild>
+                        <Button type="button" variant="ghost" size="icon" className="absolute right-4 top-4 rounded-full h-8 w-8">
+                          <X className="h-4 w-4" />
+                          <span className="sr-only">Tutup</span>
+                      </Button>
+                    </DialogClose>
+                </DialogContent>
+            </Dialog>
+          </div>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="relative w-full aspect-square bg-gray-900 rounded-lg overflow-hidden flex items-center justify-center">
@@ -234,7 +259,7 @@ export default function ScannerPage() {
           </div>
           
           <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold">Scan History</h3>
+            <h3 className="text-lg font-semibold">Riwayat Pindaian</h3>
             <div className="flex items-center space-x-2">
                 <Switch id="auto-scan-mode" checked={isAutoScan} onCheckedChange={setIsAutoScan} />
                 <Label htmlFor="auto-scan-mode">Auto Scan</Label>
@@ -257,13 +282,13 @@ export default function ScannerPage() {
                 </div>
               ))
             ) : (
-              <p className="text-muted-foreground text-center text-sm py-4">No scans yet. Point the camera at a code to begin.</p>
+              <p className="text-muted-foreground text-center text-sm py-4">Belum ada pindaian. Arahkan kamera ke kode untuk memulai.</p>
             )}
           </div>
           
            {scannedHistory.length > 0 && (
                 <Button onClick={copyAll} className="w-full">
-                    Copy All ({scannedHistory.length})
+                    Salin Semua ({scannedHistory.length})
                 </Button>
            )}
         </CardContent>
