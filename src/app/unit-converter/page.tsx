@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -6,22 +7,21 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowRightLeft } from 'lucide-react';
 
 // Conversion factors relative to a base unit
 const lengthUnits = {
-  meters: 1,
-  kilometers: 1000,
-  miles: 1609.34,
-  feet: 0.3048,
-  inches: 0.0254,
+  meter: 1,
+  kilometer: 1000,
+  mil: 1609.34,
+  kaki: 0.3048,
+  inci: 0.0254,
 };
 
 const weightUnits = {
-  grams: 1,
-  kilograms: 1000,
-  pounds: 453.592,
-  ounces: 28.3495,
+  gram: 1,
+  kilogram: 1000,
+  pon: 453.592,
+  ons: 28.3495,
 };
 
 type UnitData = {
@@ -66,22 +66,22 @@ const UnitConverterTab = ({
     const val = parseFloat(fromValue);
     if (!isNaN(val)) {
       const result = convert(val, fromUnit, toUnit);
-      setToValue(result.toFixed(4));
+      setToValue(result.toLocaleString('en-US', { maximumFractionDigits: 4 }));
     } else {
       setToValue('');
     }
   }, [fromValue, fromUnit, toUnit]);
 
   const handleFromChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFromValue(e.target.value);
+    setFromValue(e.target.value.replace(/,/g, ''));
   };
   
   const handleToChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-     const val = parseFloat(e.target.value);
+     const val = parseFloat(e.target.value.replace(/,/g, ''));
      if (!isNaN(val)) {
-        setToValue(e.target.value)
+        setToValue(e.target.value);
         const result = convert(val, toUnit, fromUnit);
-        setFromValue(result.toFixed(4));
+        setFromValue(result.toLocaleString('en-US', { maximumFractionDigits: 4 }));
      } else {
         setFromValue('');
         setToValue('');
@@ -92,8 +92,8 @@ const UnitConverterTab = ({
     <div className="space-y-4">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end">
         <div className="space-y-2">
-          <Label htmlFor="from-value">From</Label>
-          <Input id="from-value" type="number" value={fromValue} onChange={handleFromChange} />
+          <Label htmlFor="from-value">Dari</Label>
+          <Input id="from-value" type="text" value={fromValue} onChange={handleFromChange} />
           <Select value={fromUnit} onValueChange={setFromUnit}>
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
@@ -102,8 +102,8 @@ const UnitConverterTab = ({
           </Select>
         </div>
         <div className="space-y-2">
-          <Label htmlFor="to-value">To</Label>
-          <Input id="to-value" type="number" value={toValue} onChange={handleToChange} />
+          <Label htmlFor="to-value">Ke</Label>
+          <Input id="to-value" type="text" value={toValue} onChange={handleToChange} />
           <Select value={toUnit} onValueChange={setToUnit}>
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
@@ -121,21 +121,21 @@ export default function UnitConverterPage() {
     <div className="container mx-auto px-4 py-8">
       <Card className="max-w-2xl mx-auto">
         <CardHeader>
-          <CardTitle className="text-2xl font-headline">Unit Converter</CardTitle>
-          <CardDescription>Select a category and convert units instantly.</CardDescription>
+          <CardTitle className="text-2xl font-headline">Konversi Unit</CardTitle>
+          <CardDescription>Pilih kategori dan konversi unit secara instan.</CardDescription>
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="length" className="w-full">
             <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="length">Length</TabsTrigger>
-              <TabsTrigger value="weight">Weight</TabsTrigger>
-              <TabsTrigger value="temperature">Temperature</TabsTrigger>
+              <TabsTrigger value="length">Panjang</TabsTrigger>
+              <TabsTrigger value="weight">Berat</TabsTrigger>
+              <TabsTrigger value="temperature">Suhu</TabsTrigger>
             </TabsList>
             <TabsContent value="length" className="mt-6">
-              <UnitConverterTab units={lengthUnits} defaultFrom="meters" defaultTo="feet" />
+              <UnitConverterTab units={lengthUnits} defaultFrom="meter" defaultTo="kaki" />
             </TabsContent>
             <TabsContent value="weight" className="mt-6">
-              <UnitConverterTab units={weightUnits} defaultFrom="kilograms" defaultTo="pounds" />
+              <UnitConverterTab units={weightUnits} defaultFrom="kilogram" defaultTo="pon" />
             </TabsContent>
             <TabsContent value="temperature" className="mt-6">
               <UnitConverterTab units={{celsius: 0, fahrenheit: 0, kelvin: 0}} defaultFrom="celsius" defaultTo="fahrenheit" isTemperature={true} />

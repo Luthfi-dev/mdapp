@@ -19,9 +19,9 @@ const allApps: App[] = [
   { title: 'Konversi File', description: 'Ubah format file dengan mudah', href: '/converter', icon: FileText },
   { title: 'Konversi Unit', description: 'Konversi berbagai satuan', href: '/unit-converter', icon: BookOpen },
   { title: 'Scanner', description: 'Pindai QR dan Barcode', href: '/scanner', icon: ScanLine },
-  { title: 'Kalkulator', description: 'Hitung dengan cepat', href: '#', icon: Calculator },
-  { title: 'Generator Warna', description: 'Buat palet warna', href: '#', icon: Palette },
-  { title: 'Stopwatch', description: 'Ukur waktu dengan presisi', href: '#', icon: Clock },
+  { title: 'Kalkulator', description: 'Hitung dengan cepat & akurat', href: '/calculator', icon: Calculator },
+  { title: 'Generator Warna', description: 'Buat palet warna harmonis', href: '/color-generator', icon: Palette },
+  { title: 'Stopwatch', description: 'Ukur waktu dengan presisi', href: '/stopwatch', icon: Clock },
 ];
 
 export default function AllAppsPage() {
