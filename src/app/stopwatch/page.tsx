@@ -74,7 +74,7 @@ export default function StopwatchPage() {
   const { fastest, slowest } = getLapStats();
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-8 pb-24">
       <Card className="max-w-md mx-auto shadow-2xl rounded-3xl overflow-hidden">
         <CardHeader className="text-center">
           <CardTitle className="text-3xl font-headline">Stopwatch</CardTitle>

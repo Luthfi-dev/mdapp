@@ -77,7 +77,7 @@ export default function ColorGeneratorPage() {
   };
 
   return (
-    <div className="container mx-auto px-2 py-8">
+    <div className="container mx-auto px-2 py-8 pb-24">
       <Card className="max-w-4xl mx-auto shadow-2xl rounded-3xl overflow-hidden">
         <CardHeader className="text-center">
           <div className='flex items-center justify-center gap-2'>

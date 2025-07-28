@@ -64,20 +64,17 @@ export default function PdfToWordPage() {
       const pdf = await pdfjsLib.getDocument(typedarray).promise;
       setTotalPages(pdf.numPages);
 
+      let fullTextContent = '';
       for (let i = 0; i < pdf.numPages; i++) {
         const page = await pdf.getPage(i + 1);
-        const viewport = page.getViewport({ scale: 1.5 });
-        const canvas = document.createElement('canvas');
-        canvas.height = viewport.height;
-        canvas.width = viewport.width;
-        canvas.style.marginBottom = '10px';
-        previewRef.current?.appendChild(canvas);
-        
-        const context = canvas.getContext('2d');
-        if (context) {
-          await page.render({ canvasContext: context, viewport: viewport }).promise;
-        }
+        const textContent = await page.getTextContent();
+        const pageText = textContent.items.map(item => (item as any).str).join(' ');
+        fullTextContent += `<div class="page-break"><p>${pageText.replace(/\n/g, '<br/>')}</p></div>`;
       }
+      if(previewRef.current) {
+        previewRef.current.innerHTML = fullTextContent;
+      }
+
     } catch (error) {
       console.error("PDF Preview Error:", error);
       toast({ variant: "destructive", title: "Gagal Mempratinjau", description: "Tidak dapat merender file PDF." });
@@ -97,32 +94,24 @@ export default function PdfToWordPage() {
     setConvertedFileUrl(null);
 
     try {
-      const arrayBuffer = await file.arrayBuffer();
-      const typedarray = new Uint8Array(arrayBuffer);
-      const pdf = await pdfjsLib.getDocument(typedarray).promise;
+      let htmlContent = '';
+      if(previewRef.current && previewRef.current.innerHTML) {
+          htmlContent = previewRef.current.innerHTML;
+      } else {
+        const arrayBuffer = await file.arrayBuffer();
+        const typedarray = new Uint8Array(arrayBuffer);
+        const pdf = await pdfjsLib.getDocument(typedarray).promise;
 
-      let htmlContent = '<html><body>';
-
-      for (let i = 0; i < pdf.numPages; i++) {
-        const page = await pdf.getPage(i + 1);
-        const viewport = page.getViewport({ scale: 2 }); // Higher scale for better quality
-        const canvas = document.createElement('canvas');
-        const context = canvas.getContext('2d');
-        canvas.height = viewport.height;
-        canvas.width = viewport.width;
-
-        if(context){
-            await page.render({ canvasContext: context, viewport: viewport }).promise;
-            const imgData = canvas.toDataURL('image/png');
-            htmlContent += `<img src="${imgData}" style="width:100%;" />`;
-            if(i < pdf.numPages - 1) {
-              htmlContent += '<br style="page-break-before: always" />';
-            }
+        let fullTextContent = '';
+        for (let i = 0; i < pdf.numPages; i++) {
+          const page = await pdf.getPage(i + 1);
+          const textContent = await page.getTextContent();
+          const pageText = textContent.items.map(item => (item as any).str).join(' ');
+           fullTextContent += `<p>${pageText.replace(/\n/g, '<br/>')}</p>`;
         }
+        htmlContent = fullTextContent;
       }
       
-      htmlContent += '</body></html>';
-
       const response = await convertHtmlToWord({
         htmlContent: htmlContent,
         filename: file.name.replace(/\.pdf$/i, '.docx'),
@@ -158,7 +147,7 @@ export default function PdfToWordPage() {
 
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-8 pb-24">
       <Card className="max-w-4xl mx-auto">
         <CardHeader className="text-center">
           <div className="flex justify-center items-center gap-4 mb-4">
@@ -203,9 +192,20 @@ export default function PdfToWordPage() {
             
             {showPreview && (
               <div className="border rounded-md p-4 bg-secondary">
-                <h4 className="font-bold mb-2 text-center">Pratinjau Dokumen ({totalPages} Halaman)</h4>
-                {isProcessing && !previewRef.current?.hasChildNodes() && <div className="text-center"><Loader2 className="mx-auto h-8 w-8 animate-spin"/></div>}
-                <div ref={previewRef} className="bg-white p-2 shadow-inner h-96 overflow-auto"></div>
+                 <h4 className="font-bold mb-2 text-center">Pratinjau Teks Dokumen ({totalPages} Halaman)</h4>
+                 {isProcessing && !previewRef.current?.hasChildNodes() && (
+                    <div className="text-center text-muted-foreground p-4">
+                      <Loader2 className="mx-auto h-8 w-8 animate-spin" />
+                      <p>Mengekstrak teks...</p>
+                    </div>
+                 )}
+                <div 
+                  ref={previewRef} 
+                  contentEditable={true}
+                  className="bg-white p-4 shadow-inner h-96 overflow-auto"
+                  style={{ whiteSpace: 'pre-wrap' }}
+                >
+                </div>
               </div>
             )}
           </div>

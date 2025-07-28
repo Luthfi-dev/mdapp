@@ -150,7 +150,7 @@ export default function CalculatorPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-8 pb-24">
       <Card className="max-w-md mx-auto shadow-2xl rounded-3xl overflow-hidden">
         <CardHeader>
           <CardTitle className="text-2xl font-headline flex items-center justify-between">

@@ -153,7 +153,7 @@ export default function WordToPdfPage() {
   };
   
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-8 pb-24">
       <Card className="max-w-4xl mx-auto">
         <CardHeader className="text-center">
           <div className="flex justify-center items-center gap-4 mb-4">
