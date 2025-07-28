@@ -8,6 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Palette, Copy, Lock, Unlock, RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
+
 interface Color {
   hex: string;
   isLocked: boolean;

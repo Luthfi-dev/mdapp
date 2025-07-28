@@ -111,3 +111,21 @@ body {
   background: transparent;
   box-shadow: 0 20px 0 0 white;
 }
+
+.custom-tooltip {
+  @apply absolute right-full top-1/2 -translate-y-1/2 mr-3;
+  @apply bg-primary text-primary-foreground text-xs font-semibold;
+  @apply px-3 py-1.5 rounded-md shadow-lg whitespace-nowrap;
+  z-index: 10;
+}
+
+.custom-tooltip::after {
+  content: '';
+  position: absolute;
+  left: 100%;
+  top: 50%;
+  transform: translateY(-50%);
+  border-width: 6px;
+  border-style: solid;
+  border-color: transparent transparent transparent hsl(var(--primary));
+}

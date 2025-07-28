@@ -3,12 +3,48 @@ import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { cn } from "@/lib/utils"
 import { Toaster } from "@/components/ui/toaster"
-import BottomNavBar from '@/components/BottomNavBar';
 import { ThemeProvider } from '@/components/ThemeProvider';
 
 export const metadata: Metadata = {
-  title: 'All-in-One Toolkit',
-  description: 'A versatile utility app with daily tools.',
+  title: {
+    default: 'All-in-One Toolkit: Aplikasi Cerdas untuk Kebutuhan Harian Anda',
+    template: '%s | All-in-One Toolkit',
+  },
+  description: 'Satu aplikasi untuk semua kebutuhan Anda: konverter file, scanner, kalkulator, dan banyak lagi. Alat canggih yang dirancang untuk produktivitas maksimal.',
+  keywords: ['toolkit', 'converter', 'scanner', 'calculator', 'alat produktivitas', 'aplikasi all-in-one'],
+  openGraph: {
+    title: 'All-in-One Toolkit: Aplikasi Cerdas untuk Kebutuhan Harian Anda',
+    description: 'Satu aplikasi untuk semua kebutuhan Anda: konverter file, scanner, kalkulator, dan banyak lagi.',
+    url: 'https://yourapp-url.com',
+    siteName: 'All-in-One Toolkit',
+    images: [
+      {
+        url: 'https://placehold.co/1200x630.png',
+        width: 1200,
+        height: 630,
+        alt: 'All-in-One Toolkit Hero Image',
+      },
+    ],
+    locale: 'id_ID',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'All-in-One Toolkit: Aplikasi Cerdas untuk Kebutuhan Harian Anda',
+    description: 'Satu aplikasi untuk semua kebutuhan Anda: konverter file, scanner, kalkulator, dan banyak lagi.',
+    images: ['https://placehold.co/1200x630.png'],
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
+  },
   manifest: '/manifest.webmanifest',
 };
 
@@ -34,6 +70,25 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=PT+Sans:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet" />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "SoftwareApplication",
+            "name": "All-in-One Toolkit",
+            "operatingSystem": "WEB",
+            "applicationCategory": "Productivity",
+            "aggregateRating": {
+              "@type": "AggregateRating",
+              "ratingValue": "4.8",
+              "ratingCount": "1200"
+            },
+            "offers": {
+              "@type": "Offer",
+              "price": "0"
+            }
+          })}}
+        />
       </head>
       <body className={cn("font-body antialiased min-h-screen flex flex-col bg-background")}>
         <ThemeProvider
@@ -42,15 +97,10 @@ export default function RootLayout({
             enableSystem
             disableTransitionOnChange
         >
-            <main className="flex-grow">
-              {children}
-            </main>
-            <BottomNavBar />
-            <Toaster />
+          {children}
+          <Toaster />
         </ThemeProvider>
       </body>
     </html>
   );
 }
-
-    

@@ -15,6 +15,7 @@ import jsQR from 'jsqr';
 import 'webrtc-adapter';
 import { Label } from '@/components/ui/label';
 
+
 interface ScannedItem {
   id: number;
   data: string;

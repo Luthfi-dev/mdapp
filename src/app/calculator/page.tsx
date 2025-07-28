@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -9,7 +9,8 @@ import { History, Sigma, CornerDownLeft, Divide, X, Minus, Plus, Percent, Expand
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { useIsMobile } from '@/hooks/use-mobile';
+
 
 export default function CalculatorPage() {
   const [display, setDisplay] = useState('0');
@@ -18,14 +19,18 @@ export default function CalculatorPage() {
   const [currentExpression, setCurrentExpression] = useState('');
   const [isFullScreen, setIsFullScreen] = useState(false);
   const calculatorRef = useRef<HTMLDivElement>(null);
+  const isMobile = useIsMobile();
+
+
+  const handleFullScreenChange = useCallback(() => {
+    setIsFullScreen(!!document.fullscreenElement);
+  }, []);
+
 
   useEffect(() => {
-    const handleFullScreenChange = () => {
-      setIsFullScreen(!!document.fullscreenElement);
-    };
     document.addEventListener('fullscreenchange', handleFullScreenChange);
     return () => document.removeEventListener('fullscreenchange', handleFullScreenChange);
-  }, []);
+  }, [handleFullScreenChange]);
 
   const handleFullScreenToggle = () => {
     if (!calculatorRef.current) return;
@@ -253,19 +258,17 @@ export default function CalculatorPage() {
         <CardHeader className="shrink-0">
           <CardTitle className="text-2xl font-headline flex items-center justify-between">
             Kalkulator
-            <div className="flex items-center space-x-2">
-                 <TooltipProvider>
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <Button variant="ghost" size="icon" className="animate-shake" onClick={handleFullScreenToggle}>
-                                {isFullScreen ? <Minimize className="w-5 h-5"/> : <Expand className="w-5 h-5"/>}
-                            </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                        <p>Klik untuk full layar</p>
-                        </TooltipContent>
-                    </Tooltip>
-                 </TooltipProvider>
+             <div className="flex items-center space-x-2">
+                 <div className="flex items-center gap-2">
+                    {isMobile && (
+                    <div className="relative">
+                        <div className="custom-tooltip">Mode Layar Penuh</div>
+                    </div>
+                    )}
+                    <Button variant="ghost" size="icon" className="animate-shake" onClick={handleFullScreenToggle}>
+                        {isFullScreen ? <Minimize className="w-5 h-5"/> : <Expand className="w-5 h-5"/>}
+                    </Button>
+                </div>
                 <Sigma className='w-4 h-4' />
                 <Switch id="scientific-mode" checked={isScientific} onCheckedChange={setIsScientific} />
                 <Label htmlFor="scientific-mode" className="text-sm">Ilmiah</Label>

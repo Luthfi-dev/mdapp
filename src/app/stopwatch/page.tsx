@@ -7,7 +7,8 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Play, Pause, RotateCcw, Flag, ArrowUp, ArrowDown, Expand, Minimize, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { useIsMobile } from '@/hooks/use-mobile';
+
 
 export default function StopwatchPage() {
   const [time, setTime] = useState(0);
@@ -17,6 +18,8 @@ export default function StopwatchPage() {
   
   const [isFullScreen, setIsFullScreen] = useState(false);
   const stopwatchRef = useRef<HTMLDivElement>(null);
+  const isMobile = useIsMobile();
+
 
   const handleFullScreenChange = useCallback(() => {
     setIsFullScreen(!!document.fullscreenElement);
@@ -39,15 +42,16 @@ export default function StopwatchPage() {
       }
     }
   };
-
-  const startTimer = useCallback(() => {
-    setIsRunning(true);
-    const startTime = Date.now() - time;
-    timerRef.current = setInterval(() => {
-      setTime(Date.now() - startTime);
-    }, 10);
-  }, [time]);
   
+  const startTimer = useCallback(() => {
+      if (isRunning) return;
+      setIsRunning(true);
+      const startTime = Date.now() - time;
+      timerRef.current = setInterval(() => {
+        setTime(Date.now() - startTime);
+      }, 10);
+  }, [time, isRunning]);
+
   const stopTimer = useCallback(() => {
     setIsRunning(false);
     if (timerRef.current) {
@@ -55,9 +59,17 @@ export default function StopwatchPage() {
     }
   }, []);
 
+  const handleToggle = () => {
+    if (isRunning) {
+      stopTimer();
+    } else {
+      startTimer();
+    }
+  };
+
   const handleLap = () => {
     if (isRunning) {
-      setLaps(prevLaps => [...prevLaps, time]);
+      setLaps(prevLaps => [time, ...prevLaps]);
     }
   };
 
@@ -84,7 +96,10 @@ export default function StopwatchPage() {
 
   const getLapStats = (currentLaps: number[]) => {
     if (currentLaps.length < 2) return { fastest: null, slowest: null };
-    const lapTimes = currentLaps.map((lap, i) => i === 0 ? lap : lap - currentLaps[i-1]);
+    const lapTimes = currentLaps.map((lap, i) => {
+        const prevLap = currentLaps[i + 1] || 0;
+        return lap - prevLap;
+    });
     const fastest = Math.min(...lapTimes);
     const slowest = Math.max(...lapTimes);
     return { fastest, slowest };
@@ -95,22 +110,23 @@ export default function StopwatchPage() {
   const renderButtons = () => {
     const buttonClass = "h-20 w-20 text-lg flex-shrink-0 rounded-full text-white";
     
-    if (!isRunning && time === 0) {
-        return (
-            <div className="flex justify-center items-center h-20 my-4">
-                <Button onClick={startTimer} className={cn(buttonClass, "bg-green-500 hover:bg-green-600")}>
-                    <Play className="h-6 w-6" />
-                </Button>
-            </div>
-        );
-    }
-    
     return (
-      <div className="flex justify-between items-center h-20 my-4">
-        <Button onClick={!isRunning ? handleReset : handleLap} variant="secondary" className={cn(buttonClass, "bg-gray-500 hover:bg-gray-600 text-white")}>
-          {!isRunning ? <RotateCcw /> : <Flag />}
+      <div className="flex justify-around items-center h-20 my-4 w-full">
+        <Button 
+          onClick={isRunning ? handleLap : handleReset} 
+          variant="secondary" 
+          className={cn(buttonClass, "bg-gray-500 hover:bg-gray-600")}
+          disabled={!isRunning && time === 0}
+        >
+          {isRunning ? <Flag /> : <RotateCcw />}
         </Button>
-        <Button onClick={isRunning ? stopTimer : startTimer} className={cn(buttonClass, isRunning ? "bg-red-500 hover:bg-red-600" : "bg-green-500 hover:bg-green-600")}>
+        <Button 
+          onClick={handleToggle} 
+          className={cn(
+            buttonClass, 
+            isRunning ? "bg-red-500 hover:bg-red-600" : "bg-green-500 hover:bg-green-600"
+          )}
+        >
           {isRunning ? <Pause /> : <Play />}
         </Button>
       </div>
@@ -126,23 +142,21 @@ export default function StopwatchPage() {
         <CardHeader className="text-center shrink-0">
           <CardTitle className="text-3xl font-headline flex items-center justify-center gap-4">
              Stopwatch
-             <TooltipProvider>
-                <Tooltip>
-                    <TooltipTrigger asChild>
-                        <Button variant="ghost" size="icon" className="animate-shake" onClick={handleFullScreenToggle}>
-                            {isFullScreen ? <Minimize className="w-5 h-5"/> : <Expand className="w-5 h-5"/>}
-                        </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                    <p>Mode Layar Penuh</p>
-                    </TooltipContent>
-                </Tooltip>
-             </TooltipProvider>
+              <div className="flex items-center gap-2">
+                {isMobile && (
+                    <div className="relative">
+                        <div className="custom-tooltip">Mode Layar Penuh</div>
+                    </div>
+                )}
+                <Button variant="ghost" size="icon" className="animate-shake" onClick={handleFullScreenToggle}>
+                    {isFullScreen ? <Minimize className="w-5 h-5"/> : <Expand className="w-5 h-5"/>}
+                </Button>
+              </div>
               {isFullScreen && (
                   <Button variant="ghost" size="icon" onClick={handleFullScreenToggle} className="absolute top-4 right-4">
                       <X className="w-5 h-5"/>
                   </Button>
-                )}
+              )}
           </CardTitle>
           <CardDescription>Ukur waktu dengan presisi dan catat putaran.</CardDescription>
         </CardHeader>
@@ -150,7 +164,7 @@ export default function StopwatchPage() {
           <div className="relative flex-shrink-0 flex flex-col items-center justify-center">
             <div className={cn(
               "font-mono my-4 tracking-tight w-full text-center break-all p-2",
-              isFullScreen ? "text-7xl sm:text-8xl" : "text-5xl"
+              isFullScreen ? "text-8xl" : "text-6xl"
             )}>
               {formatTime(time)}
             </div>
@@ -165,28 +179,28 @@ export default function StopwatchPage() {
                 {laps.length > 0 ? (
                 <ul className='divide-y divide-border p-2'>
                    <li className="flex justify-between items-center p-3 font-mono text-lg font-bold">
-                        <span>Putaran</span>
-                        <span>Waktu</span>
+                        <span>Putaran {laps.length}</span>
+                        <span>{formatTime(time - (laps[0] || 0))}</span>
                     </li>
                     {laps.map((lapTime, index) => {
-                        const previousLapTime = index > 0 ? laps[index-1] : 0;
+                        const previousLapTime = laps[index+1] || 0;
                         const currentLapDuration = lapTime - previousLapTime;
                         const isFastest = currentLapDuration === fastest;
                         const isSlowest = currentLapDuration === slowest;
 
                         return (
-                            <li key={index} className="flex justify-between items-center p-3 font-mono text-lg">
-                                <span className="text-muted-foreground">Putaran {index + 1}</span>
-                                <div className='flex items-center gap-2'>
-                                    {isFastest && laps.length > 1 && <ArrowDown className='w-5 h-5 text-green-500' />}
-                                    {isSlowest && laps.length > 1 && <ArrowUp className='w-5 h-5 text-red-500' />}
-                                    <span className={cn(
-                                        isFastest && laps.length > 1 && 'text-green-500 font-bold',
-                                        isSlowest && laps.length > 1 && 'text-red-500 font-bold'
-                                    )}>
-                                        {formatTime(currentLapDuration)}
-                                    </span>
-                                </div>
+                            <li key={index} className={cn("flex justify-between items-center p-3 font-mono text-lg",
+                                isFastest && laps.length > 1 && 'text-green-500 font-bold',
+                                isSlowest && laps.length > 1 && 'text-red-500 font-bold'
+                            )}>
+                                <span className="flex items-center gap-2">
+                                     {isFastest && laps.length > 1 && <ArrowDown className='w-5 h-5' />}
+                                     {isSlowest && laps.length > 1 && <ArrowUp className='w-5 h-5' />}
+                                    Putaran {laps.length - index}
+                                </span>
+                                <span>
+                                    {formatTime(currentLapDuration)}
+                                </span>
                             </li>
                         )
                     })}
