@@ -53,12 +53,12 @@ export default function AllAppsPage() {
         </div>
 
         {filteredApps.length > 0 ? (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 pb-24">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 pb-24">
               {filteredApps.map((app) => (
                 <ToolCard
                   key={app.title}
                   href={app.href}
-                  icon={<app.icon className="w-8 h-8 text-primary" />}
+                  icon={<app.icon className="w-8 h-8 text-muted-foreground" />}
                   title={app.title}
                   description={app.description}
                 />

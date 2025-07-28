@@ -13,12 +13,12 @@ interface ToolCardProps {
 export function ToolCard({ href, icon, title, description }: ToolCardProps) {
   return (
     <Link href={href} className="group">
-      <Card className="h-full transition-all duration-300 ease-in-out group-hover:shadow-xl group-hover:border-primary group-hover:-translate-y-1.5 bg-card/50 hover:bg-card">
-        <CardContent className="p-5 flex flex-col items-start justify-between h-full">
-            <div className="mb-8">
+      <Card className="h-full transition-all duration-300 ease-in-out group-hover:shadow-lg group-hover:border-primary group-hover:-translate-y-1 bg-card/50 hover:bg-card">
+        <CardContent className="p-5 flex flex-col justify-between h-full relative">
+            <div className="absolute top-5 right-5 text-primary group-hover:text-primary transition-colors duration-300">
                 {icon}
             </div>
-            <div>
+            <div className="pr-10">
                 <h3 className="font-bold text-lg leading-tight">{title}</h3>
                 <p className="text-sm text-muted-foreground mt-1">{description}</p>
             </div>

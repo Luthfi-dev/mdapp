@@ -33,7 +33,7 @@ export default function ExplorePage() {
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="max-w-4xl mx-auto">
-        <div className="mb-10">
+        <div className="mb-10 text-center">
           <h1 className="text-4xl font-bold font-headline tracking-tight">Jelajahi Semua Alat</h1>
           <p className="text-muted-foreground mt-2 text-lg">Temukan semua alat yang Anda butuhkan di satu tempat.</p>
         </div>
@@ -50,12 +50,12 @@ export default function ExplorePage() {
         </div>
 
         {filteredApps.length > 0 ? (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 pb-24">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 pb-24">
               {filteredApps.map((app) => (
                 <ToolCard
                   key={app.title}
                   href={app.href}
-                  icon={<app.icon className="w-8 h-8 text-primary" />}
+                  icon={<app.icon className="w-8 h-8 text-muted-foreground" />}
                   title={app.title}
                   description={app.description}
                 />
