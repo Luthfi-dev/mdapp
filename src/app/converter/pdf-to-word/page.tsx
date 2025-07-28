@@ -20,6 +20,7 @@ if (typeof window !== 'undefined') {
 export default function PdfToWordPage() {
   const [file, setFile] = useState<File | null>(null);
   const [isConverting, setIsConverting] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
   const { toast } = useToast();
   const previewRef = useRef<HTMLDivElement>(null);
 
@@ -27,7 +28,8 @@ export default function PdfToWordPage() {
     const selectedFile = e.target.files?.[0];
     if (selectedFile && selectedFile.type === 'application/pdf') {
       setFile(selectedFile);
-      renderPdf(selectedFile);
+      setShowPreview(false);
+      if (previewRef.current) previewRef.current.innerHTML = '';
     } else {
       toast({
         variant: 'destructive',
@@ -35,11 +37,12 @@ export default function PdfToWordPage() {
         description: 'Silakan pilih file dengan format PDF.',
       });
       setFile(null);
+      setShowPreview(false);
       if (previewRef.current) previewRef.current.innerHTML = '';
     }
   };
 
-  const renderPdf = async (file: File) => {
+  const renderPdf = async (fileToRender: File) => {
     const fileReader = new FileReader();
     fileReader.onload = async function() {
         if (!previewRef.current) return;
@@ -66,51 +69,48 @@ export default function PdfToWordPage() {
             pageDiv.className = 'pdf-page-preview';
             pageDiv.style.margin = '10px 0';
             pageDiv.style.border = '1px solid #ddd';
+            pageDiv.style.position = 'relative';
+            pageDiv.style.width = `${viewport.width}px`;
+            pageDiv.style.height = `${viewport.height}px`;
+
+            pageDiv.appendChild(canvas);
             
+            await page.render(renderContext).promise;
+
             const textContent = await page.getTextContent();
             const textLayerDiv = document.createElement("div");
             textLayerDiv.className = "textLayer";
             textLayerDiv.style.position = 'absolute';
             textLayerDiv.style.left = '0';
             textLayerDiv.style.top = '0';
-            textLayerDiv.style.height = `${viewport.height}px`;
-            textLayerDiv.style.width = `${viewport.width}px`;
-            
-            const pageWrapper = document.createElement('div');
-            pageWrapper.style.width = `${viewport.width}px`;
-            pageWrapper.style.height = `${viewport.height}px`;
-            pageWrapper.style.position = 'relative';
+            textLayerDiv.style.height = '100%';
+            textLayerDiv.style.width = '100%';
+            textLayerDiv.style.opacity = '0.5'; // For debugging visibility
 
-            pageWrapper.appendChild(canvas);
-            pageWrapper.appendChild(textLayerDiv);
-            pageDiv.appendChild(pageWrapper);
-            previewRef.current?.appendChild(pageDiv);
-            
-            await page.render(renderContext).promise;
+            textContent.items.forEach((item: any) => {
+                const tx = pdfjsLib.Util.transform(
+                    viewport.transform,
+                    item.transform
+                );
 
-            textContent.items.forEach(item => {
-                if ('str' in item) {
-                    const tx = pdfjsLib.Util.transform(
-                        pdfjsLib.Util.transform(viewport.transform, item.transform),
-                        [1, 0, 0, -1, 0, 0]
-                    );
-
-                    const style = textContent.styles[item.fontName];
-                    const textDiv = document.createElement('span');
-                    textDiv.style.fontFamily = style.fontFamily;
-                    textDiv.style.transformOrigin = '0% 0%';
-                    textDiv.style.transform = `scaleX(${tx[0]}) scaleY(${tx[3]})`;
-                    textDiv.style.fontSize = `${Math.sqrt((tx[2] * tx[2]) + (tx[3] * tx[3]))}px`;
-                    textDiv.style.position = 'absolute';
-                    textDiv.style.left = `${tx[4]}px`;
-                    textDiv.style.top = `${tx[5]}px`;
-                    textDiv.textContent = item.str;
-                    textLayerDiv.appendChild(textDiv);
-                }
+                const style = textContent.styles[item.fontName];
+                const textDiv = document.createElement('span');
+                textDiv.style.fontFamily = style?.fontFamily || 'sans-serif';
+                textDiv.style.transformOrigin = '0% 0%';
+                textDiv.style.transform = `matrix(${tx[0]}, ${tx[1]}, ${tx[2]}, ${tx[3]}, ${tx[4]}, ${tx[5]}) scaleY(-1)`;
+                textDiv.style.fontSize = `${Math.sqrt((tx[2] * tx[2]) + (tx[3] * tx[3]))}px`;
+                textDiv.style.position = 'absolute';
+                textDiv.style.whiteSpace = 'pre';
+                textDiv.textContent = item.str;
+                textLayerDiv.appendChild(textDiv);
             });
+            
+            pageDiv.appendChild(textLayerDiv);
+            previewRef.current?.appendChild(pageDiv);
         }
+        setShowPreview(true);
     };
-    fileReader.readAsArrayBuffer(file);
+    fileReader.readAsArrayBuffer(fileToRender);
   };
   
   const getTargetFilename = () => {
@@ -120,11 +120,11 @@ export default function PdfToWordPage() {
   };
 
   const handleConvertToWord = async () => {
-    if (!previewRef.current || !previewRef.current.hasChildNodes()) {
+    if (!file) {
       toast({
         variant: 'destructive',
-        title: 'Tidak Ada Konten',
-        description: 'Tidak ada pratinjau untuk dikonversi. Silakan unggah file terlebih dahulu.',
+        title: 'Tidak Ada File',
+        description: 'Silakan unggah file PDF terlebih dahulu.',
       });
       return;
     }
@@ -132,23 +132,41 @@ export default function PdfToWordPage() {
     setIsConverting(true);
 
     try {
-      const htmlContent = previewRef.current.innerHTML;
+        const fileReader = new FileReader();
+        fileReader.onload = async function() {
+            const typedarray = new Uint8Array(this.result as ArrayBuffer);
+            const pdf = await pdfjsLib.getDocument(typedarray).promise;
+            
+            let fullHtmlContent = '<html><body>';
+            for (let i = 1; i <= pdf.numPages; i++) {
+                const page = await pdf.getPage(i);
+                const textContent = await page.getTextContent();
+                textContent.items.forEach((item: any) => {
+                    fullHtmlContent += `<p>${item.str}</p>`;
+                });
+                fullHtmlContent += '<br style="page-break-after: always;"/>';
+            }
+            fullHtmlContent += '</body></html>';
 
-      const result = await convertHtmlToWord({
-          htmlContent,
-          filename: getTargetFilename(),
-      });
+            const result = await convertHtmlToWord({
+                htmlContent: fullHtmlContent,
+                filename: getTargetFilename(),
+            });
 
-      if (result.error || !result.docxDataUri) {
-          throw new Error(result.error || 'Konversi di server gagal.');
-      }
+            if (result.error || !result.docxDataUri) {
+                throw new Error(result.error || 'Konversi di server gagal.');
+            }
 
-      saveAs(result.docxDataUri, getTargetFilename());
+            saveAs(result.docxDataUri, getTargetFilename());
 
-      toast({
-        title: 'Konversi Berhasil',
-        description: 'File PDF Anda telah berhasil dikonversi dan diunduh.',
-      });
+            toast({
+                title: 'Konversi Berhasil',
+                description: 'File PDF Anda telah berhasil dikonversi dan diunduh.',
+            });
+            setIsConverting(false);
+        };
+        fileReader.readAsArrayBuffer(file);
+
     } catch (error) {
       console.error("Word Conversion Error:", error);
       const errorMessage = error instanceof Error ? error.message : 'Terjadi kesalahan tidak dikenal.';
@@ -157,7 +175,6 @@ export default function PdfToWordPage() {
         title: 'Kesalahan Konversi',
         description: `Gagal mengonversi file: ${errorMessage}`,
       });
-    } finally {
       setIsConverting(false);
     }
   };
@@ -184,21 +201,28 @@ export default function PdfToWordPage() {
 
                 {file && (
                     <div className="space-y-4">
-                        <Button onClick={handleConvertToWord} className="w-full" disabled={isConverting}>
-                        {isConverting ? (
-                            <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Mengonversi...
-                            </>
-                        ) : (
-                            'Konversi & Unduh Otomatis'
-                        )}
-                        </Button>
-                        
-                        <div className="border rounded-md p-4 bg-secondary word-preview-container">
-                          <h4 className="font-bold mb-2 text-center">Pratinjau Dokumen</h4>
-                          <div ref={previewRef} className="bg-white p-2 shadow-inner h-96 overflow-auto"></div>
+                        <div className="flex gap-2">
+                            <Button onClick={handleConvertToWord} className="w-full" disabled={isConverting}>
+                            {isConverting ? (
+                                <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                Mengonversi...
+                                </>
+                            ) : (
+                                'Konversi & Unduh Otomatis'
+                            )}
+                            </Button>
+                            <Button variant="outline" onClick={() => renderPdf(file)} disabled={isConverting}>
+                                Lihat Pratinjau
+                            </Button>
                         </div>
+                        
+                        {showPreview && (
+                            <div className="border rounded-md p-4 bg-secondary word-preview-container">
+                                <h4 className="font-bold mb-2 text-center">Pratinjau Dokumen</h4>
+                                <div ref={previewRef} className="bg-white p-2 shadow-inner h-96 overflow-auto"></div>
+                            </div>
+                        )}
                     </div>
                 )}
             </div>
