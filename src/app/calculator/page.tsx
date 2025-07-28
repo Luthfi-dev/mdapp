@@ -133,7 +133,9 @@ export default function CalculatorPage() {
   }
 
   const buttonClass = "h-16 text-2xl font-bold rounded-2xl";
+  const fsButtonClass = "h-full text-xl xl:text-2xl font-bold rounded-lg flex-1";
   const sciButtonClass = "h-12 text-xl font-bold rounded-2xl";
+  const fsSciButtonClass = "h-full text-lg font-bold rounded-lg";
 
   const renderButtons = () => {
     const buttons = [
@@ -168,6 +170,27 @@ export default function CalculatorPage() {
         { label: 'x²', action: () => handleScientific('^2') },
         { label: 'π', action: () => handleScientific('pi') },
     ];
+
+    if(isFullScreen){
+        return (
+             <div className="flex flex-col gap-1 p-2 flex-shrink-0">
+                {isScientific && (
+                    <div className="grid grid-cols-4 gap-1">
+                        {scientificButtons.map(b => (
+                            <Button key={b.label} onClick={b.action} variant="outline" className={fsSciButtonClass}>{b.label}</Button>
+                        ))}
+                    </div>
+                )}
+                <div className="grid grid-cols-4 grid-rows-5 gap-1 flex-1">
+                    {buttons.map(btn => (
+                        <Button key={btn.label} onClick={btn.action} variant="outline" className={cn(fsButtonClass, btn.className || '')}>
+                        {btn.icon || btn.label}
+                        </Button>
+                    ))}
+                </div>
+            </div>
+        )
+    }
     
     return (
       <div className="pt-4">
@@ -190,7 +213,7 @@ export default function CalculatorPage() {
   }
   
   const renderHistory = () => (
-     <div className='flex-grow flex flex-col px-4 pt-4 min-h-0'>
+     <div className={cn('flex-grow flex flex-col px-4 pt-4 min-h-0', isFullScreen && "px-2 pt-2")}>
         <div className='flex items-center justify-between mb-2 shrink-0'>
             <div className='flex items-center gap-2 text-muted-foreground font-semibold'>
                 <History className='w-5 h-5'/>
@@ -226,7 +249,7 @@ export default function CalculatorPage() {
 
   return (
     <div className="container mx-auto px-4 py-8 pb-24">
-      <Card ref={calculatorRef} className={cn("max-w-md mx-auto shadow-2xl rounded-3xl overflow-hidden transition-all duration-300 bg-background", isFullScreen && "fixed inset-0 z-50 w-full h-full max-w-none rounded-none")}>
+      <Card ref={calculatorRef} className={cn("max-w-md mx-auto shadow-2xl rounded-3xl overflow-hidden transition-all duration-300 bg-background flex flex-col", isFullScreen && "fixed inset-0 z-50 w-full h-full max-w-none rounded-none")}>
         <CardHeader className="shrink-0">
           <CardTitle className="text-2xl font-headline flex items-center justify-between">
             Kalkulator
@@ -256,23 +279,26 @@ export default function CalculatorPage() {
           <CardDescription>Kalkulator standar dan ilmiah dalam genggaman.</CardDescription>
         </CardHeader>
         <CardContent className={cn("flex flex-col p-0", isFullScreen && "flex-grow min-h-0")}>
-          <ScrollArea className="h-full">
-            <div className={cn("flex flex-col", isFullScreen && "min-h-full")}>
-              <div className='bg-secondary rounded-2xl p-4 m-4 mb-0 text-right shrink-0'>
-                  <div className='text-muted-foreground text-sm h-6 truncate'>{currentExpression || '...'}</div>
-                  <div className="text-5xl font-bold break-all h-14 flex items-center justify-end">{display}</div>
-              </div>
-              
-              {isFullScreen ? (
+            {isFullScreen ? (
+                <ScrollArea className="h-full">
+                    <div className="flex flex-col h-full">
+                        <div className='bg-secondary rounded-2xl p-4 m-2 mb-0 text-right shrink-0'>
+                            <div className='text-muted-foreground text-sm h-6 truncate'>{currentExpression || '...'}</div>
+                            <div className="text-5xl font-bold break-all h-14 flex items-center justify-end">{display}</div>
+                        </div>
+                        {renderHistory()}
+                        {renderButtons()}
+                    </div>
+                </ScrollArea>
+            ) : (
                 <>
-                  {renderHistory()}
-                  <div className="shrink-0">
+                    <div className='bg-secondary rounded-2xl p-4 m-4 mb-0 text-right shrink-0'>
+                        <div className='text-muted-foreground text-sm h-6 truncate'>{currentExpression || '...'}</div>
+                        <div className="text-5xl font-bold break-all h-14 flex items-center justify-end">{display}</div>
+                    </div>
                     {renderButtons()}
-                  </div>
                 </>
-              ) : renderButtons() }
-            </div>
-          </ScrollArea>
+            )}
         </CardContent>
       </Card>
     </div>
