@@ -26,6 +26,7 @@ export default function PdfToWordPage() {
 
   const { toast } = useToast();
   const previewRef = useRef<HTMLDivElement>(null);
+  const canvasRefs = useRef<(HTMLCanvasElement | null)[]>([]);
 
   const resetState = () => {
     setFile(null);
@@ -33,6 +34,7 @@ export default function PdfToWordPage() {
     setPdfTextContent([]);
     setConvertedFileUrl(null);
     if (previewRef.current) previewRef.current.innerHTML = '';
+    canvasRefs.current = [];
   }
   
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -46,6 +48,7 @@ export default function PdfToWordPage() {
         const typedarray = new Uint8Array(arrayBuffer);
         const pdf = await pdfjsLib.getDocument(typedarray).promise;
         const allPagesText: string[] = [];
+        canvasRefs.current = Array(pdf.numPages).fill(null);
 
         for (let i = 1; i <= pdf.numPages; i++) {
           const page = await pdf.getPage(i);
@@ -74,32 +77,32 @@ export default function PdfToWordPage() {
   };
 
   const renderPdfPreview = async () => {
-    if (!file || !previewRef.current) return;
+    if (!file || !previewRef.current || pdfTextContent.length === 0) return;
     
     setShowPreview(true);
-    previewRef.current.innerHTML = '<div class="flex justify-center items-center h-full"><div class="loader"></div></div>'; // Loading indicator
+    previewRef.current.innerHTML = ''; // Clear previous preview
     
     try {
-      const arrayBuffer = await file.arrayBuffer();
-      const typedarray = new Uint8Array(arrayBuffer);
-      const pdf = await pdfjsLib.getDocument(typedarray).promise;
+        const arrayBuffer = await file.arrayBuffer();
+        const typedarray = new Uint8Array(arrayBuffer);
+        const pdf = await pdfjsLib.getDocument(typedarray).promise;
 
-      previewRef.current.innerHTML = ''; // Clear loading indicator
+        for (let i = 0; i < pdf.numPages; i++) {
+            const page = await pdf.getPage(i + 1);
+            const viewport = page.getViewport({ scale: 1.5 });
 
-      for (let i = 1; i <= pdf.numPages; i++) {
-        const page = await pdf.getPage(i);
-        const viewport = page.getViewport({ scale: 1.5 });
-
-        const canvas = document.createElement('canvas');
-        const context = canvas.getContext('2d');
-        canvas.height = viewport.height;
-        canvas.width = viewport.width;
-        canvas.style.marginBottom = '10px';
-        
-        previewRef.current?.appendChild(canvas);
-
-        await page.render({ canvasContext: context!, viewport: viewport }).promise;
-      }
+            const canvas = document.createElement('canvas');
+            canvas.height = viewport.height;
+            canvas.width = viewport.width;
+            canvas.style.marginBottom = '10px';
+            canvasRefs.current[i] = canvas;
+            previewRef.current.appendChild(canvas);
+            
+            const context = canvas.getContext('2d');
+            if (context) {
+              await page.render({ canvasContext: context, viewport: viewport }).promise;
+            }
+        }
     } catch (error) {
        previewRef.current.innerHTML = '<p class="text-destructive">Gagal mempratinjau PDF.</p>';
        console.error("PDF Preview Error:", error);
@@ -127,13 +130,20 @@ export default function PdfToWordPage() {
 
     try {
         let fullHtmlContent = '<html><body>';
-        pdfTextContent.forEach(pageText => {
-            const paragraphs = pageText.split(/\s{2,}/) // Split on 2+ spaces
-                .filter(p => p.trim())
+        
+        pdfTextContent.forEach((pageText, index) => {
+             const paragraphs = pageText.split(/\s{2,}/g)
+                .filter(p => p.trim().length > 0)
                 .map(p => `<p>${p.trim()}</p>`)
                 .join('');
-            fullHtmlContent += `<div style="page-break-after: always;">${paragraphs}</div>`;
+            
+            fullHtmlContent += paragraphs;
+
+            if (index < pdfTextContent.length - 1) {
+                fullHtmlContent += '<br style="page-break-before: always" />';
+            }
         });
+
         fullHtmlContent += '</body></html>';
 
         const result = await convertHtmlToWord({
