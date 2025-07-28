@@ -166,8 +166,8 @@ export default function PdfToWordPage() {
             <ArrowRightLeft className="w-8 h-8 text-muted-foreground" />
             <FileCode2 className="w-12 h-12 text-blue-500" />
           </div>
-          <CardTitle className="text-2xl font-headline">PDF ke Word</CardTitle>
-          <CardDescription>Konversi PDF ke dokumen Word dengan mempertahankan tata letak visual.</CardDescription>
+          <CardTitle className="text-2xl font-headline">PDF ke Word (Tata Letak Visual)</CardTitle>
+          <CardDescription>Konversi PDF ke dokumen Word dengan mempertahankan tata letak visual asli.</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-6">
@@ -204,7 +204,7 @@ export default function PdfToWordPage() {
             {showPreview && (
               <div className="border rounded-md p-4 bg-secondary">
                 <h4 className="font-bold mb-2 text-center">Pratinjau Dokumen ({totalPages} Halaman)</h4>
-                {isProcessing && !previewRef.current?.hasChildNodes() && <Loader2 className="mx-auto h-8 w-8 animate-spin"/>}
+                {isProcessing && !previewRef.current?.hasChildNodes() && <div className="text-center"><Loader2 className="mx-auto h-8 w-8 animate-spin"/></div>}
                 <div ref={previewRef} className="bg-white p-2 shadow-inner h-96 overflow-auto"></div>
               </div>
             )}
@@ -214,4 +214,3 @@ export default function PdfToWordPage() {
     </div>
   );
 }
-

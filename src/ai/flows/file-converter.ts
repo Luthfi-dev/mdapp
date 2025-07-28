@@ -28,6 +28,10 @@ const convertHtmlToWordFlow = ai.defineFlow(
             table: { row: { cantSplit: true } },
             footer: true,
             pageNumber: true,
+             pageSize: {
+                width: 11906,
+                height: 16838,
+            },
         });
 
         const docxDataUri = `data:application/vnd.openxmlformats-officedocument.wordprocessingml.document;base64,${(docxBuffer as Buffer).toString('base64')}`;
