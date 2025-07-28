@@ -31,7 +31,7 @@ export default function StopwatchPage() {
     if (!stopwatchRef.current) return;
     if (!document.fullscreenElement) {
       stopwatchRef.current.requestFullscreen().catch(err => {
-        alert(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
+        alert(`Gagal mengaktifkan mode layar penuh: ${err.message} (${err.name})`);
       });
     } else {
       if (document.exitFullscreen) {
@@ -55,19 +55,10 @@ export default function StopwatchPage() {
     }
   }, []);
 
-  const handleStartStop = () => {
-    if (isRunning) {
-      stopTimer();
-    } else {
-      startTimer();
-    }
-  };
-
   const handleLap = () => {
     if (isRunning) {
-      const currentLapTime = time - lastLapTime;
+      const currentLapTime = time - laps.reduce((a, b) => a + b, 0);
       setLaps(prevLaps => [currentLapTime, ...prevLaps]);
-      setLastLapTime(time);
     }
   };
 
@@ -75,7 +66,6 @@ export default function StopwatchPage() {
     stopTimer();
     setTime(0);
     setLaps([]);
-    setLastLapTime(0);
   };
 
   useEffect(() => {
@@ -92,39 +82,50 @@ export default function StopwatchPage() {
     const milliseconds = Math.floor((ms % 1000) / 10).toString().padStart(2, '0');
     return `${minutes}:${seconds}.${milliseconds}`;
   };
+  
+  const formatTotalLapsTime = (laps: number[]) => {
+      const totalMs = laps.reduce((a, b) => a + b, 0);
+      return formatTime(totalMs);
+  }
 
   const getLapStats = () => {
-    if (laps.length === 0) return { fastest: null, slowest: null };
+    if (laps.length < 2) return { fastest: null, slowest: null };
     const fastest = Math.min(...laps);
     const slowest = Math.max(...laps);
     return { fastest, slowest };
   };
 
   const { fastest, slowest } = getLapStats();
-  
-  const lapButtonLogic = () => {
-      if(isRunning) {
-          return (
-             <Button onClick={handleLap} variant="outline" className="h-16 rounded-2xl text-lg flex-1">
-                <Flag className="mr-2" /> Putaran
-            </Button>
-          )
-      }
-      if(!isRunning && time > 0) {
-           return (
-             <Button onClick={handleReset} variant="outline" className="h-16 rounded-2xl text-lg flex-1">
-                <RotateCcw className="mr-2" /> Reset
-            </Button>
-          )
-      }
-      return <div className='flex-1'></div>
-  }
 
+  const renderButtons = () => {
+    const buttonClass = "h-20 w-20 text-lg flex-shrink-0 rounded-full text-white";
+    if (!isRunning && time === 0) {
+      return (
+        <div className="flex justify-center items-center h-20">
+          <Button onClick={startTimer} className={cn(buttonClass, "bg-green-500 hover:bg-green-600")}>
+            <Play className="h-6 w-6" />
+          </Button>
+        </div>
+      );
+    }
+
+    return (
+      <div className="flex justify-between items-center h-20">
+        <Button onClick={!isRunning ? handleReset : handleLap} variant="secondary" className={cn(buttonClass, "bg-gray-500 hover:bg-gray-600 text-white")}>
+          {!isRunning ? <RotateCcw /> : <Flag />}
+        </Button>
+        <Button onClick={!isRunning ? startTimer : stopTimer} className={cn(buttonClass, isRunning ? "bg-red-500 hover:bg-red-600" : "bg-green-500 hover:bg-green-600")}>
+          {isRunning ? <Pause /> : <Play />}
+        </Button>
+      </div>
+    );
+  };
+  
   return (
     <div className="container mx-auto px-4 py-8 pb-24">
       <Card ref={stopwatchRef} className={cn(
-        "max-w-md mx-auto shadow-2xl rounded-3xl overflow-hidden transition-all duration-300 bg-background flex flex-col",
-         isFullScreen && "fixed inset-0 z-50 w-full h-full max-w-none rounded-none"
+        "max-w-md mx-auto shadow-2xl rounded-3xl overflow-hidden transition-all duration-300 bg-card flex flex-col",
+         isFullScreen && "fixed inset-0 z-50 w-full h-full max-w-none rounded-none bg-background"
       )}>
         <CardHeader className="text-center shrink-0">
           <CardTitle className="text-3xl font-headline flex items-center justify-center gap-4">
@@ -149,46 +150,47 @@ export default function StopwatchPage() {
           </CardTitle>
           <CardDescription>Ukur waktu dengan presisi dan catat putaran.</CardDescription>
         </CardHeader>
-        <CardContent className={cn("flex flex-col items-center flex-grow p-4", isFullScreen ? "p-2 sm:p-4" : "p-6")}>
-          <div className="font-mono text-7xl md:text-8xl my-4 tracking-tighter w-full text-center bg-secondary/50 py-4 rounded-2xl break-all">
-            {formatTime(time)}
+        <CardContent className="flex flex-col flex-grow p-4 min-h-0">
+          <div className="relative flex-grow flex flex-col items-center justify-center">
+            <div className='absolute top-0 right-0 font-mono text-xl text-muted-foreground'>
+                {laps.length > 0 && formatTotalLapsTime(laps)}
+            </div>
+            <div className="font-mono text-6xl sm:text-7xl my-4 tracking-tight w-full text-center break-all p-4">
+              {formatTime(time)}
+            </div>
           </div>
           
-          <div className="flex gap-4 w-full mb-6">
-             {lapButtonLogic()}
-             <Button onClick={handleStartStop} className="h-16 rounded-2xl text-lg font-bold flex-1">
-              {isRunning ? <><Pause className="mr-2" /> Jeda</> : <><Play className="mr-2" /> Mulai</>}
-            </Button>
+          <div className="w-full max-w-xs mx-auto mb-4 shrink-0">
+            {renderButtons()}
           </div>
 
-          <div className='w-full flex-grow min-h-0 flex flex-col'>
-            <h3 className='font-bold text-lg mb-2 text-center shrink-0'>Riwayat Putaran</h3>
-             <ScrollArea className="flex-grow bg-secondary/50 rounded-lg p-2">
+          <div className='w-full flex-grow min-h-0 flex flex-col shrink-0'>
+             <ScrollArea className="flex-grow rounded-lg bg-secondary/30">
                 {laps.length > 0 ? (
-                <ul className='divide-y divide-border'>
-                    {laps.slice().reverse().map((lap, index) => {
+                <ul className='divide-y divide-border p-2'>
+                    {laps.map((lap, index) => {
                         const isFastest = lap === fastest;
                         const isSlowest = lap === slowest;
 
                         return (
-                            <li key={index} className="flex justify-between items-center p-2 font-mono text-lg">
-                                <span className="text-muted-foreground">Putaran {index + 1}</span>
+                            <li key={index} className="flex justify-between items-center p-3 font-mono text-lg">
+                                <span className="text-muted-foreground">Putaran {laps.length - index}</span>
                                 <div className='flex items-center gap-2'>
-                                    {isFastest && laps.length > 1 && <ArrowDown className='w-5 h-5 text-green-500' />}
-                                    {isSlowest && laps.length > 1 && <ArrowUp className='w-5 h-5 text-red-500' />}
+                                    {isFastest && <ArrowDown className='w-5 h-5 text-green-500' />}
+                                    {isSlowest && <ArrowUp className='w-5 h-5 text-red-500' />}
                                     <span className={cn(
-                                        isFastest && laps.length > 1 && 'text-green-500 font-bold',
-                                        isSlowest && laps.length > 1 && 'text-red-500 font-bold'
+                                        isFastest && 'text-green-500 font-bold',
+                                        isSlowest && 'text-red-500 font-bold'
                                     )}>
                                         {formatTime(lap)}
                                     </span>
                                 </div>
                             </li>
                         )
-                    })}
+                    }).reverse()}
                 </ul>
                 ) : (
-                <div className="flex items-center justify-center h-full text-sm text-muted-foreground">
+                <div className="flex items-center justify-center h-full text-sm text-muted-foreground p-8">
                     Tekan "Putaran" untuk mencatat waktu.
                 </div>
                 )}
@@ -199,3 +201,4 @@ export default function StopwatchPage() {
     </div>
   );
 }
+
