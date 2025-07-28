@@ -90,6 +90,7 @@ export default function WordToPdfPage() {
       const pages = docxWrapper.querySelectorAll('.docx');
       
       if(pages.length === 0) {
+        // Handle case where docx-preview doesn't create pages
         const canvas = await html2canvas(docxWrapper as HTMLElement, {
             scale: 2,
             useCORS: true,
@@ -186,7 +187,7 @@ export default function WordToPdfPage() {
                         
                         <div className="border rounded-md p-4 bg-secondary word-preview-container">
                           <h4 className="font-bold mb-2 text-center">Pratinjau Dokumen</h4>
-                          <div ref={previewRef} className="bg-white p-2 shadow-inner h-96"></div>
+                          <div ref={previewRef} className="bg-white p-2 shadow-inner h-96 overflow-auto"></div>
                         </div>
                     </div>
                 )}

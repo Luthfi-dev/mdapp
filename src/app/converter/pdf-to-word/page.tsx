@@ -7,21 +7,18 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, FileText, FileCode2, ArrowRightLeft, Eye, Download } from 'lucide-react';
-import { saveAs } from 'file-saver';
+import { Loader2, FileText, Eye } from 'lucide-react';
 import * as pdfjsLib from 'pdfjs-dist';
-import { convertHtmlToWord } from '@/ai/flows/file-converter';
 
 // Set worker source
 if (typeof window !== 'undefined') {
   pdfjsLib.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
 }
 
-export default function PdfToWordPage() {
+export default function PdfViewerPage() {
   const [file, setFile] = useState<File | null>(null);
-  const [isConverting, setIsConverting] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
-  const [convertedFileUrl, setConvertedFileUrl] = useState<string | null>(null);
 
   const { toast } = useToast();
   const previewRef = useRef<HTMLDivElement>(null);
@@ -29,7 +26,6 @@ export default function PdfToWordPage() {
   const resetState = () => {
     setFile(null);
     setShowPreview(false);
-    setConvertedFileUrl(null);
     if (previewRef.current) previewRef.current.innerHTML = '';
   }
   
@@ -52,6 +48,8 @@ export default function PdfToWordPage() {
     if (!file) return;
     
     setShowPreview(true);
+    setIsLoading(true);
+
     if (previewRef.current) previewRef.current.innerHTML = ''; // Clear previous preview
     
     try {
@@ -77,84 +75,8 @@ export default function PdfToWordPage() {
     } catch (error) {
        if (previewRef.current) previewRef.current.innerHTML = '<p class="text-destructive">Gagal mempratinjau PDF.</p>';
        console.error("PDF Preview Error:", error);
-    }
-  };
-  
-  const getTargetFilename = () => {
-    if (!file) return 'converted.docx';
-    const originalName = file.name.substring(0, file.name.lastIndexOf('.'));
-    return `${originalName}.docx`;
-  };
-
-  const handleConvertToWord = async () => {
-    if (!file) {
-      toast({
-        variant: 'destructive',
-        title: 'Tidak ada file',
-        description: 'Silakan unggah file PDF terlebih dahulu.',
-      });
-      return;
-    }
-
-    setIsConverting(true);
-    setConvertedFileUrl(null);
-
-    try {
-        const arrayBuffer = await file.arrayBuffer();
-        const typedarray = new Uint8Array(arrayBuffer);
-        const pdf = await pdfjsLib.getDocument(typedarray).promise;
-        const allPagesText: string[] = [];
-
-        for (let i = 1; i <= pdf.numPages; i++) {
-          const page = await pdf.getPage(i);
-          const textContent = await page.getTextContent();
-          const pageText = textContent.items.map((item: any) => item.str).join(' ');
-          allPagesText.push(pageText);
-        }
-        
-        let fullHtmlContent = '<html><body>';
-        
-        allPagesText.forEach((pageText, index) => {
-             const paragraphs = pageText.split(/\s{2,}/g)
-                .filter(p => p.trim().length > 0)
-                .map(p => `<p>${p.trim()}</p>`)
-                .join('');
-            
-            fullHtmlContent += paragraphs;
-
-            if (index < allPagesText.length - 1) {
-                fullHtmlContent += '<br style="page-break-before: always" />';
-            }
-        });
-
-        fullHtmlContent += '</body></html>';
-
-        const result = await convertHtmlToWord({
-            htmlContent: fullHtmlContent,
-            filename: getTargetFilename(),
-        });
-
-        if (result.error || !result.docxDataUri) {
-            throw new Error(result.error || 'Konversi di server gagal.');
-        }
-
-        setConvertedFileUrl(result.docxDataUri);
-
-        toast({
-            title: 'Konversi Berhasil',
-            description: 'File Anda siap diunduh.',
-        });
-
-    } catch (error) {
-      console.error("Word Conversion Error:", error);
-      const errorMessage = error instanceof Error ? error.message : 'Terjadi kesalahan tidak dikenal.';
-      toast({
-        variant: 'destructive',
-        title: 'Kesalahan Konversi',
-        description: `Gagal mengonversi file: ${errorMessage}`,
-      });
     } finally {
-        setIsConverting(false);
+        setIsLoading(false);
     }
   };
 
@@ -164,11 +86,9 @@ export default function PdfToWordPage() {
         <CardHeader className="text-center">
           <div className="flex justify-center items-center gap-4 mb-4">
             <FileText className="w-12 h-12 text-red-500" />
-            <ArrowRightLeft className="w-8 h-8 text-muted-foreground" />
-            <FileCode2 className="w-12 h-12 text-blue-500" />
           </div>
-          <CardTitle className="text-2xl font-headline">PDF ke Word (Ekstrak Teks)</CardTitle>
-          <CardDescription>Unggah file PDF Anda, pratinjau, dan konversi ke Word.</CardDescription>
+          <CardTitle className="text-2xl font-headline">Penampil PDF</CardTitle>
+          <CardDescription>Unggah dan lihat pratinjau file PDF Anda langsung di browser.</CardDescription>
         </CardHeader>
         <CardContent>
             <div className="space-y-6">
@@ -181,25 +101,18 @@ export default function PdfToWordPage() {
                 {file && (
                   <div className="space-y-4">
                       <div className="flex gap-2">
-                          {!convertedFileUrl ? (
-                              <Button onClick={handleConvertToWord} className="w-full" disabled={isConverting || !file}>
-                                {isConverting ? (
-                                    <>
+                           <Button className="w-full" variant="outline" onClick={renderPdfPreview} disabled={isLoading || !file}>
+                              {isLoading ? (
+                                  <>
                                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                      Mengonversi...
-                                    </>
-                                ) : (
-                                    'Konversi ke Word'
-                                )}
-                              </Button>
-                          ) : (
-                              <Button onClick={() => saveAs(convertedFileUrl, getTargetFilename())} className="w-full" variant="secondary">
-                                <Download className="mr-2 h-4 w-4" />
-                                Unduh File Word
-                              </Button>
-                          )}
-                           <Button variant="outline" size="icon" onClick={renderPdfPreview} disabled={isConverting || !file}>
-                              <Eye className="h-5 w-5" />
+                                      Memuat Pratinjau...
+                                  </>
+                              ) : (
+                                  <>
+                                    <Eye className="mr-2 h-5 w-5" />
+                                    Lihat Pratinjau
+                                  </>
+                              )}
                            </Button>
                       </div>
                       
@@ -213,11 +126,10 @@ export default function PdfToWordPage() {
                 )}
             </div>
             <div className="mt-6 text-center text-sm text-muted-foreground">
-                <p>Pratinjau dirender di browser, konversi dilakukan di server. Tidak ada data yang disimpan.</p>
+                <p>Pratinjau dirender di browser. Tidak ada data yang disimpan di server.</p>
             </div>
         </CardContent>
       </Card>
     </div>
   );
 }
-
