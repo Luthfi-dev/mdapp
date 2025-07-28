@@ -10,8 +10,6 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2, FileText, FileCode2, ArrowRightLeft } from 'lucide-react';
 import { saveAs } from 'file-saver';
 import * as pdfjsLib from 'pdfjs-dist';
-import type { TextLayer } from 'pdfjs-dist';
-import { renderTextLayer } from 'pdfjs-dist/build/pdf.mjs';
 import { convertHtmlToWord } from '@/ai/flows/file-converter';
 
 // Set worker source
@@ -89,11 +87,26 @@ export default function PdfToWordPage() {
             previewRef.current?.appendChild(pageDiv);
             
             await page.render(renderContext).promise;
-            await renderTextLayer({
-                textContentSource: textContent,
-                container: textLayerDiv,
-                viewport: viewport,
-                textDivs: []
+
+            textContent.items.forEach(item => {
+                if ('str' in item) {
+                    const tx = pdfjsLib.Util.transform(
+                        pdfjsLib.Util.transform(viewport.transform, item.transform),
+                        [1, 0, 0, -1, 0, 0]
+                    );
+
+                    const style = textContent.styles[item.fontName];
+                    const textDiv = document.createElement('span');
+                    textDiv.style.fontFamily = style.fontFamily;
+                    textDiv.style.transformOrigin = '0% 0%';
+                    textDiv.style.transform = `scaleX(${tx[0]}) scaleY(${tx[3]})`;
+                    textDiv.style.fontSize = `${Math.sqrt((tx[2] * tx[2]) + (tx[3] * tx[3]))}px`;
+                    textDiv.style.position = 'absolute';
+                    textDiv.style.left = `${tx[4]}px`;
+                    textDiv.style.top = `${tx[5]}px`;
+                    textDiv.textContent = item.str;
+                    textLayerDiv.appendChild(textDiv);
+                }
             });
         }
     };
@@ -197,4 +210,3 @@ export default function PdfToWordPage() {
     </div>
   );
 }
-
