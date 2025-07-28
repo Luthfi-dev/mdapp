@@ -70,7 +70,7 @@ export default function PdfToWordPage() {
 
         toast({
           title: 'Konversi Berhasil',
-          description: 'File PDF Anda telah berhasil dikonversi ke Word.',
+          description: 'File PDF Anda telah berhasil dikonversi dan diunduh.',
         });
       } else {
         throw new Error('Konversi gagal: tidak ada konten yang diterima.');
@@ -116,7 +116,7 @@ export default function PdfToWordPage() {
                   Mengonversi...
                 </>
               ) : (
-                'Konversi ke Word & Unduh'
+                'Konversi & Unduh Otomatis'
               )}
             </Button>
           </form>
