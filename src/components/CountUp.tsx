@@ -9,10 +9,18 @@ interface CountUpProps {
 
 export function CountUp({ end, duration = 1.5 }: CountUpProps) {
     const [count, setCount] = useState(end);
+    const [isMounted, setIsMounted] = useState(false);
     const frameRef = useRef<number>();
     const prevEndRef = useRef(end);
 
     useEffect(() => {
+        setIsMounted(true);
+    }, []);
+
+    useEffect(() => {
+        // Don't run the animation on the server or on initial client render before mount.
+        if (!isMounted) return;
+
         const start = prevEndRef.current;
         let startTime: number | null = null;
 
@@ -38,15 +46,25 @@ export function CountUp({ end, duration = 1.5 }: CountUpProps) {
             }
         };
 
-        frameRef.current = requestAnimationFrame(animate);
+        // If the `end` value changes, start the animation.
+        if (end !== prevEndRef.current) {
+            frameRef.current = requestAnimationFrame(animate);
+        } else {
+            // If `end` hasn't changed, just ensure the count is correct without animation.
+            setCount(end);
+        }
+
 
         return () => {
             if (frameRef.current) {
                 cancelAnimationFrame(frameRef.current);
             }
-             prevEndRef.current = end;
+             // Update the ref to the latest `end` value when the component re-renders or unmounts
+            prevEndRef.current = end;
         };
-    }, [end, duration]);
+    }, [end, duration, isMounted]);
 
-    return <span>{count.toLocaleString()}</span>;
+    // Render raw number on server and on initial client render.
+    // Format only after the component has mounted on the client.
+    return <span>{isMounted ? count.toLocaleString('id-ID') : count}</span>;
 }
