@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useRef } from 'react';
@@ -6,9 +7,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Download, Loader2, FileImage, FileText, ArrowRightLeft, X } from 'lucide-react';
+import { Loader2, FileImage, FileText, ArrowRightLeft, X } from 'lucide-react';
 import { PDFDocument, PDFImage } from 'pdf-lib';
 import Image from 'next/image';
+import { saveAs } from 'file-saver';
 
 interface UploadedImage {
   file: File;
@@ -18,7 +20,6 @@ interface UploadedImage {
 export default function ImageToPdfPage() {
   const [files, setFiles] = useState<UploadedImage[]>([]);
   const [isConverting, setIsConverting] = useState(false);
-  const [convertedFileUrl, setConvertedFileUrl] = useState<string | null>(null);
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -48,6 +49,11 @@ export default function ImageToPdfPage() {
     setFiles(prev => prev.filter((_, i) => i !== index));
   }
 
+  const getTargetFilename = () => {
+    const firstFileName = files.length > 0 ? files[0].file.name.substring(0, files[0].file.name.lastIndexOf('.')) : 'converted';
+    return `${firstFileName}.pdf`;
+  }
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (files.length === 0) {
@@ -60,7 +66,6 @@ export default function ImageToPdfPage() {
     }
 
     setIsConverting(true);
-    setConvertedFileUrl(null);
 
     try {
       const pdfDoc = await PDFDocument.create();
@@ -74,8 +79,7 @@ export default function ImageToPdfPage() {
         } else if (file.type === 'image/jpeg') {
             pdfImage = await pdfDoc.embedJpg(arrayBuffer);
         } else {
-            // Basic fallback for other image types - might not work for all
-            const image = new Image();
+            const image = new window.Image();
             image.src = URL.createObjectURL(file);
             await new Promise(resolve => image.onload = resolve);
             const canvas = document.createElement('canvas');
@@ -98,12 +102,11 @@ export default function ImageToPdfPage() {
       
       const pdfBytes = await pdfDoc.save();
       const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-      const url = URL.createObjectURL(blob);
-      setConvertedFileUrl(url);
+      saveAs(blob, getTargetFilename());
 
       toast({
         title: 'Konversi Berhasil',
-        description: `${files.length} gambar telah berhasil dikonversi menjadi PDF.`,
+        description: `${files.length} gambar telah berhasil dikonversi dan diunduh menjadi PDF.`,
       });
 
     } catch (error) {
@@ -173,27 +176,10 @@ export default function ImageToPdfPage() {
                   Mengonversi...
                 </>
               ) : (
-                'Konversi ke PDF'
+                'Konversi & Unduh Otomatis'
               )}
             </Button>
           </form>
-
-          {convertedFileUrl && (
-             <div className="mt-8 border-t pt-6 space-y-4">
-                <h3 className="text-lg font-medium text-primary text-center">Konversi Selesai!</h3>
-                <div className="text-center">
-                    <Button asChild>
-                        <a href={convertedFileUrl} download="converted_images.pdf">
-                        <Download className="mr-2 h-4 w-4" />
-                        Unduh File PDF
-                        </a>
-                    </Button>
-                </div>
-                <div className="w-full aspect-[4/5] bg-secondary rounded-md">
-                     <iframe src={convertedFileUrl} className="w-full h-full border-none" title="PDF Preview"/>
-                </div>
-            </div>
-          )}
         </CardContent>
       </Card>
     </div>

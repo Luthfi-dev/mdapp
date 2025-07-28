@@ -7,22 +7,21 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, FileCode2, FileText, ArrowRightLeft, Download } from 'lucide-react';
+import { Loader2, FileCode2, FileText, ArrowRightLeft } from 'lucide-react';
 import * as docx from 'docx-preview';
 import { PDFDocument } from 'pdf-lib';
 import html2canvas from 'html2canvas';
+import { saveAs } from 'file-saver';
 
 export default function WordToPdfPage() {
   const [file, setFile] = useState<File | null>(null);
   const [isConverting, setIsConverting] = useState(false);
-  const [convertedFileUrl, setConvertedFileUrl] = useState<string | null>(null);
   const { toast } = useToast();
   const previewRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     document.body.classList.add('word-to-pdf-desktop-view');
     
-    // Cleanup function to remove the class when the component unmounts
     return () => {
       document.body.classList.remove('word-to-pdf-desktop-view');
     };
@@ -43,7 +42,6 @@ export default function WordToPdfPage() {
         }
         
         setFile(selectedFile);
-        setConvertedFileUrl(null);
 
         const reader = new FileReader();
         reader.onload = function(event) {
@@ -64,6 +62,12 @@ export default function WordToPdfPage() {
         reader.readAsArrayBuffer(selectedFile);
     }
   };
+  
+  const getTargetFilename = () => {
+    if (!file) return 'converted.pdf';
+    const originalName = file.name.substring(0, file.name.lastIndexOf('.'));
+    return `${originalName}.pdf`;
+  };
 
   const handleConvertToPdf = async () => {
     if (!previewRef.current || !previewRef.current.hasChildNodes()) {
@@ -76,7 +80,6 @@ export default function WordToPdfPage() {
     }
 
     setIsConverting(true);
-    setConvertedFileUrl(null);
 
     try {
       const pdfDoc = await PDFDocument.create();
@@ -89,7 +92,6 @@ export default function WordToPdfPage() {
       const pages = docxWrapper.querySelectorAll('.docx');
       
       if(pages.length === 0) {
-        // Fallback for single page documents that might not have the .docx class on the page itself
         const canvas = await html2canvas(docxWrapper as HTMLElement, {
             scale: 2,
             useCORS: true,
@@ -131,12 +133,11 @@ export default function WordToPdfPage() {
 
       const pdfBytes = await pdfDoc.save();
       const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-      const url = URL.createObjectURL(blob);
-      setConvertedFileUrl(url);
+      saveAs(blob, getTargetFilename());
 
       toast({
         title: 'Konversi Berhasil',
-        description: 'File Word Anda telah berhasil dikonversi ke PDF.',
+        description: 'File Word Anda telah berhasil dikonversi dan diunduh.',
       });
 
     } catch (error) {
@@ -152,12 +153,6 @@ export default function WordToPdfPage() {
     }
   };
   
-  const getTargetFilename = () => {
-    if (!file) return 'converted.pdf';
-    const originalName = file.name.substring(0, file.name.lastIndexOf('.'));
-    return `${originalName}.pdf`;
-  };
-
   return (
     <div className="container mx-auto px-4 py-8">
       <Card className="max-w-4xl mx-auto">
@@ -184,10 +179,10 @@ export default function WordToPdfPage() {
                         {isConverting ? (
                             <>
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Mengonversi ke PDF...
+                            Mengonversi...
                             </>
                         ) : (
-                            'Konversi ke PDF'
+                            'Konversi & Unduh Otomatis'
                         )}
                         </Button>
                         
@@ -195,18 +190,6 @@ export default function WordToPdfPage() {
                           <h4 className="font-bold mb-2 text-center">Pratinjau Dokumen</h4>
                           <div ref={previewRef} className="bg-white p-2 shadow-inner h-96 overflow-auto"></div>
                         </div>
-                    </div>
-                )}
-                
-                {convertedFileUrl && (
-                    <div className="mt-8 border-t pt-6 space-y-4 text-center">
-                        <h3 className="text-lg font-medium text-primary">Konversi Selesai!</h3>
-                        <Button asChild>
-                            <a href={convertedFileUrl} download={getTargetFilename()}>
-                            <Download className="mr-2 h-4 w-4" />
-                            Unduh File PDF
-                            </a>
-                        </Button>
                     </div>
                 )}
             </div>
