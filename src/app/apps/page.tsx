@@ -5,7 +5,6 @@ import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Search, FileText, BookOpen, ScanLine, Calculator, Palette, Clock, type LucideIcon } from 'lucide-react';
-import Link from 'next/link';
 import { ToolCard } from '@/components/ToolCard';
 
 interface App {
@@ -33,43 +32,44 @@ export default function AllAppsPage() {
   );
 
   return (
-    <div className="container mx-auto px-4 py-8 pb-24">
-      <Card className="max-w-4xl mx-auto">
-        <CardHeader>
-          <CardTitle className="text-3xl font-headline">Semua Aplikasi</CardTitle>
-          <CardDescription>Temukan semua alat yang Anda butuhkan di satu tempat.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="relative mb-8">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+    <div className="container mx-auto px-4 py-8">
+       <div className="max-w-4xl mx-auto">
+        <div className="text-center mb-10">
+          <h1 className="text-4xl font-bold font-headline tracking-tight">Semua Aplikasi</h1>
+          <p className="text-muted-foreground mt-2 text-lg">
+            Temukan semua alat yang Anda butuhkan di satu tempat.
+          </p>
+        </div>
+
+        <div className="relative mb-12">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
             <Input
               type="search"
               placeholder="Cari aplikasi..."
-              className="w-full rounded-full bg-secondary pl-10 pr-4 py-2 h-12"
+              className="w-full rounded-full bg-card text-foreground shadow-sm pl-12 pr-4 py-3 h-14"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
-          </div>
+        </div>
 
-          {filteredApps.length > 0 ? (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        {filteredApps.length > 0 ? (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 pb-24">
               {filteredApps.map((app) => (
                 <ToolCard
                   key={app.title}
                   href={app.href}
-                  icon={<app.icon className="w-10 h-10 text-primary" />}
+                  icon={<app.icon className="w-8 h-8 text-primary" />}
                   title={app.title}
                   description={app.description}
                 />
               ))}
             </div>
-          ) : (
-             <div className="text-center py-16">
-                <p className="text-muted-foreground">Aplikasi tidak ditemukan.</p>
-             </div>
-          )}
-        </CardContent>
-      </Card>
+        ) : (
+            <div className="text-center py-16">
+              <p className="text-muted-foreground">Aplikasi tidak ditemukan.</p>
+            </div>
+        )}
+       </div>
     </div>
   );
 }
