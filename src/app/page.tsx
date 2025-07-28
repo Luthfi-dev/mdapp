@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
-import { ArrowRight, BrainCircuit, Edit, FileText, Grid3x3, Moon, Search, Sun, Gift } from "lucide-react";
+import { ArrowRight, BrainCircuit, Edit, FileText, Grid3x3, Moon, Search, Sun, Gift, Star } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import Autoplay from "embla-carousel-autoplay"
 import React from "react";
@@ -53,6 +53,43 @@ const LatihanSoalCard = () => (
     </Card>
 )
 
+const FlyingPoints = ({ isVisible, startRect }: { isVisible: boolean, startRect: DOMRect | null }) => {
+  const pointsRef = React.useRef<HTMLDivElement>(null);
+
+  const style: React.CSSProperties = startRect ? {
+    position: 'fixed',
+    left: `${startRect.left + startRect.width / 2 - 15}px`,
+    top: `${startRect.top + startRect.height / 2 - 15}px`,
+    transition: 'top 0.8s cubic-bezier(0.5, 1.5, 0.8, 1), left 0.8s ease-in-out, opacity 0.8s ease-out',
+    opacity: 0,
+    zIndex: 9999,
+  } : { display: 'none' };
+  
+  React.useEffect(() => {
+    if (isVisible && pointsRef.current) {
+      setTimeout(() => {
+        if(pointsRef.current) {
+            pointsRef.current.style.opacity = '1';
+            pointsRef.current.style.top = '65px'; // Target Y
+            pointsRef.current.style.left = '100px'; // Target X
+        }
+      }, 50);
+       setTimeout(() => {
+        if(pointsRef.current) {
+          pointsRef.current.style.opacity = '0';
+        }
+      }, 800);
+    }
+  }, [isVisible]);
+
+  return (
+    <div ref={pointsRef} style={style} className="flex items-center justify-center font-bold text-lg text-primary bg-yellow-300 rounded-full w-14 h-14 shadow-lg border-2 border-white">
+      +50
+    </div>
+  );
+};
+
+
 export default function HomePage() {
    const plugin = React.useRef(
     Autoplay({ delay: 3000, stopOnInteraction: true, stopOnMouseEnter: true })
@@ -62,13 +99,37 @@ export default function HomePage() {
    const [isDialogOpen, setIsDialogOpen] = React.useState(false);
    const { points, claimState, claimReward, refreshClaimState } = useDailyReward();
    
+   const [flyingPointsVisible, setFlyingPointsVisible] = React.useState(false);
+   const [startRect, setStartRect] = React.useState<DOMRect | null>(null);
+
+   const handleClaimWithPosition = async (dayIndex: number, element: HTMLElement) => {
+     const rect = element.getBoundingClientRect();
+     setStartRect(rect);
+     onOpenChange(false);
+     
+     const success = await claimReward(dayIndex);
+     if (success) {
+        setFlyingPointsVisible(true);
+        setTimeout(() => setFlyingPointsVisible(false), 1000);
+     }
+   }
+
+   const onOpenChange = (isOpen: boolean) => {
+       if (isOpen) {
+           refreshClaimState();
+       }
+       setIsDialogOpen(isOpen);
+   }
+   
   return (
     <>
+    <FlyingPoints isVisible={flyingPointsVisible} startRect={startRect} />
     <DailyRewardDialog 
       isOpen={isDialogOpen}
-      onOpenChange={setIsDialogOpen}
+      onOpenChange={onOpenChange}
       claimState={claimState}
       onClaim={claimReward}
+      onClaimWithPosition={handleClaimWithPosition}
     />
     <div className="flex flex-col h-full bg-background overflow-x-hidden">
       <header className="bg-primary text-primary-foreground p-6 pb-20 rounded-b-[40px] shadow-lg">
@@ -90,7 +151,7 @@ export default function HomePage() {
                   <CountUp end={points} />
                 </div>
             </div>
-            <Button variant="secondary" className="bg-white/90 hover:bg-white text-primary rounded-full font-bold" onClick={() => { refreshClaimState(); setIsDialogOpen(true); }}>
+            <Button variant="secondary" className="bg-white/90 hover:bg-white text-primary rounded-full font-bold" onClick={() => onOpenChange(true) }>
                 <Gift className="mr-2 h-4 w-4"/>
                 Klaim Poin
             </Button>

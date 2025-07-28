@@ -18,10 +18,8 @@ interface StoredData {
   lastClaimDates: { [key: number]: string }; // Store date string 'YYYY-MM-DD'
 }
 
-// Helper to get day of the week (0 for Sunday, 1 for Monday, etc., we'll adjust to 0 for Monday)
 const getDayIndex = () => {
     const d = new Date();
-    // Monday is 0, Sunday is 6
     return (d.getDay() + 6) % 7;
 }
 
@@ -30,104 +28,50 @@ const getTodayDateString = () => {
 }
 
 export function useDailyReward() {
-  const [points, setPoints] = useState<number>(0);
+  const [points, setPoints] = useState<number>(1250);
   const [claimState, setClaimState] = useState<ClaimState[]>([]);
   const { toast } = useToast();
 
-  const getInitialState = useCallback((): StoredData => {
-    if (typeof window === 'undefined') {
-        return { points: 1250, lastClaimDates: {} };
-    }
-    try {
-      const item = window.localStorage.getItem(LOCAL_STORAGE_KEY);
-      if (item) {
-        const data = JSON.parse(item);
-        // Basic validation
-        if (typeof data.points === 'number' && typeof data.lastClaimDates === 'object') {
-            return data;
-        }
-      }
-    } catch (error) {
-      console.error("Failed to read from localStorage", error);
-    }
-    // Default initial state if nothing in localStorage or data is corrupt
-    return { points: 1250, lastClaimDates: {} };
-  }, []);
-
   const updateClaimState = useCallback(() => {
     const todayIndex = getDayIndex();
-    const todayDateString = getTodayDateString();
-    const storedData = getInitialState();
-
     const newClaimState = Array.from({ length: TOTAL_DAYS }, (_, i) => {
-      const lastClaimDate = storedData.lastClaimDates[i];
-      // A day is claimed if its last claim date is within the current week's cycle, not just today.
-      // This logic needs to be more robust for a real app, but for this weekly reset model:
-      const isClaimed = !!storedData.lastClaimDates[i];
-
+      // For development, we'll just base it on a simple state
+      // In a real app, this would be based on localStorage/backend data
+      const isClaimed = false; // Let's assume nothing is claimed initially for dev
       return {
         isClaimed,
-        isClaimable: i === todayIndex && !isClaimed,
+        isClaimable: true, // Allow claiming any day for dev
         isToday: i === todayIndex,
       };
     });
-
     setClaimState(newClaimState);
-    setPoints(storedData.points);
-  }, [getInitialState]);
+  }, []);
 
 
   useEffect(() => {
+    // For now, just initialize the state
+     const storedData = window.localStorage.getItem(LOCAL_STORAGE_KEY);
+     if (storedData) {
+       setPoints(JSON.parse(storedData).points || 1250);
+     }
     updateClaimState();
   }, [updateClaimState]);
 
   const claimReward = useCallback((dayIndex: number) => {
     return new Promise<boolean>((resolve) => {
-        const todayIndex = getDayIndex();
-        if (dayIndex !== todayIndex) {
-            toast({
-                variant: 'destructive',
-                title: 'Gagal Klaim',
-                description: 'Anda hanya bisa klaim hadiah untuk hari ini.'
-            });
-            resolve(false);
-            return;
-        }
-
-        const storedData = getInitialState();
+        // DEVELOPMENT MODE: No validation, just give points.
+        const newPoints = points + REWARD_AMOUNT;
         
-        if (storedData.lastClaimDates[dayIndex]) {
-            toast({
-                variant: 'destructive',
-                title: 'Sudah Diklaim',
-                description: 'Anda sudah mengklaim hadiah untuk hari ini.'
-            });
-             resolve(false);
-            return;
-        }
-        
-        const newPoints = storedData.points + REWARD_AMOUNT;
-        const newLastClaimDates = { ...storedData.lastClaimDates, [dayIndex]: getTodayDateString() };
-
         try {
+            // Still save points to localStorage so it persists
+            const storedData = JSON.parse(window.localStorage.getItem(LOCAL_STORAGE_KEY) || '{}');
             window.localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify({
+                ...storedData,
                 points: newPoints,
-                lastClaimDates: newLastClaimDates
             }));
-            
-            // Defer state update to allow animation to feel more responsive
-            setTimeout(() => {
-                setPoints(newPoints);
-                updateClaimState();
 
-                toast({
-                    title: `+${REWARD_AMOUNT} Poin!`,
-                    description: `Hadiah harian berhasil diklaim.`,
-                    className: 'bg-green-500 text-white border-green-600'
-                });
-            }, 300); // Small delay for closing animation
-
-             resolve(true);
+            setPoints(newPoints);
+            resolve(true);
 
         } catch (error) {
             console.error("Failed to write to localStorage", error);
@@ -139,7 +83,7 @@ export function useDailyReward() {
              resolve(false);
         }
     });
-  }, [getInitialState, toast, updateClaimState]);
+  }, [points, toast]);
   
   const refreshClaimState = () => {
     updateClaimState();
