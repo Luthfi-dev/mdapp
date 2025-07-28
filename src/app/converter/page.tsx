@@ -23,12 +23,14 @@ interface ConversionOption {
 
 const conversionOptions: ConversionOption[] = [
   {
-    title: 'Penampil PDF',
-    description: 'Lihat pratinjau file PDF Anda langsung di browser.',
+    title: 'PDF ke Word',
+    description: 'Ubah file PDF menjadi dokumen Word dengan tata letak visual asli.',
     href: '/converter/pdf-to-word',
     icon: (
-      <div className="flex justify-center items-center">
+      <div className="flex items-center gap-2">
         <FileText className="w-8 h-8 text-red-600" />
+        <ArrowRightLeft className="w-5 h-5 text-muted-foreground" />
+        <FileCode2 className="w-8 h-8 text-blue-600" />
       </div>
     ),
   },
