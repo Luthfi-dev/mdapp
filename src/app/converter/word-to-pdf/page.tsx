@@ -11,6 +11,12 @@ import { Loader2, FileCode2, FileText, ArrowRightLeft, Download } from 'lucide-r
 import * as docx from 'docx-preview';
 import { PDFDocument } from 'pdf-lib';
 import html2canvas from 'html2canvas';
+import type { Viewport } from 'next';
+
+export const viewport: Viewport = {
+  width: 1280,
+  userScalable: true,
+};
 
 export default function WordToPdfPage() {
   const [file, setFile] = useState<File | null>(null);
