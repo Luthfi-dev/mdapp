@@ -5,15 +5,18 @@ import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { History, Sigma, CornerDownLeft, Divide, X, Minus, Plus, Percent } from 'lucide-react';
+import { History, Sigma, CornerDownLeft, Divide, X, Minus, Plus, Percent, Expand, Minimize } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { cn } from '@/lib/utils';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 export default function CalculatorPage() {
   const [display, setDisplay] = useState('0');
   const [history, setHistory] = useState<string[]>([]);
   const [isScientific, setIsScientific] = useState(false);
   const [currentExpression, setCurrentExpression] = useState('');
+  const [isFullScreen, setIsFullScreen] = useState(false);
 
   const handleInput = (value: string) => {
     if (display === 'Error') {
@@ -130,7 +133,7 @@ export default function CalculatorPage() {
     ];
     
     return (
-        <>
+        <div className={cn("flex flex-col flex-grow justify-end", isFullScreen && "p-4")}>
         {isScientific && (
             <div className="grid grid-cols-4 gap-2 mb-2">
                 {scientificButtons.map(b => (
@@ -145,17 +148,29 @@ export default function CalculatorPage() {
                 </Button>
             ))}
         </div>
-        </>
+        </div>
     );
   }
 
   return (
-    <div className="container mx-auto px-4 py-8 pb-24">
-      <Card className="max-w-md mx-auto shadow-2xl rounded-3xl overflow-hidden">
+    <div className={cn("container mx-auto px-4 py-8 pb-24 transition-all duration-300", isFullScreen && "p-0 fixed inset-0 z-50 bg-background")}>
+      <Card className={cn("max-w-md mx-auto shadow-2xl rounded-3xl overflow-hidden transition-all duration-300", isFullScreen && "w-full h-full max-w-none rounded-none flex flex-col")}>
         <CardHeader>
           <CardTitle className="text-2xl font-headline flex items-center justify-between">
             Kalkulator
             <div className="flex items-center space-x-2">
+                 <TooltipProvider>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Button variant="ghost" size="icon" className="animate-shake" onClick={() => setIsFullScreen(!isFullScreen)}>
+                                {isFullScreen ? <Minimize className="w-5 h-5"/> : <Expand className="w-5 h-5"/>}
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                        <p>Klik untuk layar penuh</p>
+                        </TooltipContent>
+                    </Tooltip>
+                 </TooltipProvider>
                 <Sigma className='w-4 h-4' />
                 <Switch id="scientific-mode" checked={isScientific} onCheckedChange={setIsScientific} />
                 <Label htmlFor="scientific-mode" className="text-sm">Ilmiah</Label>
@@ -163,38 +178,40 @@ export default function CalculatorPage() {
           </CardTitle>
           <CardDescription>Kalkulator standar dan ilmiah dalam genggaman.</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className={cn("flex flex-col", isFullScreen && "flex-grow")}>
             <div className='bg-background rounded-2xl p-4 mb-4 text-right'>
                 <div className='text-muted-foreground text-sm h-6 truncate'>{currentExpression || '...'}</div>
                 <div className="text-5xl font-bold break-all h-14">{display}</div>
             </div>
             
-            <div className='flex items-center justify-between mb-2'>
-                <div className='flex items-center gap-2 text-muted-foreground font-semibold'>
-                    <History className='w-5 h-5'/>
-                    <span>Riwayat</span>
-                </div>
-                {history.length > 0 && 
-                    <Button variant="ghost" size="sm" onClick={() => setHistory([])}>Bersihkan</Button>
-                }
-            </div>
-             <ScrollArea className="h-24 w-full bg-secondary/50 rounded-lg p-2 mb-4">
-                {history.length > 0 ? (
-                    history.map((item, index) => (
-                        <div key={index} className="text-sm p-1 hover:bg-primary/10 rounded-md cursor-pointer" onClick={() => {
-                            const [expr, res] = item.split(' = ');
-                            setCurrentExpression(expr);
-                            setDisplay(res);
-                        }}>
-                            {item}
-                        </div>
-                    ))
-                ) : (
-                    <div className="flex items-center justify-center h-full text-sm text-muted-foreground">
-                        Tidak ada riwayat.
+             <div className={cn("flex-grow flex flex-col", !isFullScreen && "hidden")}>
+                <div className='flex items-center justify-between mb-2'>
+                    <div className='flex items-center gap-2 text-muted-foreground font-semibold'>
+                        <History className='w-5 h-5'/>
+                        <span>Riwayat</span>
                     </div>
-                )}
-            </ScrollArea>
+                    {history.length > 0 && 
+                        <Button variant="ghost" size="sm" onClick={() => setHistory([])}>Bersihkan</Button>
+                    }
+                </div>
+                 <ScrollArea className="flex-grow w-full bg-secondary/50 rounded-lg p-2 mb-4">
+                    {history.length > 0 ? (
+                        history.map((item, index) => (
+                            <div key={index} className="text-sm p-1 hover:bg-primary/10 rounded-md cursor-pointer" onClick={() => {
+                                const [expr, res] = item.split(' = ');
+                                setCurrentExpression(expr);
+                                setDisplay(res);
+                            }}>
+                                {item}
+                            </div>
+                        ))
+                    ) : (
+                        <div className="flex items-center justify-center h-full text-sm text-muted-foreground">
+                            Tidak ada riwayat.
+                        </div>
+                    )}
+                </ScrollArea>
+            </div>
             
             {renderButtons()}
 
