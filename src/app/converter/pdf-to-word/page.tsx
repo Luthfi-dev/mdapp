@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -21,20 +21,16 @@ export default function PdfToWordPage() {
   const [file, setFile] = useState<File | null>(null);
   const [isConverting, setIsConverting] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
-  const [pdfTextContent, setPdfTextContent] = useState<string[]>([]);
   const [convertedFileUrl, setConvertedFileUrl] = useState<string | null>(null);
 
   const { toast } = useToast();
   const previewRef = useRef<HTMLDivElement>(null);
-  const canvasRefs = useRef<(HTMLCanvasElement | null)[]>([]);
 
   const resetState = () => {
     setFile(null);
     setShowPreview(false);
-    setPdfTextContent([]);
     setConvertedFileUrl(null);
     if (previewRef.current) previewRef.current.innerHTML = '';
-    canvasRefs.current = [];
   }
   
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -42,30 +38,6 @@ export default function PdfToWordPage() {
     const selectedFile = e.target.files?.[0];
     if (selectedFile && selectedFile.type === 'application/pdf') {
       setFile(selectedFile);
-      
-      try {
-        const arrayBuffer = await selectedFile.arrayBuffer();
-        const typedarray = new Uint8Array(arrayBuffer);
-        const pdf = await pdfjsLib.getDocument(typedarray).promise;
-        const allPagesText: string[] = [];
-        canvasRefs.current = Array(pdf.numPages).fill(null);
-
-        for (let i = 1; i <= pdf.numPages; i++) {
-          const page = await pdf.getPage(i);
-          const textContent = await page.getTextContent();
-          const pageText = textContent.items.map((item: any) => item.str).join(' ');
-          allPagesText.push(pageText);
-        }
-        setPdfTextContent(allPagesText);
-
-      } catch (error) {
-         toast({
-          variant: 'destructive',
-          title: 'Gagal Memproses PDF',
-          description: 'File PDF mungkin rusak atau tidak dapat dibaca.',
-        });
-        resetState();
-      }
     } else if (selectedFile) {
       toast({
         variant: 'destructive',
@@ -77,10 +49,10 @@ export default function PdfToWordPage() {
   };
 
   const renderPdfPreview = async () => {
-    if (!file || !previewRef.current || pdfTextContent.length === 0) return;
+    if (!file) return;
     
     setShowPreview(true);
-    previewRef.current.innerHTML = ''; // Clear previous preview
+    if (previewRef.current) previewRef.current.innerHTML = ''; // Clear previous preview
     
     try {
         const arrayBuffer = await file.arrayBuffer();
@@ -95,8 +67,7 @@ export default function PdfToWordPage() {
             canvas.height = viewport.height;
             canvas.width = viewport.width;
             canvas.style.marginBottom = '10px';
-            canvasRefs.current[i] = canvas;
-            previewRef.current.appendChild(canvas);
+            previewRef.current?.appendChild(canvas);
             
             const context = canvas.getContext('2d');
             if (context) {
@@ -104,7 +75,7 @@ export default function PdfToWordPage() {
             }
         }
     } catch (error) {
-       previewRef.current.innerHTML = '<p class="text-destructive">Gagal mempratinjau PDF.</p>';
+       if (previewRef.current) previewRef.current.innerHTML = '<p class="text-destructive">Gagal mempratinjau PDF.</p>';
        console.error("PDF Preview Error:", error);
     }
   };
@@ -116,11 +87,11 @@ export default function PdfToWordPage() {
   };
 
   const handleConvertToWord = async () => {
-    if (!file || pdfTextContent.length === 0) {
+    if (!file) {
       toast({
         variant: 'destructive',
-        title: 'Tidak Ada Konten',
-        description: 'Silakan unggah dan proses file PDF terlebih dahulu.',
+        title: 'Tidak ada file',
+        description: 'Silakan unggah file PDF terlebih dahulu.',
       });
       return;
     }
@@ -129,9 +100,21 @@ export default function PdfToWordPage() {
     setConvertedFileUrl(null);
 
     try {
+        const arrayBuffer = await file.arrayBuffer();
+        const typedarray = new Uint8Array(arrayBuffer);
+        const pdf = await pdfjsLib.getDocument(typedarray).promise;
+        const allPagesText: string[] = [];
+
+        for (let i = 1; i <= pdf.numPages; i++) {
+          const page = await pdf.getPage(i);
+          const textContent = await page.getTextContent();
+          const pageText = textContent.items.map((item: any) => item.str).join(' ');
+          allPagesText.push(pageText);
+        }
+        
         let fullHtmlContent = '<html><body>';
         
-        pdfTextContent.forEach((pageText, index) => {
+        allPagesText.forEach((pageText, index) => {
              const paragraphs = pageText.split(/\s{2,}/g)
                 .filter(p => p.trim().length > 0)
                 .map(p => `<p>${p.trim()}</p>`)
@@ -139,7 +122,7 @@ export default function PdfToWordPage() {
             
             fullHtmlContent += paragraphs;
 
-            if (index < pdfTextContent.length - 1) {
+            if (index < allPagesText.length - 1) {
                 fullHtmlContent += '<br style="page-break-before: always" />';
             }
         });
@@ -237,3 +220,4 @@ export default function PdfToWordPage() {
     </div>
   );
 }
+
