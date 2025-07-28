@@ -24,32 +24,49 @@ export default function CalculatorPage() {
       setCurrentExpression(value);
       return;
     }
-    const newDisplay = display === '0' ? value : display + value;
+    // Prevent multiple dots
+    if (value === '.' && display.includes('.')) return;
+
+    const newDisplay = display === '0' && value !== '.' ? value : display + value;
     setDisplay(newDisplay);
     setCurrentExpression(currentExpression + value);
   };
 
   const handleOperator = (operator: string) => {
     if (display === 'Error') return;
-    const lastChar = currentExpression.slice(-1);
+    const lastChar = currentExpression.trim().slice(-1);
+    // Allow negative numbers at the start
+    if (!currentExpression && operator === '-') {
+        setCurrentExpression('-');
+        setDisplay('-');
+        return;
+    }
     if (['+', '-', '*', '/'].includes(lastChar)) {
       // Replace last operator
-      setCurrentExpression(currentExpression.slice(0, -1) + operator);
-    } else {
+      setCurrentExpression(currentExpression.trim().slice(0, -1) + operator);
+    } else if (currentExpression) {
       setCurrentExpression(currentExpression + operator);
     }
-    setDisplay(operator);
+    setDisplay('0');
   };
   
   const calculateResult = () => {
-    if (display === 'Error') return;
+    if (display === 'Error' || !currentExpression) return;
     try {
+        let expressionToEvaluate = currentExpression
+          .replace(/×/g, '*')
+          .replace(/÷/g, '/')
+          .replace(/−/g, '-')
+          .replace(/%/g, '/100');
+
         // eslint-disable-next-line no-eval
-        const result = eval(currentExpression.replace(/%/g, '/100'));
-        const fullCalculation = `${currentExpression} = ${result}`;
-        setDisplay(String(result));
-        setHistory([fullCalculation, ...history]);
-        setCurrentExpression(String(result));
+        const result = eval(expressionToEvaluate);
+        const resultString = String(result);
+        const fullCalculation = `${currentExpression} = ${resultString}`;
+        
+        setDisplay(resultString);
+        setHistory(prev => [fullCalculation, ...prev]);
+        setCurrentExpression(resultString);
     } catch (error) {
         setDisplay('Error');
         setCurrentExpression('');
@@ -103,22 +120,22 @@ export default function CalculatorPage() {
       { label: 'C', action: clearDisplay, className: 'bg-destructive/80 hover:bg-destructive text-white' },
       { label: '⌫', action: backspace },
       { label: '%', action: () => handleOperator('%') },
-      { label: '÷', action: () => handleOperator('/'), icon: <Divide/> },
+      { label: '÷', action: () => handleOperator('/'), icon: <Divide/>, key: '/'},
       { label: '7', action: () => handleInput('7') },
       { label: '8', action: () => handleInput('8') },
       { label: '9', action: () => handleInput('9') },
-      { label: '×', action: () => handleOperator('*'), icon: <X/> },
+      { label: '×', action: () => handleOperator('*'), icon: <X/>, key: '*' },
       { label: '4', action: () => handleInput('4') },
       { label: '5', action: () => handleInput('5') },
       { label: '6', action: () => handleInput('6') },
-      { label: '−', action: () => handleOperator('-'), icon: <Minus/> },
+      { label: '−', action: () => handleOperator('-'), icon: <Minus/>, key: '-' },
       { label: '1', action: () => handleInput('1') },
       { label: '2', action: () => handleInput('2') },
       { label: '3', action: () => handleInput('3') },
-      { label: '+', action: () => handleOperator('+'), icon: <Plus/> },
+      { label: '+', action: () => handleOperator('+'), icon: <Plus/>, key: '+' },
       { label: '0', action: () => handleInput('0'), className: 'col-span-2' },
       { label: '.', action: () => handleInput('.') },
-      { label: '=', action: calculateResult, className: 'bg-primary hover:bg-primary/90 text-white' },
+      { label: '=', action: calculateResult, className: 'bg-primary hover:bg-primary/90 text-white', key: 'Enter' },
     ];
 
     const scientificButtons = [
@@ -167,7 +184,7 @@ export default function CalculatorPage() {
                             </Button>
                         </TooltipTrigger>
                         <TooltipContent>
-                        <p>Klik untuk layar penuh</p>
+                        <p>Klik untuk full layar</p>
                         </TooltipContent>
                     </Tooltip>
                  </TooltipProvider>
@@ -179,12 +196,12 @@ export default function CalculatorPage() {
           <CardDescription>Kalkulator standar dan ilmiah dalam genggaman.</CardDescription>
         </CardHeader>
         <CardContent className={cn("flex flex-col", isFullScreen && "flex-grow")}>
-            <div className='bg-background rounded-2xl p-4 mb-4 text-right'>
+            <div className='bg-secondary rounded-2xl p-4 mb-4 text-right'>
                 <div className='text-muted-foreground text-sm h-6 truncate'>{currentExpression || '...'}</div>
-                <div className="text-5xl font-bold break-all h-14">{display}</div>
+                <div className="text-5xl font-bold break-all h-14 flex items-center justify-end">{display}</div>
             </div>
             
-             <div className={cn("flex-grow flex flex-col", !isFullScreen && "hidden")}>
+             <div className={cn("flex-grow flex flex-col", isFullScreen ? "flex" : "hidden")}>
                 <div className='flex items-center justify-between mb-2'>
                     <div className='flex items-center gap-2 text-muted-foreground font-semibold'>
                         <History className='w-5 h-5'/>
@@ -199,8 +216,10 @@ export default function CalculatorPage() {
                         history.map((item, index) => (
                             <div key={index} className="text-sm p-1 hover:bg-primary/10 rounded-md cursor-pointer" onClick={() => {
                                 const [expr, res] = item.split(' = ');
-                                setCurrentExpression(expr);
-                                setDisplay(res);
+                                if(expr && res) {
+                                    setCurrentExpression(expr);
+                                    setDisplay(res);
+                                }
                             }}>
                                 {item}
                             </div>
@@ -220,3 +239,5 @@ export default function CalculatorPage() {
     </div>
   );
 }
+
+    
