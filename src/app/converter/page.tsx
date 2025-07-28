@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -40,6 +41,18 @@ const conversionOptions: ConversionOption[] = [
     icon: (
        <div className="flex items-center gap-2">
         <FileImage className="w-8 h-8 text-green-600" />
+        <ArrowRightLeft className="w-5 h-5 text-muted-foreground" />
+        <FileText className="w-8 h-8 text-red-600" />
+      </div>
+    ),
+  },
+  {
+    title: 'Word ke PDF',
+    description: 'Ubah file Word menjadi dokumen PDF dengan tata letak asli.',
+    href: '/converter/word-to-pdf',
+    icon: (
+       <div className="flex items-center gap-2">
+        <FileCode2 className="w-8 h-8 text-blue-600" />
         <ArrowRightLeft className="w-5 h-5 text-muted-foreground" />
         <FileText className="w-8 h-8 text-red-600" />
       </div>
