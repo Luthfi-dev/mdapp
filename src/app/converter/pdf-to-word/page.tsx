@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, FileText, FileCode2, ArrowRightLeft, Eye } from 'lucide-react';
+import { Loader2, FileText, FileCode2, ArrowRightLeft, Eye, Download } from 'lucide-react';
 import { saveAs } from 'file-saver';
 import * as pdfjsLib from 'pdfjs-dist';
 import { convertHtmlToWord } from '@/ai/flows/file-converter';
@@ -22,31 +22,31 @@ export default function PdfToWordPage() {
   const [isConverting, setIsConverting] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [pdfTextContent, setPdfTextContent] = useState<string[]>([]);
+  const [convertedFileUrl, setConvertedFileUrl] = useState<string | null>(null);
 
   const { toast } = useToast();
   const previewRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    if (showPreview && file) {
-      renderPdf(file);
-    }
-  }, [showPreview, file]);
+  const resetState = () => {
+    setFile(null);
+    setShowPreview(false);
+    setPdfTextContent([]);
+    setConvertedFileUrl(null);
+    if (previewRef.current) previewRef.current.innerHTML = '';
+  }
   
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    resetState();
     const selectedFile = e.target.files?.[0];
     if (selectedFile && selectedFile.type === 'application/pdf') {
       setFile(selectedFile);
-      // Reset state on new file selection
-      setShowPreview(false); 
-      setPdfTextContent([]);
-      if (previewRef.current) previewRef.current.innerHTML = '';
       
-      // Pre-process file to extract text content for later use
       try {
         const arrayBuffer = await selectedFile.arrayBuffer();
         const typedarray = new Uint8Array(arrayBuffer);
         const pdf = await pdfjsLib.getDocument(typedarray).promise;
         const allPagesText: string[] = [];
+
         for (let i = 1; i <= pdf.numPages; i++) {
           const page = await pdf.getPage(i);
           const textContent = await page.getTextContent();
@@ -54,33 +54,33 @@ export default function PdfToWordPage() {
           allPagesText.push(pageText);
         }
         setPdfTextContent(allPagesText);
+
       } catch (error) {
          toast({
           variant: 'destructive',
           title: 'Gagal Memproses PDF',
           description: 'File PDF mungkin rusak atau tidak dapat dibaca.',
         });
-        setFile(null);
+        resetState();
       }
-    } else {
+    } else if (selectedFile) {
       toast({
         variant: 'destructive',
         title: 'File Tidak Valid',
         description: 'Silakan pilih file dengan format PDF.',
       });
-      setFile(null);
-      setShowPreview(false);
-      setPdfTextContent([]);
-      if (previewRef.current) previewRef.current.innerHTML = '';
+      resetState();
     }
   };
 
-  const renderPdf = async (fileToRender: File) => {
-    if (!previewRef.current) return;
+  const renderPdfPreview = async () => {
+    if (!file || !previewRef.current) return;
+    
+    setShowPreview(true);
     previewRef.current.innerHTML = '<div class="flex justify-center items-center h-full"><div class="loader"></div></div>'; // Loading indicator
     
     try {
-      const arrayBuffer = await fileToRender.arrayBuffer();
+      const arrayBuffer = await file.arrayBuffer();
       const typedarray = new Uint8Array(arrayBuffer);
       const pdf = await pdfjsLib.getDocument(typedarray).promise;
 
@@ -94,42 +94,11 @@ export default function PdfToWordPage() {
         const context = canvas.getContext('2d');
         canvas.height = viewport.height;
         canvas.width = viewport.width;
+        canvas.style.marginBottom = '10px';
+        
+        previewRef.current?.appendChild(canvas);
 
         await page.render({ canvasContext: context!, viewport: viewport }).promise;
-
-        const textContent = await page.getTextContent();
-        
-        const textLayerDiv = document.createElement("div");
-        textLayerDiv.style.position = 'relative';
-        textLayerDiv.style.width = `${viewport.width}px`;
-        textLayerDiv.style.height = `${viewport.height}px`;
-        textLayerDiv.style.margin = '10px 0';
-        textLayerDiv.style.border = '1px solid #ddd';
-
-        const pageDiv = document.createElement('div');
-        pageDiv.className = "pdf-page-preview";
-        pageDiv.appendChild(canvas);
-        pageDiv.appendChild(textLayerDiv);
-        
-        previewRef.current?.appendChild(pageDiv);
-
-        textContent.items.forEach((item: any) => {
-            const tx = pdfjsLib.Util.transform(
-                viewport.transform,
-                item.transform
-            );
-
-            const style = textContent.styles[item.fontName];
-            const textDiv = document.createElement('span');
-            textDiv.style.fontFamily = style?.fontFamily || 'sans-serif';
-            textDiv.style.transformOrigin = '0% 0%';
-            textDiv.style.transform = `matrix(${tx[0]}, ${tx[1]}, ${tx[2]}, ${tx[3]}, ${tx[4]}, ${tx[5]}) scaleY(1)`;
-            textDiv.style.fontSize = `${Math.sqrt((tx[2] * tx[2]) + (tx[3] * tx[3]))}px`;
-            textDiv.style.position = 'absolute';
-            textDiv.style.whiteSpace = 'pre';
-            textDiv.textContent = item.str;
-            textLayerDiv.appendChild(textDiv);
-        });
       }
     } catch (error) {
        previewRef.current.innerHTML = '<p class="text-destructive">Gagal mempratinjau PDF.</p>';
@@ -154,16 +123,16 @@ export default function PdfToWordPage() {
     }
 
     setIsConverting(true);
+    setConvertedFileUrl(null);
 
     try {
         let fullHtmlContent = '<html><body>';
         pdfTextContent.forEach(pageText => {
-            const paragraphs = pageText.split(/\s{4,}/) // Split on 4+ spaces as a heuristic for paragraphs
+            const paragraphs = pageText.split(/\s{2,}/) // Split on 2+ spaces
                 .filter(p => p.trim())
-                .map(p => `<p>${p.trim().replace(/\s+/g, ' ')}</p>`)
+                .map(p => `<p>${p.trim()}</p>`)
                 .join('');
-            fullHtmlContent += paragraphs;
-            fullHtmlContent += '<br style="page-break-after: always;"/>';
+            fullHtmlContent += `<div style="page-break-after: always;">${paragraphs}</div>`;
         });
         fullHtmlContent += '</body></html>';
 
@@ -176,11 +145,11 @@ export default function PdfToWordPage() {
             throw new Error(result.error || 'Konversi di server gagal.');
         }
 
-        saveAs(result.docxDataUri, getTargetFilename());
+        setConvertedFileUrl(result.docxDataUri);
 
         toast({
             title: 'Konversi Berhasil',
-            description: 'File PDF Anda telah berhasil dikonversi dan diunduh.',
+            description: 'File Anda siap diunduh.',
         });
 
     } catch (error) {
@@ -217,30 +186,37 @@ export default function PdfToWordPage() {
                 </div>
 
                 {file && (
-                    <div className="space-y-4">
-                        <div className="flex gap-2">
-                            <Button onClick={handleConvertToWord} className="w-full" disabled={isConverting || !file}>
-                            {isConverting ? (
-                                <>
-                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                Mengonversi...
-                                </>
-                            ) : (
-                                'Konversi & Unduh Otomatis'
-                            )}
-                            </Button>
-                             <Button variant="outline" size="icon" onClick={() => setShowPreview(prev => !prev)} disabled={isConverting || !file}>
-                                <Eye className="h-5 w-5" />
-                             </Button>
-                        </div>
-                        
-                        {showPreview && (
-                            <div className="border rounded-md p-4 bg-secondary word-preview-container">
-                                <h4 className="font-bold mb-2 text-center">Pratinjau Dokumen</h4>
-                                <div ref={previewRef} className="bg-white p-2 shadow-inner h-96 overflow-auto"></div>
-                            </div>
-                        )}
-                    </div>
+                  <div className="space-y-4">
+                      <div className="flex gap-2">
+                          {!convertedFileUrl ? (
+                              <Button onClick={handleConvertToWord} className="w-full" disabled={isConverting || !file}>
+                                {isConverting ? (
+                                    <>
+                                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                      Mengonversi...
+                                    </>
+                                ) : (
+                                    'Konversi ke Word'
+                                )}
+                              </Button>
+                          ) : (
+                              <Button onClick={() => saveAs(convertedFileUrl, getTargetFilename())} className="w-full" variant="secondary">
+                                <Download className="mr-2 h-4 w-4" />
+                                Unduh File Word
+                              </Button>
+                          )}
+                           <Button variant="outline" size="icon" onClick={renderPdfPreview} disabled={isConverting || !file}>
+                              <Eye className="h-5 w-5" />
+                           </Button>
+                      </div>
+                      
+                      {showPreview && (
+                          <div className="border rounded-md p-4 bg-secondary word-preview-container">
+                              <h4 className="font-bold mb-2 text-center">Pratinjau Dokumen</h4>
+                              <div ref={previewRef} className="bg-white p-2 shadow-inner h-96 overflow-auto"></div>
+                          </div>
+                      )}
+                  </div>
                 )}
             </div>
             <div className="mt-6 text-center text-sm text-muted-foreground">
