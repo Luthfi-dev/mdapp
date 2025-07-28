@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -17,6 +17,29 @@ export default function CalculatorPage() {
   const [isScientific, setIsScientific] = useState(false);
   const [currentExpression, setCurrentExpression] = useState('');
   const [isFullScreen, setIsFullScreen] = useState(false);
+  const calculatorRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleFullScreenChange = () => {
+      setIsFullScreen(!!document.fullscreenElement);
+    };
+    document.addEventListener('fullscreenchange', handleFullScreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullScreenChange);
+  }, []);
+
+  const handleFullScreenToggle = () => {
+    if (!calculatorRef.current) return;
+
+    if (!document.fullscreenElement) {
+      calculatorRef.current.requestFullscreen().catch(err => {
+        alert(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
+      });
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+      }
+    }
+  };
 
   const handleInput = (value: string) => {
     if (display === 'Error') {
@@ -24,7 +47,6 @@ export default function CalculatorPage() {
       setCurrentExpression(value);
       return;
     }
-    // Prevent multiple dots
     if (value === '.' && display.includes('.')) return;
 
     const newDisplay = display === '0' && value !== '.' ? value : display + value;
@@ -35,14 +57,12 @@ export default function CalculatorPage() {
   const handleOperator = (operator: string) => {
     if (display === 'Error') return;
     const lastChar = currentExpression.trim().slice(-1);
-    // Allow negative numbers at the start
     if (!currentExpression && operator === '-') {
         setCurrentExpression('-');
         setDisplay('-');
         return;
     }
     if (['+', '-', '*', '/'].includes(lastChar)) {
-      // Replace last operator
       setCurrentExpression(currentExpression.trim().slice(0, -1) + operator);
     } else if (currentExpression) {
       setCurrentExpression(currentExpression + operator);
@@ -170,8 +190,8 @@ export default function CalculatorPage() {
   }
 
   return (
-    <div className={cn("container mx-auto px-4 py-8 pb-24 transition-all duration-300", isFullScreen && "p-0 fixed inset-0 z-50 bg-background")}>
-      <Card className={cn("max-w-md mx-auto shadow-2xl rounded-3xl overflow-hidden transition-all duration-300", isFullScreen && "w-full h-full max-w-none rounded-none flex flex-col")}>
+    <div className="container mx-auto px-4 py-8 pb-24">
+      <Card ref={calculatorRef} className={cn("max-w-md mx-auto shadow-2xl rounded-3xl overflow-hidden transition-all duration-300 bg-background", isFullScreen && "w-full h-full max-w-none rounded-none flex flex-col")}>
         <CardHeader>
           <CardTitle className="text-2xl font-headline flex items-center justify-between">
             Kalkulator
@@ -179,7 +199,7 @@ export default function CalculatorPage() {
                  <TooltipProvider>
                     <Tooltip>
                         <TooltipTrigger asChild>
-                            <Button variant="ghost" size="icon" className="animate-shake" onClick={() => setIsFullScreen(!isFullScreen)}>
+                            <Button variant="ghost" size="icon" className="animate-shake" onClick={handleFullScreenToggle}>
                                 {isFullScreen ? <Minimize className="w-5 h-5"/> : <Expand className="w-5 h-5"/>}
                             </Button>
                         </TooltipTrigger>
@@ -191,6 +211,11 @@ export default function CalculatorPage() {
                 <Sigma className='w-4 h-4' />
                 <Switch id="scientific-mode" checked={isScientific} onCheckedChange={setIsScientific} />
                 <Label htmlFor="scientific-mode" className="text-sm">Ilmiah</Label>
+                 {isFullScreen && (
+                  <Button variant="ghost" size="icon" onClick={handleFullScreenToggle}>
+                      <X className="w-5 h-5"/>
+                  </Button>
+                )}
             </div>
           </CardTitle>
           <CardDescription>Kalkulator standar dan ilmiah dalam genggaman.</CardDescription>
@@ -201,7 +226,7 @@ export default function CalculatorPage() {
                 <div className="text-5xl font-bold break-all h-14 flex items-center justify-end">{display}</div>
             </div>
             
-             <div className={cn("flex-grow flex flex-col", isFullScreen ? "flex" : "hidden")}>
+             <div className={cn("flex-grow flex-col", isFullScreen ? "flex" : "hidden")}>
                 <div className='flex items-center justify-between mb-2'>
                     <div className='flex items-center gap-2 text-muted-foreground font-semibold'>
                         <History className='w-5 h-5'/>
@@ -239,5 +264,3 @@ export default function CalculatorPage() {
     </div>
   );
 }
-
-    
