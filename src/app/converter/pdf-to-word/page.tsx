@@ -21,15 +21,47 @@ export default function PdfToWordPage() {
   const [file, setFile] = useState<File | null>(null);
   const [isConverting, setIsConverting] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
+  const [pdfTextContent, setPdfTextContent] = useState<string[]>([]);
+
   const { toast } = useToast();
   const previewRef = useRef<HTMLDivElement>(null);
 
+  useEffect(() => {
+    if (showPreview && file) {
+      renderPdf(file);
+    }
+  }, [showPreview, file]);
+  
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
     if (selectedFile && selectedFile.type === 'application/pdf') {
       setFile(selectedFile);
-      setShowPreview(false); // Sembunyikan pratinjau saat file baru dipilih
+      // Reset state on new file selection
+      setShowPreview(false); 
+      setPdfTextContent([]);
       if (previewRef.current) previewRef.current.innerHTML = '';
+      
+      // Pre-process file to extract text content for later use
+      try {
+        const arrayBuffer = await selectedFile.arrayBuffer();
+        const typedarray = new Uint8Array(arrayBuffer);
+        const pdf = await pdfjsLib.getDocument(typedarray).promise;
+        const allPagesText: string[] = [];
+        for (let i = 1; i <= pdf.numPages; i++) {
+          const page = await pdf.getPage(i);
+          const textContent = await page.getTextContent();
+          const pageText = textContent.items.map((item: any) => item.str).join(' ');
+          allPagesText.push(pageText);
+        }
+        setPdfTextContent(allPagesText);
+      } catch (error) {
+         toast({
+          variant: 'destructive',
+          title: 'Gagal Memproses PDF',
+          description: 'File PDF mungkin rusak atau tidak dapat dibaca.',
+        });
+        setFile(null);
+      }
     } else {
       toast({
         variant: 'destructive',
@@ -38,67 +70,71 @@ export default function PdfToWordPage() {
       });
       setFile(null);
       setShowPreview(false);
+      setPdfTextContent([]);
       if (previewRef.current) previewRef.current.innerHTML = '';
     }
   };
 
   const renderPdf = async (fileToRender: File) => {
-    const fileReader = new FileReader();
-    fileReader.onload = async function() {
-        if (!previewRef.current) return;
-        previewRef.current.innerHTML = ''; // Clear previous preview
+    if (!previewRef.current) return;
+    previewRef.current.innerHTML = '<div class="flex justify-center items-center h-full"><div class="loader"></div></div>'; // Loading indicator
+    
+    try {
+      const arrayBuffer = await fileToRender.arrayBuffer();
+      const typedarray = new Uint8Array(arrayBuffer);
+      const pdf = await pdfjsLib.getDocument(typedarray).promise;
+
+      previewRef.current.innerHTML = ''; // Clear loading indicator
+
+      for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const viewport = page.getViewport({ scale: 1.5 });
+
+        const canvas = document.createElement('canvas');
+        const context = canvas.getContext('2d');
+        canvas.height = viewport.height;
+        canvas.width = viewport.width;
+
+        await page.render({ canvasContext: context!, viewport: viewport }).promise;
+
+        const textContent = await page.getTextContent();
         
-        const typedarray = new Uint8Array(this.result as ArrayBuffer);
-        const pdf = await pdfjsLib.getDocument(typedarray).promise;
+        const textLayerDiv = document.createElement("div");
+        textLayerDiv.style.position = 'relative';
+        textLayerDiv.style.width = `${viewport.width}px`;
+        textLayerDiv.style.height = `${viewport.height}px`;
+        textLayerDiv.style.margin = '10px 0';
+        textLayerDiv.style.border = '1px solid #ddd';
 
-        for (let i = 1; i <= pdf.numPages; i++) {
-            const page = await pdf.getPage(i);
-            const viewport = page.getViewport({ scale: 1.5 });
+        const pageDiv = document.createElement('div');
+        pageDiv.className = "pdf-page-preview";
+        pageDiv.appendChild(canvas);
+        pageDiv.appendChild(textLayerDiv);
+        
+        previewRef.current?.appendChild(pageDiv);
 
-            const canvas = document.createElement('canvas');
-            const context = canvas.getContext('2d');
-            canvas.height = viewport.height;
-            canvas.width = viewport.width;
-            
-            await page.render({ canvasContext: context!, viewport: viewport }).promise;
+        textContent.items.forEach((item: any) => {
+            const tx = pdfjsLib.Util.transform(
+                viewport.transform,
+                item.transform
+            );
 
-            const textContent = await page.getTextContent();
-            
-            const textLayerDiv = document.createElement("div");
-            textLayerDiv.style.position = 'relative';
-            textLayerDiv.style.width = `${viewport.width}px`;
-            textLayerDiv.style.height = `${viewport.height}px`;
-            textLayerDiv.style.margin = '10px 0';
-            textLayerDiv.style.border = '1px solid #ddd';
-
-            const pageDiv = document.createElement('div');
-            pageDiv.className = "pdf-page-preview";
-            pageDiv.appendChild(canvas);
-            pageDiv.appendChild(textLayerDiv);
-            
-            previewRef.current?.appendChild(pageDiv);
-
-            textContent.items.forEach((item: any) => {
-                const tx = pdfjsLib.Util.transform(
-                    viewport.transform,
-                    item.transform
-                );
-
-                const style = textContent.styles[item.fontName];
-                const textDiv = document.createElement('span');
-                textDiv.style.fontFamily = style?.fontFamily || 'sans-serif';
-                textDiv.style.transformOrigin = '0% 0%';
-                textDiv.style.transform = `matrix(${tx[0]}, ${tx[1]}, ${tx[2]}, ${tx[3]}, ${tx[4]}, ${tx[5]}) scaleY(1)`;
-                textDiv.style.fontSize = `${Math.sqrt((tx[2] * tx[2]) + (tx[3] * tx[3]))}px`;
-                textDiv.style.position = 'absolute';
-                textDiv.style.whiteSpace = 'pre';
-                textDiv.textContent = item.str;
-                textLayerDiv.appendChild(textDiv);
-            });
-        }
-        setShowPreview(true);
-    };
-    fileReader.readAsArrayBuffer(fileToRender);
+            const style = textContent.styles[item.fontName];
+            const textDiv = document.createElement('span');
+            textDiv.style.fontFamily = style?.fontFamily || 'sans-serif';
+            textDiv.style.transformOrigin = '0% 0%';
+            textDiv.style.transform = `matrix(${tx[0]}, ${tx[1]}, ${tx[2]}, ${tx[3]}, ${tx[4]}, ${tx[5]}) scaleY(1)`;
+            textDiv.style.fontSize = `${Math.sqrt((tx[2] * tx[2]) + (tx[3] * tx[3]))}px`;
+            textDiv.style.position = 'absolute';
+            textDiv.style.whiteSpace = 'pre';
+            textDiv.textContent = item.str;
+            textLayerDiv.appendChild(textDiv);
+        });
+      }
+    } catch (error) {
+       previewRef.current.innerHTML = '<p class="text-destructive">Gagal mempratinjau PDF.</p>';
+       console.error("PDF Preview Error:", error);
+    }
   };
   
   const getTargetFilename = () => {
@@ -108,11 +144,11 @@ export default function PdfToWordPage() {
   };
 
   const handleConvertToWord = async () => {
-    if (!file) {
+    if (!file || pdfTextContent.length === 0) {
       toast({
         variant: 'destructive',
-        title: 'Tidak Ada File',
-        description: 'Silakan unggah file PDF terlebih dahulu.',
+        title: 'Tidak Ada Konten',
+        description: 'Silakan unggah dan proses file PDF terlebih dahulu.',
       });
       return;
     }
@@ -120,29 +156,15 @@ export default function PdfToWordPage() {
     setIsConverting(true);
 
     try {
-        const arrayBuffer = await file.arrayBuffer();
-        const typedarray = new Uint8Array(arrayBuffer);
-        const pdf = await pdfjsLib.getDocument(typedarray).promise;
-        
         let fullHtmlContent = '<html><body>';
-        for (let i = 1; i <= pdf.numPages; i++) {
-            const page = await pdf.getPage(i);
-            const textContent = await page.getTextContent();
-            // Simple text extraction - could be improved to handle structure better
-            let lastY = -1;
-            let pageText = '';
-            textContent.items.forEach((item: any) => {
-                if(lastY !== item.transform[5]) {
-                   pageText += '\n'; // new line
-                }
-                pageText += item.str + ' ';
-                lastY = item.transform[5];
-            });
-            // Replace multiple newlines with a paragraph break
-            const paragraphs = pageText.split(/\n\s*\n/).map(p => `<p>${p.trim().replace(/\s+/g, ' ')}</p>`).join('');
+        pdfTextContent.forEach(pageText => {
+            const paragraphs = pageText.split(/\s{4,}/) // Split on 4+ spaces as a heuristic for paragraphs
+                .filter(p => p.trim())
+                .map(p => `<p>${p.trim().replace(/\s+/g, ' ')}</p>`)
+                .join('');
             fullHtmlContent += paragraphs;
             fullHtmlContent += '<br style="page-break-after: always;"/>';
-        }
+        });
         fullHtmlContent += '</body></html>';
 
         const result = await convertHtmlToWord({
@@ -197,7 +219,7 @@ export default function PdfToWordPage() {
                 {file && (
                     <div className="space-y-4">
                         <div className="flex gap-2">
-                            <Button onClick={handleConvertToWord} className="w-full" disabled={isConverting}>
+                            <Button onClick={handleConvertToWord} className="w-full" disabled={isConverting || !file}>
                             {isConverting ? (
                                 <>
                                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -207,7 +229,7 @@ export default function PdfToWordPage() {
                                 'Konversi & Unduh Otomatis'
                             )}
                             </Button>
-                             <Button variant="outline" size="icon" onClick={() => renderPdf(file)} disabled={isConverting}>
+                             <Button variant="outline" size="icon" onClick={() => setShowPreview(prev => !prev)} disabled={isConverting || !file}>
                                 <Eye className="h-5 w-5" />
                              </Button>
                         </div>
