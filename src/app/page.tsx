@@ -12,6 +12,9 @@ import { ScanLine } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
+import { useDailyReward } from "@/hooks/use-daily-reward";
+import { DailyRewardDialog } from "@/components/DailyRewardDialog";
+import { CountUp } from "@/components/CountUp";
 
 const CategoryCard = ({ icon, label, href }: { icon: React.ReactNode, label: string, href: string }) => (
   <Link href={href} className="flex flex-col items-center gap-2 flex-shrink-0 w-20 text-center">
@@ -56,8 +59,17 @@ export default function HomePage() {
    )
    const { theme, setTheme } = useTheme();
    const isMobile = useIsMobile();
+   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
+   const { points, claimState, claimReward, refreshClaimState } = useDailyReward();
    
   return (
+    <>
+    <DailyRewardDialog 
+      isOpen={isDialogOpen}
+      onOpenChange={setIsDialogOpen}
+      claimState={claimState}
+      onClaim={claimReward}
+    />
     <div className="flex flex-col h-full bg-background overflow-x-hidden">
       <header className="bg-primary text-primary-foreground p-6 pb-20 rounded-b-[40px] shadow-lg">
         <div className="flex justify-between items-center mb-4">
@@ -74,9 +86,11 @@ export default function HomePage() {
         <div className="bg-primary-foreground/20 backdrop-blur-sm p-3 rounded-2xl flex justify-between items-center">
             <div>
                 <p className="text-sm opacity-80">Poin Anda</p>
-                <p className="text-2xl font-bold">1,250</p>
+                <div className="text-2xl font-bold">
+                  <CountUp end={points} duration={1.5} />
+                </div>
             </div>
-            <Button variant="secondary" className="bg-white/90 hover:bg-white text-primary rounded-full font-bold">
+            <Button variant="secondary" className="bg-white/90 hover:bg-white text-primary rounded-full font-bold" onClick={() => { refreshClaimState(); setIsDialogOpen(true); }}>
                 <Gift className="mr-2 h-4 w-4"/>
                 Klaim Poin
             </Button>
@@ -174,5 +188,6 @@ export default function HomePage() {
         </div>
       </main>
     </div>
+    </>
   );
 }
