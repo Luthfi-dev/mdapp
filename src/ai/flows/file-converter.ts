@@ -4,23 +4,16 @@
  * @fileOverview A file conversion flow using AI for layout-aware conversions.
  *
  * - convertPdfToWord: Converts a PDF file to a Word document, preserving layout.
- * - convertWordToPdf: Converts a Word file to a PDF document.
  */
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-import mammoth from 'mammoth';
-import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 import htmlToDocx from 'html-to-docx';
 import {
     PdfToWordInputSchema,
     PdfToWordOutputSchema,
-    WordToPdfInputSchema,
-    WordToPdfOutputSchema,
     type PdfToWordInput,
     type PdfToWordOutput,
-    type WordToPdfInput,
-    type WordToPdfOutput
 } from './schemas';
 
 
@@ -71,54 +64,4 @@ const convertPdfToWordFlow = ai.defineFlow(
 
 export async function convertPdfToWord(input: PdfToWordInput): Promise<PdfToWordOutput> {
   return await convertPdfToWordFlow(input);
-}
-
-
-const convertWordToPdfFlow = ai.defineFlow(
-  {
-    name: 'convertWordToPdfFlow',
-    inputSchema: WordToPdfInputSchema,
-    outputSchema: WordToPdfOutputSchema,
-  },
-  async (input) => {
-    try {
-      const buffer = Buffer.from(input.fileDataUri.split(',')[1], 'base64');
-      const { value: html } = await mammoth.convertToHtml({ buffer });
-
-      const pdfDoc = await PDFDocument.create();
-      const page = pdfDoc.addPage();
-      const { width, height } = page.getSize();
-      const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
-      
-      // A very basic HTML to text conversion. This is where table and layout handling needs to be improved.
-      // For now, we will just strip tags. A more sophisticated parser would be needed for full layout preservation.
-      const textContent = html.replace(/<\/p>/g, '\n')
-                              .replace(/<\/h[1-6]>/g, '\n\n')
-                              .replace(/<br\s*\/?>/g, '\n')
-                              .replace(/<[^>]*>/g, '');
-      
-      page.drawText(textContent, {
-        x: 50,
-        y: height - 50,
-        font,
-        size: 11,
-        color: rgb(0, 0, 0),
-        maxWidth: width - 100,
-        lineHeight: 14,
-      });
-
-      const pdfBytes = await pdfDoc.save();
-      const pdfDataUri = `data:application/pdf;base64,${Buffer.from(pdfBytes).toString('base64')}`;
-      
-      return { fileDataUri: pdfDataUri };
-
-    } catch (e: any) {
-      console.error("Error in convertWordToPdfFlow:", e);
-      return { error: e.message || 'An unknown error occurred during Word to PDF conversion.' };
-    }
-  }
-);
-
-export async function convertWordToPdf(input: WordToPdfInput): Promise<WordToPdfOutput> {
-  return await convertWordToPdfFlow(input);
 }
