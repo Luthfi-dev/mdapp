@@ -170,29 +170,64 @@ export default function CalculatorPage() {
     ];
     
     return (
-        <div className={cn("flex flex-col flex-grow justify-end", isFullScreen && "p-4")}>
+      <div className="pt-4">
         {isScientific && (
-            <div className="grid grid-cols-4 gap-2 mb-2">
+            <div className="grid grid-cols-4 gap-2 mb-2 px-4">
                 {scientificButtons.map(b => (
                     <Button key={b.label} onClick={b.action} variant="outline" className={sciButtonClass}>{b.label}</Button>
                 ))}
             </div>
         )}
-        <div className="grid grid-cols-4 grid-rows-5 gap-2">
+        <div className="grid grid-cols-4 grid-rows-5 gap-2 px-4 pb-4">
             {buttons.map(btn => (
                 <Button key={btn.label} onClick={btn.action} variant="outline" className={`${buttonClass} ${btn.className || ''}`}>
                   {btn.icon || btn.label}
                 </Button>
             ))}
         </div>
-        </div>
+      </div>
     );
   }
+  
+  const renderHistory = () => (
+     <div className='flex-grow flex flex-col px-4 pt-4 min-h-0'>
+        <div className='flex items-center justify-between mb-2 shrink-0'>
+            <div className='flex items-center gap-2 text-muted-foreground font-semibold'>
+                <History className='w-5 h-5'/>
+                <span>Riwayat</span>
+            </div>
+            {history.length > 0 && 
+                <Button variant="ghost" size="sm" onClick={() => setHistory([])}>Bersihkan</Button>
+            }
+        </div>
+        <ScrollArea className="flex-1 rounded-lg bg-secondary/50">
+            <div className="p-2">
+                {history.length > 0 ? (
+                    history.map((item, index) => (
+                        <div key={index} className="text-sm p-1 hover:bg-primary/10 rounded-md cursor-pointer" onClick={() => {
+                            const [expr, res] = item.split(' = ');
+                            if(expr && res) {
+                                setCurrentExpression(expr);
+                                setDisplay(res);
+                            }
+                        }}>
+                            {item}
+                        </div>
+                    ))
+                ) : (
+                    <div className="flex items-center justify-center h-full text-sm text-muted-foreground py-8">
+                        Tidak ada riwayat.
+                    </div>
+                )}
+            </div>
+        </ScrollArea>
+    </div>
+  );
 
   return (
     <div className="container mx-auto px-4 py-8 pb-24">
-      <Card ref={calculatorRef} className={cn("max-w-md mx-auto shadow-2xl rounded-3xl overflow-hidden transition-all duration-300 bg-background", isFullScreen && "w-full h-full max-w-none rounded-none flex flex-col")}>
-        <CardHeader>
+      <Card ref={calculatorRef} className={cn("max-w-md mx-auto shadow-2xl rounded-3xl overflow-hidden transition-all duration-300 bg-background", isFullScreen && "fixed inset-0 z-50 w-full h-full max-w-none rounded-none")}>
+        <CardHeader className="shrink-0">
           <CardTitle className="text-2xl font-headline flex items-center justify-between">
             Kalkulator
             <div className="flex items-center space-x-2">
@@ -220,45 +255,24 @@ export default function CalculatorPage() {
           </CardTitle>
           <CardDescription>Kalkulator standar dan ilmiah dalam genggaman.</CardDescription>
         </CardHeader>
-        <CardContent className={cn("flex flex-col", isFullScreen && "flex-grow")}>
-            <div className='bg-secondary rounded-2xl p-4 mb-4 text-right'>
-                <div className='text-muted-foreground text-sm h-6 truncate'>{currentExpression || '...'}</div>
-                <div className="text-5xl font-bold break-all h-14 flex items-center justify-end">{display}</div>
+        <CardContent className={cn("flex flex-col p-0", isFullScreen && "flex-grow min-h-0")}>
+          <ScrollArea className="h-full">
+            <div className={cn("flex flex-col", isFullScreen && "min-h-full")}>
+              <div className='bg-secondary rounded-2xl p-4 m-4 mb-0 text-right shrink-0'>
+                  <div className='text-muted-foreground text-sm h-6 truncate'>{currentExpression || '...'}</div>
+                  <div className="text-5xl font-bold break-all h-14 flex items-center justify-end">{display}</div>
+              </div>
+              
+              {isFullScreen ? (
+                <>
+                  {renderHistory()}
+                  <div className="shrink-0">
+                    {renderButtons()}
+                  </div>
+                </>
+              ) : renderButtons() }
             </div>
-            
-             <div className={cn("flex-grow flex-col", isFullScreen ? "flex" : "hidden")}>
-                <div className='flex items-center justify-between mb-2'>
-                    <div className='flex items-center gap-2 text-muted-foreground font-semibold'>
-                        <History className='w-5 h-5'/>
-                        <span>Riwayat</span>
-                    </div>
-                    {history.length > 0 && 
-                        <Button variant="ghost" size="sm" onClick={() => setHistory([])}>Bersihkan</Button>
-                    }
-                </div>
-                 <ScrollArea className="flex-grow w-full bg-secondary/50 rounded-lg p-2 mb-4">
-                    {history.length > 0 ? (
-                        history.map((item, index) => (
-                            <div key={index} className="text-sm p-1 hover:bg-primary/10 rounded-md cursor-pointer" onClick={() => {
-                                const [expr, res] = item.split(' = ');
-                                if(expr && res) {
-                                    setCurrentExpression(expr);
-                                    setDisplay(res);
-                                }
-                            }}>
-                                {item}
-                            </div>
-                        ))
-                    ) : (
-                        <div className="flex items-center justify-center h-full text-sm text-muted-foreground">
-                            Tidak ada riwayat.
-                        </div>
-                    )}
-                </ScrollArea>
-            </div>
-            
-            {renderButtons()}
-
+          </ScrollArea>
         </CardContent>
       </Card>
     </div>
