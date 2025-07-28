@@ -10,6 +10,8 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2, FileText, FileCode2, ArrowRightLeft } from 'lucide-react';
 import { saveAs } from 'file-saver';
 import * as pdfjsLib from 'pdfjs-dist';
+import type { TextLayer } from 'pdfjs-dist';
+import { renderTextLayer } from 'pdfjs-dist/build/pdf.mjs';
 import { convertHtmlToWord } from '@/ai/flows/file-converter';
 
 // Set worker source
@@ -87,12 +89,12 @@ export default function PdfToWordPage() {
             previewRef.current?.appendChild(pageDiv);
             
             await page.render(renderContext).promise;
-            await pdfjsLib.renderTextLayer({
+            await renderTextLayer({
                 textContentSource: textContent,
                 container: textLayerDiv,
                 viewport: viewport,
                 textDivs: []
-            }).promise;
+            });
         }
     };
     fileReader.readAsArrayBuffer(file);
@@ -195,3 +197,4 @@ export default function PdfToWordPage() {
     </div>
   );
 }
+
