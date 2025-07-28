@@ -4,7 +4,7 @@ import { z } from 'zod';
  * @fileOverview Shared schemas for file conversion AI flows.
  */
 
-// Schema for PDF to Word
+// Schema for PDF to Word (now handled client-side, but kept for potential future use)
 export const PdfToWordInputSchema = z.object({
   fileDataUri: z.string().describe("A PDF file encoded as a data URI."),
   filename: z.string().describe('The original name of the file.'),

@@ -1,4 +1,5 @@
 
+
 'use server';
 /**
  * @fileOverview A file conversion flow using AI for layout-aware conversions.
@@ -46,21 +47,11 @@ const convertPdfToWordFlow = ai.defineFlow(
   },
   async (input) => {
     try {
-        const { output } = await pdfToWordPrompt({ fileDataUri: input.fileDataUri });
-        
-        if (!output || !output.htmlContent) {
-            return { error: 'AI failed to extract content from the PDF.' };
-        }
-        
-        const docxBuffer = await htmlToDocx(output.htmlContent, undefined, {
-          table: { row: { cantSplit: true } },
-          footer: true,
-          pageNumber: true,
-        });
+        // This flow is no longer used for PDF-to-Word conversion as per user request.
+        // The logic has been moved to the client-side.
+        // This remains as a placeholder and can be removed or repurposed.
+        return { error: 'This AI-based converter is deprecated.' };
 
-        const docxDataUri = `data:application/vnd.openxmlformats-officedocument.wordprocessingml.document;base64,${docxBuffer.toString('base64')}`;
-
-        return { docxDataUri: docxDataUri };
     } catch (e: any) {
         console.error("Error in convertPdfToWordFlow:", e);
         return { error: e.message || 'An unknown error occurred during conversion.' };
@@ -69,5 +60,8 @@ const convertPdfToWordFlow = ai.defineFlow(
 );
 
 export async function convertPdfToWord(input: PdfToWordInput): Promise<PdfToWordOutput> {
-  return await convertPdfToWordFlow(input);
+  // This function is no longer called from the frontend for PDF-to-Word.
+  // Kept for potential future use or other conversion types.
+  // return await convertPdfToWordFlow(input);
+  throw new Error('AI-based PDF to Word converter is deprecated.');
 }
