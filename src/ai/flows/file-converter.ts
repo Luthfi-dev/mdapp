@@ -21,20 +21,21 @@ const pdfToWordPrompt = ai.definePrompt({
     name: 'pdfToWordPrompt',
     input: { schema: z.object({ fileDataUri: z.string() }) },
     output: { schema: z.object({ htmlContent: z.string() }) },
-    prompt: `You are an expert document analyst. Your task is to convert the provided PDF file into a single, clean HTML string. 
+    prompt: `You are an expert document analyst. Your task is to convert the provided PDF file into a single, clean HTML string, paying special attention to preserving all visual elements, including images.
     
-    Analyze the layout, structure, and content of the PDF. Preserve the following elements as accurately as possible:
-    - Headings (h1, h2, h3, etc.)
-    - Paragraphs (p)
-    - Lists (ul, ol, li)
-    - Tables (table, thead, tbody, tr, th, td)
-    - Bold and italic text (strong, em)
-    
-    Do not include any CSS or style attributes. Focus on creating a semantically correct and well-structured HTML document that represents the PDF's content and layout.
+Analyze the layout, structure, content, and images of the PDF. Preserve the following elements as accurately as possible:
+- Headings (h1, h2, h3, etc.)
+- Paragraphs (p)
+- Lists (ul, ol, li)
+- Tables (table, thead, tbody, tr, th, td)
+- Bold and italic text (strong, em)
+- Images: Extract all images and embed them directly into the HTML using Base64-encoded Data URIs within <img> tags (e.g., <img src="data:image/png;base64,...">). Ensure they are placed correctly within the document flow.
 
-    File: {{media url=fileDataUri}}
-    
-    Return ONLY the HTML content.`,
+Do not include any CSS or style attributes. Focus on creating a semantically correct and well-structured HTML document that represents the PDF's content, images, and layout.
+
+File: {{media url=fileDataUri}}
+
+Return ONLY the complete HTML content with embedded images.`,
 });
 
 const convertPdfToWordFlow = ai.defineFlow(
@@ -51,7 +52,12 @@ const convertPdfToWordFlow = ai.defineFlow(
             return { error: 'AI failed to extract content from the PDF.' };
         }
         
-        const docxBuffer = await htmlToDocx(output.htmlContent);
+        const docxBuffer = await htmlToDocx(output.htmlContent, undefined, {
+          table: { row: { cantSplit: true } },
+          footer: true,
+          pageNumber: true,
+        });
+
         const docxDataUri = `data:application/vnd.openxmlformats-officedocument.wordprocessingml.document;base64,${docxBuffer.toString('base64')}`;
 
         return { docxDataUri: docxDataUri };
