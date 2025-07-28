@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -18,14 +18,6 @@ export default function WordToPdfPage() {
   const [isConverting, setIsConverting] = useState(false);
   const { toast } = useToast();
   const previewRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    document.body.classList.add('word-to-pdf-desktop-view');
-    
-    return () => {
-      document.body.classList.remove('word-to-pdf-desktop-view');
-    };
-  }, []);
   
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -86,7 +78,13 @@ export default function WordToPdfPage() {
       const docxWrapper = previewRef.current.querySelector('.docx-wrapper');
 
       if (!docxWrapper) {
-          throw new Error('Tidak dapat menemukan konten wrapper .docx untuk dikonversi.');
+        toast({
+            variant: "destructive",
+            title: "Gagal Mengonversi",
+            description: "Tidak dapat menemukan konten pratinjau. Coba unggah ulang file."
+        });
+        setIsConverting(false);
+        return;
       }
       
       const pages = docxWrapper.querySelectorAll('.docx');
@@ -186,9 +184,9 @@ export default function WordToPdfPage() {
                         )}
                         </Button>
                         
-                        <div className="border rounded-md p-4 bg-secondary">
+                        <div className="border rounded-md p-4 bg-secondary word-preview-container">
                           <h4 className="font-bold mb-2 text-center">Pratinjau Dokumen</h4>
-                          <div ref={previewRef} className="bg-white p-2 shadow-inner h-96 overflow-auto"></div>
+                          <div ref={previewRef} className="bg-white p-2 shadow-inner h-96"></div>
                         </div>
                     </div>
                 )}

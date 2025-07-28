@@ -85,9 +85,11 @@ body {
   body {
     @apply bg-background text-foreground;
   }
-  body.word-to-pdf-desktop-view {
-    min-width: 1280px;
-  }
+}
+
+.word-preview-container > div {
+  min-width: 800px;
+  overflow-x: auto;
 }
 
 .custom-nav {
