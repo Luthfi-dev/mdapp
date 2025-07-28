@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useRef } from 'react';
@@ -10,6 +11,7 @@ import { Loader2, FileCode2, FileText, ArrowRightLeft, Download } from 'lucide-r
 import { renderAsync } from 'docx-preview';
 import { PDFDocument } from 'pdf-lib';
 import { saveAs } from 'file-saver';
+import html2canvas from 'html2canvas';
 
 export default function WordToPdfPage() {
   const [file, setFile] = useState<File | null>(null);
@@ -50,48 +52,50 @@ export default function WordToPdfPage() {
     setIsConverting(true);
 
     try {
-      const pdfDoc = await PDFDocument.create();
-      const pages = previewRef.current.querySelectorAll('.docx-wrapper > .docx > section.docx');
-      
-      if(pages.length === 0) {
-        throw new Error('Tidak dapat menemukan konten untuk dikonversi. Pastikan file tidak kosong.');
-      }
-
-      for (let i = 0; i < pages.length; i++) {
-        const pageElement = pages[i] as HTMLElement;
-        const canvas = await import('html2canvas').then(m => m.default(pageElement, { scale: 2 }));
-        const imgData = canvas.toDataURL('image/png');
-        const pngImage = await pdfDoc.embedPng(imgData);
-        
-        const page = pdfDoc.addPage([pngImage.width, pngImage.height]);
-        page.drawImage(pngImage, {
-          x: 0,
-          y: 0,
-          width: page.getWidth(),
-          height: page.getHeight(),
+        const canvas = await html2canvas(previewRef.current, {
+            scale: 2, // Meningkatkan resolusi
+            useCORS: true, 
+            logging: false
         });
-      }
 
-      const pdfBytes = await pdfDoc.save();
-      const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-      const targetFilename = `${file.name.replace(/\.docx$/, '')}.pdf`;
-      saveAs(blob, targetFilename);
+        if (!canvas) {
+            throw new Error("Gagal membuat kanvas dari pratinjau.");
+        }
 
-      toast({
-        title: 'Konversi Berhasil',
-        description: 'File Word Anda telah berhasil dikonversi ke PDF.',
-      });
+        const imgData = canvas.toDataURL('image/png');
+        
+        const pdfDoc = await PDFDocument.create();
+        const pngImage = await pdfDoc.embedPng(imgData);
+
+        // Menggunakan dimensi kanvas untuk ukuran halaman PDF
+        const page = pdfDoc.addPage([canvas.width, canvas.height]);
+        page.drawImage(pngImage, {
+            x: 0,
+            y: 0,
+            width: canvas.width,
+            height: canvas.height,
+        });
+
+        const pdfBytes = await pdfDoc.save();
+        const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+        const targetFilename = `${file.name.replace(/\.docx$/, '')}.pdf`;
+        saveAs(blob, targetFilename);
+
+        toast({
+            title: 'Konversi Berhasil',
+            description: 'File Word Anda telah berhasil dikonversi ke PDF.',
+        });
 
     } catch (error) {
-      console.error(error);
-      const errorMessage = error instanceof Error ? error.message : 'Terjadi kesalahan yang tidak diketahui.';
-      toast({
-        variant: 'destructive',
-        title: 'Gagal Mengonversi',
-        description: errorMessage,
-      });
+        console.error(error);
+        const errorMessage = error instanceof Error ? error.message : 'Terjadi kesalahan yang tidak diketahui.';
+        toast({
+            variant: 'destructive',
+            title: 'Gagal Mengonversi',
+            description: errorMessage,
+        });
     } finally {
-      setIsConverting(false);
+        setIsConverting(false);
     }
   };
 
@@ -112,7 +116,7 @@ export default function WordToPdfPage() {
           <div className="space-y-6">
             <div className="space-y-2">
               <Label htmlFor="file-upload">Pilih File DOCX</Label>
-              <Input id="file-upload" type="file" accept=".docx" onChange={handleFileChange} />
+              <Input id="file-upload" type="file" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" onChange={handleFileChange} />
               {file && <p className="text-sm text-muted-foreground mt-2">File dipilih: {file.name}</p>}
             </div>
 
@@ -132,7 +136,7 @@ export default function WordToPdfPage() {
             
             <div>
                 <Label>Pratinjau Dokumen</Label>
-                <div ref={previewRef} className="mt-2 border rounded-md bg-secondary min-h-[400px] max-h-[800px] overflow-auto p-4">
+                <div ref={previewRef} className="mt-2 border rounded-md bg-white min-h-[400px] max-h-[800px] overflow-auto p-4">
                    {!file && <p className="text-center text-muted-foreground py-10">Pilih file untuk melihat pratinjau</p>}
                 </div>
             </div>
