@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -18,6 +18,15 @@ export default function WordToPdfPage() {
   const [convertedFileUrl, setConvertedFileUrl] = useState<string | null>(null);
   const { toast } = useToast();
   const previewRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    document.body.classList.add('word-to-pdf-desktop-view');
+    
+    // Cleanup function to remove the class when the component unmounts
+    return () => {
+      document.body.classList.remove('word-to-pdf-desktop-view');
+    };
+  }, []);
   
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
