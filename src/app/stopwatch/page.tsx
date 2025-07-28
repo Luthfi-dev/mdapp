@@ -57,8 +57,7 @@ export default function StopwatchPage() {
 
   const handleLap = () => {
     if (isRunning) {
-      const currentLapTime = time - laps.reduce((a, b) => a + b, 0);
-      setLaps(prevLaps => [currentLapTime, ...prevLaps]);
+      setLaps(prevLaps => [...prevLaps, time]);
     }
   };
 
@@ -82,27 +81,23 @@ export default function StopwatchPage() {
     const milliseconds = Math.floor((ms % 1000) / 10).toString().padStart(2, '0');
     return `${minutes}:${seconds}.${milliseconds}`;
   };
-  
-  const formatTotalLapsTime = (laps: number[]) => {
-      const totalMs = laps.reduce((a, b) => a + b, 0);
-      return formatTime(totalMs);
-  }
 
-  const getLapStats = () => {
-    if (laps.length < 2) return { fastest: null, slowest: null };
-    const fastest = Math.min(...laps);
-    const slowest = Math.max(...laps);
+  const getLapStats = (currentLaps: number[]) => {
+    if (currentLaps.length < 2) return { fastest: null, slowest: null };
+    const lapTimes = currentLaps.map((lap, i) => i === 0 ? lap : lap - currentLaps[i-1]);
+    const fastest = Math.min(...lapTimes);
+    const slowest = Math.max(...lapTimes);
     return { fastest, slowest };
   };
 
-  const { fastest, slowest } = getLapStats();
-
+  const { fastest, slowest } = getLapStats(laps);
+  
   const renderButtons = () => {
     const buttonClass = "h-20 w-20 text-lg flex-shrink-0 rounded-full text-white";
     
-    if (time === 0 && !isRunning) {
+    if (!isRunning && time === 0) {
         return (
-            <div className="flex justify-center items-center h-20">
+            <div className="flex justify-center items-center h-20 my-4">
                 <Button onClick={startTimer} className={cn(buttonClass, "bg-green-500 hover:bg-green-600")}>
                     <Play className="h-6 w-6" />
                 </Button>
@@ -111,9 +106,9 @@ export default function StopwatchPage() {
     }
     
     return (
-      <div className="flex justify-between items-center h-20">
-        <Button onClick={isRunning ? handleLap : handleReset} variant="secondary" className={cn(buttonClass, "bg-gray-500 hover:bg-gray-600 text-white")}>
-          {isRunning ? <Flag /> : <RotateCcw />}
+      <div className="flex justify-between items-center h-20 my-4">
+        <Button onClick={!isRunning ? handleReset : handleLap} variant="secondary" className={cn(buttonClass, "bg-gray-500 hover:bg-gray-600 text-white")}>
+          {!isRunning ? <RotateCcw /> : <Flag />}
         </Button>
         <Button onClick={isRunning ? stopTimer : startTimer} className={cn(buttonClass, isRunning ? "bg-red-500 hover:bg-red-600" : "bg-green-500 hover:bg-green-600")}>
           {isRunning ? <Pause /> : <Play />}
@@ -152,10 +147,7 @@ export default function StopwatchPage() {
           <CardDescription>Ukur waktu dengan presisi dan catat putaran.</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col flex-grow p-4 min-h-0">
-          <div className="relative flex-grow flex flex-col items-center justify-center">
-            <div className='absolute top-0 right-0 font-mono text-xl text-muted-foreground'>
-                {laps.length > 0 && formatTotalLapsTime(laps)}
-            </div>
+          <div className="relative flex-shrink-0 flex flex-col items-center justify-center">
             <div className={cn(
               "font-mono my-4 tracking-tight w-full text-center break-all p-2",
               isFullScreen ? "text-7xl sm:text-8xl" : "text-5xl"
@@ -172,26 +164,32 @@ export default function StopwatchPage() {
              <ScrollArea className="flex-grow rounded-lg bg-secondary/30">
                 {laps.length > 0 ? (
                 <ul className='divide-y divide-border p-2'>
-                    {laps.map((lap, index) => {
-                        const isFastest = lap === fastest;
-                        const isSlowest = lap === slowest;
+                   <li className="flex justify-between items-center p-3 font-mono text-lg font-bold">
+                        <span>Putaran</span>
+                        <span>Waktu</span>
+                    </li>
+                    {laps.map((lapTime, index) => {
+                        const previousLapTime = index > 0 ? laps[index-1] : 0;
+                        const currentLapDuration = lapTime - previousLapTime;
+                        const isFastest = currentLapDuration === fastest;
+                        const isSlowest = currentLapDuration === slowest;
 
                         return (
                             <li key={index} className="flex justify-between items-center p-3 font-mono text-lg">
-                                <span className="text-muted-foreground">Putaran {laps.length - index}</span>
+                                <span className="text-muted-foreground">Putaran {index + 1}</span>
                                 <div className='flex items-center gap-2'>
-                                    {isFastest && <ArrowDown className='w-5 h-5 text-green-500' />}
-                                    {isSlowest && <ArrowUp className='w-5 h-5 text-red-500' />}
+                                    {isFastest && laps.length > 1 && <ArrowDown className='w-5 h-5 text-green-500' />}
+                                    {isSlowest && laps.length > 1 && <ArrowUp className='w-5 h-5 text-red-500' />}
                                     <span className={cn(
-                                        isFastest && 'text-green-500 font-bold',
-                                        isSlowest && 'text-red-500 font-bold'
+                                        isFastest && laps.length > 1 && 'text-green-500 font-bold',
+                                        isSlowest && laps.length > 1 && 'text-red-500 font-bold'
                                     )}>
-                                        {formatTime(lap)}
+                                        {formatTime(currentLapDuration)}
                                     </span>
                                 </div>
                             </li>
                         )
-                    }).reverse()}
+                    })}
                 </ul>
                 ) : (
                 <div className="flex items-center justify-center h-full text-sm text-muted-foreground p-8">
