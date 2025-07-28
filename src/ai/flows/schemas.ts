@@ -4,15 +4,14 @@ import { z } from 'zod';
  * @fileOverview Shared schemas for file conversion AI flows.
  */
 
-// Schema for PDF to Word (now handled client-side, but kept for potential future use)
-export const PdfToWordInputSchema = z.object({
-  fileDataUri: z.string().describe("A PDF file encoded as a data URI."),
-  filename: z.string().describe('The original name of the file.'),
+export const HtmlToWordInputSchema = z.object({
+  htmlContent: z.string().describe("An HTML string to convert."),
+  filename: z.string().describe('The desired name of the file.'),
 });
-export type PdfToWordInput = z.infer<typeof PdfToWordInputSchema>;
+export type HtmlToWordInput = z.infer<typeof HtmlToWordInputSchema>;
 
-export const PdfToWordOutputSchema = z.object({
+export const HtmlToWordOutputSchema = z.object({
   docxDataUri: z.string().optional().describe('The content of the document as a DOCX data uri.'),
   error: z.string().optional(),
 });
-export type PdfToWordOutput = z.infer<typeof PdfToWordOutputSchema>;
+export type HtmlToWordOutput = z.infer<typeof HtmlToWordOutputSchema>;

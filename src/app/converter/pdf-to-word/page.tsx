@@ -9,8 +9,8 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, FileText, FileCode2, ArrowRightLeft } from 'lucide-react';
 import { saveAs } from 'file-saver';
-import htmlToDocx from 'html-to-docx';
 import * as pdfjsLib from 'pdfjs-dist';
+import { convertHtmlToWord } from '@/ai/flows/file-converter';
 
 // Set worker source
 if (typeof window !== 'undefined') {
@@ -119,13 +119,16 @@ export default function PdfToWordPage() {
     try {
       const htmlContent = previewRef.current.innerHTML;
 
-      const docxBuffer = await htmlToDocx(htmlContent, undefined, {
-        table: { row: { cantSplit: true } },
-        footer: true,
-        pageNumber: true,
+      const result = await convertHtmlToWord({
+          htmlContent,
+          filename: getTargetFilename(),
       });
 
-      saveAs(docxBuffer as Blob, getTargetFilename());
+      if (result.error || !result.docxDataUri) {
+          throw new Error(result.error || 'Konversi di server gagal.');
+      }
+
+      saveAs(result.docxDataUri, getTargetFilename());
 
       toast({
         title: 'Konversi Berhasil',
@@ -185,7 +188,7 @@ export default function PdfToWordPage() {
                 )}
             </div>
             <div className="mt-6 text-center text-sm text-muted-foreground">
-                <p>Konversi dilakukan di browser Anda. Tidak ada data yang diunggah ke server.</p>
+                <p>Pratinjau dirender di browser, konversi dilakukan di server. Tidak ada data yang disimpan.</p>
             </div>
         </CardContent>
       </Card>

@@ -1,67 +1,46 @@
 
-
 'use server';
 /**
- * @fileOverview A file conversion flow using AI for layout-aware conversions.
+ * @fileOverview A file conversion flow.
  *
- * - convertPdfToWord: Converts a PDF file to a Word document, preserving layout.
+ * - convertHtmlToWord: Converts an HTML string to a Word document.
  */
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import htmlToDocx from 'html-to-docx';
 import {
-    PdfToWordInputSchema,
-    PdfToWordOutputSchema,
-    type PdfToWordInput,
-    type PdfToWordOutput,
+    HtmlToWordInputSchema,
+    HtmlToWordOutputSchema,
+    type HtmlToWordInput,
+    type HtmlToWordOutput,
 } from './schemas';
 
-
-const pdfToWordPrompt = ai.definePrompt({
-    name: 'pdfToWordPrompt',
-    input: { schema: z.object({ fileDataUri: z.string() }) },
-    output: { schema: z.object({ htmlContent: z.string() }) },
-    prompt: `You are an expert document analyst. Your task is to convert the provided PDF file into a single, clean HTML string, paying special attention to preserving all visual elements, including images.
-    
-Analyze the layout, structure, content, and images of the PDF. Preserve the following elements as accurately as possible:
-- Headings (h1, h2, h3, etc.)
-- Paragraphs (p)
-- Lists (ul, ol, li)
-- Tables (table, thead, tbody, tr, th, td)
-- Bold and italic text (strong, em)
-- Images: Extract all images and embed them directly into the HTML using Base64-encoded Data URIs within <img> tags (e.g., <img src="data:image/png;base64,...">). Ensure they are placed correctly within the document flow.
-
-Do not include any CSS or style attributes. Focus on creating a semantically correct and well-structured HTML document that represents the PDF's content, images, and layout.
-
-File: {{media url=fileDataUri}}
-
-Return ONLY the complete HTML content with embedded images.`,
-});
-
-const convertPdfToWordFlow = ai.defineFlow(
+const convertHtmlToWordFlow = ai.defineFlow(
   {
-    name: 'convertPdfToWordFlow',
-    inputSchema: PdfToWordInputSchema,
-    outputSchema: PdfToWordOutputSchema,
+    name: 'convertHtmlToWordFlow',
+    inputSchema: HtmlToWordInputSchema,
+    outputSchema: HtmlToWordOutputSchema,
   },
   async (input) => {
     try {
-        // This flow is no longer used for PDF-to-Word conversion as per user request.
-        // The logic has been moved to the client-side.
-        // This remains as a placeholder and can be removed or repurposed.
-        return { error: 'This AI-based converter is deprecated.' };
+        const docxBuffer = await htmlToDocx(input.htmlContent, undefined, {
+            table: { row: { cantSplit: true } },
+            footer: true,
+            pageNumber: true,
+        });
+
+        const docxDataUri = `data:application/vnd.openxmlformats-officedocument.wordprocessingml.document;base64,${(docxBuffer as Buffer).toString('base64')}`;
+
+        return { docxDataUri };
 
     } catch (e: any) {
-        console.error("Error in convertPdfToWordFlow:", e);
+        console.error("Error in convertHtmlToWordFlow:", e);
         return { error: e.message || 'An unknown error occurred during conversion.' };
     }
   }
 );
 
-export async function convertPdfToWord(input: PdfToWordInput): Promise<PdfToWordOutput> {
-  // This function is no longer called from the frontend for PDF-to-Word.
-  // Kept for potential future use or other conversion types.
-  // return await convertPdfToWordFlow(input);
-  throw new Error('AI-based PDF to Word converter is deprecated.');
+export async function convertHtmlToWord(input: HtmlToWordInput): Promise<HtmlToWordOutput> {
+  return await convertHtmlToWordFlow(input);
 }
