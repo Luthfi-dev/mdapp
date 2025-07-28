@@ -13,19 +13,19 @@ export default function StopwatchPage() {
   const [time, setTime] = useState(0);
   const [isRunning, setIsRunning] = useState(false);
   const [laps, setLaps] = useState<number[]>([]);
-  const [lastLapTime, setLastLapTime] = useState(0);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   
   const [isFullScreen, setIsFullScreen] = useState(false);
   const stopwatchRef = useRef<HTMLDivElement>(null);
 
+  const handleFullScreenChange = useCallback(() => {
+    setIsFullScreen(!!document.fullscreenElement);
+  }, []);
+
   useEffect(() => {
-    const handleFullScreenChange = () => {
-      setIsFullScreen(!!document.fullscreenElement);
-    };
     document.addEventListener('fullscreenchange', handleFullScreenChange);
     return () => document.removeEventListener('fullscreenchange', handleFullScreenChange);
-  }, []);
+  }, [handleFullScreenChange]);
 
   const handleFullScreenToggle = () => {
     if (!stopwatchRef.current) return;
@@ -99,22 +99,23 @@ export default function StopwatchPage() {
 
   const renderButtons = () => {
     const buttonClass = "h-20 w-20 text-lg flex-shrink-0 rounded-full text-white";
-    if (!isRunning && time === 0) {
-      return (
-        <div className="flex justify-center items-center h-20">
-          <Button onClick={startTimer} className={cn(buttonClass, "bg-green-500 hover:bg-green-600")}>
-            <Play className="h-6 w-6" />
-          </Button>
-        </div>
-      );
+    
+    if (time === 0 && !isRunning) {
+        return (
+            <div className="flex justify-center items-center h-20">
+                <Button onClick={startTimer} className={cn(buttonClass, "bg-green-500 hover:bg-green-600")}>
+                    <Play className="h-6 w-6" />
+                </Button>
+            </div>
+        );
     }
-
+    
     return (
       <div className="flex justify-between items-center h-20">
-        <Button onClick={!isRunning ? handleReset : handleLap} variant="secondary" className={cn(buttonClass, "bg-gray-500 hover:bg-gray-600 text-white")}>
-          {!isRunning ? <RotateCcw /> : <Flag />}
+        <Button onClick={isRunning ? handleLap : handleReset} variant="secondary" className={cn(buttonClass, "bg-gray-500 hover:bg-gray-600 text-white")}>
+          {isRunning ? <Flag /> : <RotateCcw />}
         </Button>
-        <Button onClick={!isRunning ? startTimer : stopTimer} className={cn(buttonClass, isRunning ? "bg-red-500 hover:bg-red-600" : "bg-green-500 hover:bg-green-600")}>
+        <Button onClick={isRunning ? stopTimer : startTimer} className={cn(buttonClass, isRunning ? "bg-red-500 hover:bg-red-600" : "bg-green-500 hover:bg-green-600")}>
           {isRunning ? <Pause /> : <Play />}
         </Button>
       </div>
@@ -155,7 +156,10 @@ export default function StopwatchPage() {
             <div className='absolute top-0 right-0 font-mono text-xl text-muted-foreground'>
                 {laps.length > 0 && formatTotalLapsTime(laps)}
             </div>
-            <div className="font-mono text-6xl sm:text-7xl my-4 tracking-tight w-full text-center break-all p-4">
+            <div className={cn(
+              "font-mono my-4 tracking-tight w-full text-center break-all p-2",
+              isFullScreen ? "text-7xl sm:text-8xl" : "text-5xl"
+            )}>
               {formatTime(time)}
             </div>
           </div>
@@ -164,7 +168,7 @@ export default function StopwatchPage() {
             {renderButtons()}
           </div>
 
-          <div className='w-full flex-grow min-h-0 flex flex-col shrink-0'>
+          <div className='w-full flex-grow min-h-0 flex flex-col'>
              <ScrollArea className="flex-grow rounded-lg bg-secondary/30">
                 {laps.length > 0 ? (
                 <ul className='divide-y divide-border p-2'>
@@ -201,4 +205,3 @@ export default function StopwatchPage() {
     </div>
   );
 }
-
