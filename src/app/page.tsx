@@ -87,7 +87,7 @@ export default function HomePage() {
             <div>
                 <p className="text-sm opacity-80">Poin Anda</p>
                 <div className="text-2xl font-bold">
-                  <CountUp end={points} duration={1.5} />
+                  <CountUp end={points} />
                 </div>
             </div>
             <Button variant="secondary" className="bg-white/90 hover:bg-white text-primary rounded-full font-bold" onClick={() => { refreshClaimState(); setIsDialogOpen(true); }}>

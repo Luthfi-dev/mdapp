@@ -2,10 +2,10 @@
 'use client';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "./ui/button";
-import { Check, Gift, Star, X } from "lucide-react";
+import { Check, Gift, Star, X, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ClaimState } from "@/hooks/use-daily-reward";
-import React from 'react';
+import React, { useState } from 'react';
 
 const dayNames = ["Sen", "Sel", "Rab", "Kam", "Jum", "Sab", "Min"];
 
@@ -13,11 +13,21 @@ interface DailyRewardDialogProps {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
   claimState: ClaimState[];
-  onClaim: (dayIndex: number) => void;
+  onClaim: (dayIndex: number) => Promise<boolean>;
 }
 
-const RewardItem = React.memo(({ dayIndex, state, onClaim }: { dayIndex: number, state: ClaimState, onClaim: (dayIndex: number) => void }) => {
+const RewardItem = React.memo(({ dayIndex, state, onClaim, onSuccessfulClaim }: { dayIndex: number, state: ClaimState, onClaim: (dayIndex: number) => Promise<boolean>, onSuccessfulClaim: () => void }) => {
   const { isClaimed, isClaimable, isToday } = state;
+  const [isClaiming, setIsClaiming] = useState(false);
+
+  const handleClaim = async () => {
+    setIsClaiming(true);
+    const success = await onClaim(dayIndex);
+    if (success) {
+      onSuccessfulClaim();
+    }
+    setIsClaiming(false);
+  };
 
   return (
     <div className="flex flex-col items-center gap-2">
@@ -50,10 +60,10 @@ const RewardItem = React.memo(({ dayIndex, state, onClaim }: { dayIndex: number,
       <Button
         size="sm"
         className="w-full mt-1 h-8"
-        disabled={!isClaimable || isClaimed}
-        onClick={() => onClaim(dayIndex)}
+        disabled={!isClaimable || isClaimed || isClaiming}
+        onClick={handleClaim}
       >
-        {isClaimed ? "Diklaim" : "Klaim"}
+        {isClaiming ? <Loader2 className="w-4 h-4 animate-spin"/> : (isClaimed ? "Diklaim" : "Klaim")}
       </Button>
     </div>
   );
@@ -62,6 +72,11 @@ const RewardItem = React.memo(({ dayIndex, state, onClaim }: { dayIndex: number,
 RewardItem.displayName = 'RewardItem';
 
 export function DailyRewardDialog({ isOpen, onOpenChange, claimState, onClaim }: DailyRewardDialogProps) {
+
+  const handleSuccessfulClaim = () => {
+    onOpenChange(false);
+  }
+
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md w-[95%] rounded-2xl shadow-2xl border-0 bg-gradient-to-br from-card to-background/80 backdrop-blur-sm">
@@ -76,12 +91,12 @@ export function DailyRewardDialog({ isOpen, onOpenChange, claimState, onClaim }:
         </DialogHeader>
         <div className="grid grid-cols-4 gap-3 py-4">
           {claimState.slice(0, 4).map((state, index) => (
-            <RewardItem key={index} dayIndex={index} state={state} onClaim={onClaim} />
+            <RewardItem key={index} dayIndex={index} state={state} onClaim={onClaim} onSuccessfulClaim={handleSuccessfulClaim}/>
           ))}
         </div>
         <div className="grid grid-cols-3 gap-3">
           {claimState.slice(4).map((state, index) => (
-            <RewardItem key={index + 4} dayIndex={index + 4} state={state} onClaim={onClaim} />
+            <RewardItem key={index + 4} dayIndex={index + 4} state={state} onClaim={onClaim} onSuccessfulClaim={handleSuccessfulClaim}/>
           ))}
         </div>
       </DialogContent>

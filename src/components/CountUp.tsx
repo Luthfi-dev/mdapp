@@ -3,26 +3,29 @@
 import { useEffect, useState, useRef } from 'react';
 
 interface CountUpProps {
-    start?: number;
     end: number;
     duration?: number;
 }
 
-export function CountUp({ start = 0, end, duration = 2 }: CountUpProps) {
-    const [count, setCount] = useState(start);
+export function CountUp({ end, duration = 1.5 }: CountUpProps) {
+    const [count, setCount] = useState(end);
     const frameRef = useRef<number>();
-    const startTimeRef = useRef<number>();
+    const prevEndRef = useRef(end);
 
     useEffect(() => {
-        startTimeRef.current = performance.now();
+        const start = prevEndRef.current;
+        let startTime: number | null = null;
+
         const animate = (currentTime: number) => {
-            if (!startTimeRef.current) return;
+            if (startTime === null) {
+                startTime = currentTime;
+            }
             
-            const elapsedTime = currentTime - startTimeRef.current;
+            const elapsedTime = currentTime - startTime;
             const progress = Math.min(elapsedTime / (duration * 1000), 1);
             
             // Ease-out function
-            const easedProgress = 1 - Math.pow(1 - progress, 3);
+            const easedProgress = 1 - Math.pow(1 - progress, 4);
 
             const currentCount = Math.floor(easedProgress * (end - start) + start);
             setCount(currentCount);
@@ -31,6 +34,7 @@ export function CountUp({ start = 0, end, duration = 2 }: CountUpProps) {
                 frameRef.current = requestAnimationFrame(animate);
             } else {
                 setCount(end); // Ensure it ends exactly on the end value
+                prevEndRef.current = end;
             }
         };
 
@@ -40,8 +44,9 @@ export function CountUp({ start = 0, end, duration = 2 }: CountUpProps) {
             if (frameRef.current) {
                 cancelAnimationFrame(frameRef.current);
             }
+             prevEndRef.current = end;
         };
-    }, [start, end, duration]);
+    }, [end, duration]);
 
     return <span>{count.toLocaleString()}</span>;
 }

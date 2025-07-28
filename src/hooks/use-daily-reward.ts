@@ -61,8 +61,10 @@ export function useDailyReward() {
 
     const newClaimState = Array.from({ length: TOTAL_DAYS }, (_, i) => {
       const lastClaimDate = storedData.lastClaimDates[i];
-      const isClaimed = lastClaimDate === todayDateString;
-      
+      // A day is claimed if its last claim date is within the current week's cycle, not just today.
+      // This logic needs to be more robust for a real app, but for this weekly reset model:
+      const isClaimed = !!storedData.lastClaimDates[i];
+
       return {
         isClaimed,
         isClaimable: i === todayIndex && !isClaimed,
@@ -80,55 +82,63 @@ export function useDailyReward() {
   }, [updateClaimState]);
 
   const claimReward = useCallback((dayIndex: number) => {
-    const todayIndex = getDayIndex();
-    if (dayIndex !== todayIndex) {
-        toast({
-            variant: 'destructive',
-            title: 'Gagal Klaim',
-            description: 'Anda hanya bisa klaim hadiah untuk hari ini.'
-        });
-        return;
-    }
+    return new Promise<boolean>((resolve) => {
+        const todayIndex = getDayIndex();
+        if (dayIndex !== todayIndex) {
+            toast({
+                variant: 'destructive',
+                title: 'Gagal Klaim',
+                description: 'Anda hanya bisa klaim hadiah untuk hari ini.'
+            });
+            resolve(false);
+            return;
+        }
 
-    const storedData = getInitialState();
-    const todayDateString = getTodayDateString();
-
-    if (storedData.lastClaimDates[dayIndex] === todayDateString) {
-        toast({
-            variant: 'destructive',
-            title: 'Sudah Diklaim',
-            description: 'Anda sudah mengklaim hadiah untuk hari ini.'
-        });
-        return;
-    }
-    
-    const newPoints = storedData.points + REWARD_AMOUNT;
-    const newLastClaimDates = { ...storedData.lastClaimDates, [dayIndex]: todayDateString };
-
-    try {
-        window.localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify({
-            points: newPoints,
-            lastClaimDates: newLastClaimDates
-        }));
+        const storedData = getInitialState();
         
-        setPoints(newPoints);
-        updateClaimState(); // Refresh the UI state after successful claim
+        if (storedData.lastClaimDates[dayIndex]) {
+            toast({
+                variant: 'destructive',
+                title: 'Sudah Diklaim',
+                description: 'Anda sudah mengklaim hadiah untuk hari ini.'
+            });
+             resolve(false);
+            return;
+        }
+        
+        const newPoints = storedData.points + REWARD_AMOUNT;
+        const newLastClaimDates = { ...storedData.lastClaimDates, [dayIndex]: getTodayDateString() };
 
-        toast({
-            title: 'Berhasil!',
-            description: `Anda mendapatkan ${REWARD_AMOUNT} poin!`,
-            className: 'bg-green-500 text-white border-green-600'
-        })
+        try {
+            window.localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify({
+                points: newPoints,
+                lastClaimDates: newLastClaimDates
+            }));
+            
+            // Defer state update to allow animation to feel more responsive
+            setTimeout(() => {
+                setPoints(newPoints);
+                updateClaimState();
 
-    } catch (error) {
-        console.error("Failed to write to localStorage", error);
-        toast({
-            variant: 'destructive',
-            title: 'Gagal Menyimpan',
-            description: 'Tidak dapat menyimpan progres klaim Anda.'
-        });
-    }
+                toast({
+                    title: `+${REWARD_AMOUNT} Poin!`,
+                    description: `Hadiah harian berhasil diklaim.`,
+                    className: 'bg-green-500 text-white border-green-600'
+                });
+            }, 300); // Small delay for closing animation
 
+             resolve(true);
+
+        } catch (error) {
+            console.error("Failed to write to localStorage", error);
+            toast({
+                variant: 'destructive',
+                title: 'Gagal Menyimpan',
+                description: 'Tidak dapat menyimpan progres klaim Anda.'
+            });
+             resolve(false);
+        }
+    });
   }, [getInitialState, toast, updateClaimState]);
   
   const refreshClaimState = () => {
