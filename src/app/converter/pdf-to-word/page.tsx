@@ -1,13 +1,13 @@
 
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, FileText, FileCode2, ArrowRightLeft } from 'lucide-react';
+import { Loader2, FileText, FileCode2, ArrowRightLeft, Eye } from 'lucide-react';
 import { saveAs } from 'file-saver';
 import * as pdfjsLib from 'pdfjs-dist';
 import { convertHtmlToWord } from '@/ai/flows/file-converter';
@@ -28,7 +28,7 @@ export default function PdfToWordPage() {
     const selectedFile = e.target.files?.[0];
     if (selectedFile && selectedFile.type === 'application/pdf') {
       setFile(selectedFile);
-      setShowPreview(false);
+      setShowPreview(false); // Sembunyikan pratinjau saat file baru dipilih
       if (previewRef.current) previewRef.current.innerHTML = '';
     } else {
       toast({
@@ -59,33 +59,24 @@ export default function PdfToWordPage() {
             const context = canvas.getContext('2d');
             canvas.height = viewport.height;
             canvas.width = viewport.width;
-
-            const renderContext = {
-                canvasContext: context!,
-                viewport: viewport
-            };
-
-            const pageDiv = document.createElement('div');
-            pageDiv.className = 'pdf-page-preview';
-            pageDiv.style.margin = '10px 0';
-            pageDiv.style.border = '1px solid #ddd';
-            pageDiv.style.position = 'relative';
-            pageDiv.style.width = `${viewport.width}px`;
-            pageDiv.style.height = `${viewport.height}px`;
-
-            pageDiv.appendChild(canvas);
             
-            await page.render(renderContext).promise;
+            await page.render({ canvasContext: context!, viewport: viewport }).promise;
 
             const textContent = await page.getTextContent();
+            
             const textLayerDiv = document.createElement("div");
-            textLayerDiv.className = "textLayer";
-            textLayerDiv.style.position = 'absolute';
-            textLayerDiv.style.left = '0';
-            textLayerDiv.style.top = '0';
-            textLayerDiv.style.height = '100%';
-            textLayerDiv.style.width = '100%';
-            textLayerDiv.style.opacity = '0.5'; // For debugging visibility
+            textLayerDiv.style.position = 'relative';
+            textLayerDiv.style.width = `${viewport.width}px`;
+            textLayerDiv.style.height = `${viewport.height}px`;
+            textLayerDiv.style.margin = '10px 0';
+            textLayerDiv.style.border = '1px solid #ddd';
+
+            const pageDiv = document.createElement('div');
+            pageDiv.className = "pdf-page-preview";
+            pageDiv.appendChild(canvas);
+            pageDiv.appendChild(textLayerDiv);
+            
+            previewRef.current?.appendChild(pageDiv);
 
             textContent.items.forEach((item: any) => {
                 const tx = pdfjsLib.Util.transform(
@@ -97,16 +88,13 @@ export default function PdfToWordPage() {
                 const textDiv = document.createElement('span');
                 textDiv.style.fontFamily = style?.fontFamily || 'sans-serif';
                 textDiv.style.transformOrigin = '0% 0%';
-                textDiv.style.transform = `matrix(${tx[0]}, ${tx[1]}, ${tx[2]}, ${tx[3]}, ${tx[4]}, ${tx[5]}) scaleY(-1)`;
+                textDiv.style.transform = `matrix(${tx[0]}, ${tx[1]}, ${tx[2]}, ${tx[3]}, ${tx[4]}, ${tx[5]}) scaleY(1)`;
                 textDiv.style.fontSize = `${Math.sqrt((tx[2] * tx[2]) + (tx[3] * tx[3]))}px`;
                 textDiv.style.position = 'absolute';
                 textDiv.style.whiteSpace = 'pre';
                 textDiv.textContent = item.str;
                 textLayerDiv.appendChild(textDiv);
             });
-            
-            pageDiv.appendChild(textLayerDiv);
-            previewRef.current?.appendChild(pageDiv);
         }
         setShowPreview(true);
     };
@@ -132,40 +120,46 @@ export default function PdfToWordPage() {
     setIsConverting(true);
 
     try {
-        const fileReader = new FileReader();
-        fileReader.onload = async function() {
-            const typedarray = new Uint8Array(this.result as ArrayBuffer);
-            const pdf = await pdfjsLib.getDocument(typedarray).promise;
-            
-            let fullHtmlContent = '<html><body>';
-            for (let i = 1; i <= pdf.numPages; i++) {
-                const page = await pdf.getPage(i);
-                const textContent = await page.getTextContent();
-                textContent.items.forEach((item: any) => {
-                    fullHtmlContent += `<p>${item.str}</p>`;
-                });
-                fullHtmlContent += '<br style="page-break-after: always;"/>';
-            }
-            fullHtmlContent += '</body></html>';
-
-            const result = await convertHtmlToWord({
-                htmlContent: fullHtmlContent,
-                filename: getTargetFilename(),
+        const arrayBuffer = await file.arrayBuffer();
+        const typedarray = new Uint8Array(arrayBuffer);
+        const pdf = await pdfjsLib.getDocument(typedarray).promise;
+        
+        let fullHtmlContent = '<html><body>';
+        for (let i = 1; i <= pdf.numPages; i++) {
+            const page = await pdf.getPage(i);
+            const textContent = await page.getTextContent();
+            // Simple text extraction - could be improved to handle structure better
+            let lastY = -1;
+            let pageText = '';
+            textContent.items.forEach((item: any) => {
+                if(lastY !== item.transform[5]) {
+                   pageText += '\n'; // new line
+                }
+                pageText += item.str + ' ';
+                lastY = item.transform[5];
             });
+            // Replace multiple newlines with a paragraph break
+            const paragraphs = pageText.split(/\n\s*\n/).map(p => `<p>${p.trim().replace(/\s+/g, ' ')}</p>`).join('');
+            fullHtmlContent += paragraphs;
+            fullHtmlContent += '<br style="page-break-after: always;"/>';
+        }
+        fullHtmlContent += '</body></html>';
 
-            if (result.error || !result.docxDataUri) {
-                throw new Error(result.error || 'Konversi di server gagal.');
-            }
+        const result = await convertHtmlToWord({
+            htmlContent: fullHtmlContent,
+            filename: getTargetFilename(),
+        });
 
-            saveAs(result.docxDataUri, getTargetFilename());
+        if (result.error || !result.docxDataUri) {
+            throw new Error(result.error || 'Konversi di server gagal.');
+        }
 
-            toast({
-                title: 'Konversi Berhasil',
-                description: 'File PDF Anda telah berhasil dikonversi dan diunduh.',
-            });
-            setIsConverting(false);
-        };
-        fileReader.readAsArrayBuffer(file);
+        saveAs(result.docxDataUri, getTargetFilename());
+
+        toast({
+            title: 'Konversi Berhasil',
+            description: 'File PDF Anda telah berhasil dikonversi dan diunduh.',
+        });
 
     } catch (error) {
       console.error("Word Conversion Error:", error);
@@ -175,7 +169,8 @@ export default function PdfToWordPage() {
         title: 'Kesalahan Konversi',
         description: `Gagal mengonversi file: ${errorMessage}`,
       });
-      setIsConverting(false);
+    } finally {
+        setIsConverting(false);
     }
   };
 
@@ -188,8 +183,8 @@ export default function PdfToWordPage() {
             <ArrowRightLeft className="w-8 h-8 text-muted-foreground" />
             <FileCode2 className="w-12 h-12 text-blue-500" />
           </div>
-          <CardTitle className="text-2xl font-headline">PDF ke Word (Pratinjau HTML)</CardTitle>
-          <CardDescription>Unggah file PDF Anda, pratinjau sebagai HTML, dan konversi ke Word.</CardDescription>
+          <CardTitle className="text-2xl font-headline">PDF ke Word (Ekstrak Teks)</CardTitle>
+          <CardDescription>Unggah file PDF Anda, pratinjau, dan konversi ke Word.</CardDescription>
         </CardHeader>
         <CardContent>
             <div className="space-y-6">
@@ -212,9 +207,9 @@ export default function PdfToWordPage() {
                                 'Konversi & Unduh Otomatis'
                             )}
                             </Button>
-                            <Button variant="outline" onClick={() => renderPdf(file)} disabled={isConverting}>
-                                Lihat Pratinjau
-                            </Button>
+                             <Button variant="outline" size="icon" onClick={() => renderPdf(file)} disabled={isConverting}>
+                                <Eye className="h-5 w-5" />
+                             </Button>
                         </div>
                         
                         {showPreview && (
