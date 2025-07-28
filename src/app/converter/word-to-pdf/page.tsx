@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, FileCode2, FileText, ArrowRightLeft, Download } from 'lucide-react';
 import * as docx from 'docx-preview';
-import { PDFDocument, PDFImage, rgb, StandardFonts } from 'pdf-lib';
+import { PDFDocument } from 'pdf-lib';
 import html2canvas from 'html2canvas';
 
 export default function WordToPdfPage() {
@@ -32,21 +32,27 @@ export default function WordToPdfPage() {
             if(previewRef.current) previewRef.current.innerHTML = '';
             return;
         }
-
+        
         setFile(selectedFile);
         setConvertedFileUrl(null);
-        if (previewRef.current) {
-            previewRef.current.innerHTML = '';
-            docx.renderAsync(selectedFile, previewRef.current)
-                .catch(error => {
-                    console.error("Error rendering docx:", error);
-                    toast({
-                        variant: "destructive",
-                        title: "Gagal Mempratinjau",
-                        description: "Gagal merender file Word. File mungkin rusak atau tidak didukung."
-                    })
-                });
-        }
+
+        const reader = new FileReader();
+        reader.onload = function(event) {
+            const arrayBuffer = event.target?.result;
+            if (arrayBuffer && previewRef.current) {
+                previewRef.current.innerHTML = '';
+                docx.renderAsync(arrayBuffer as ArrayBuffer, previewRef.current)
+                    .catch(error => {
+                        console.error("Error rendering docx:", error);
+                        toast({
+                            variant: "destructive",
+                            title: "Gagal Mempratinjau",
+                            description: "Gagal merender file Word. File mungkin rusak atau tidak didukung."
+                        })
+                    });
+            }
+        };
+        reader.readAsArrayBuffer(selectedFile);
     }
   };
 
@@ -65,24 +71,24 @@ export default function WordToPdfPage() {
 
     try {
       const pdfDoc = await PDFDocument.create();
-      const pages = previewRef.current.querySelectorAll('.docx-wrapper > section.docx');
+      const docxWrapper = previewRef.current.querySelector('.docx-wrapper');
 
-      if(pages.length === 0) {
-        throw new Error('Tidak dapat menemukan konten untuk dikonversi. Pastikan file tidak kosong.');
+      if (!docxWrapper) {
+          throw new Error('Tidak dapat menemukan konten wrapper .docx untuk dikonversi.');
       }
       
-      for (let i = 0; i < pages.length; i++) {
-        const pageElement = pages[i] as HTMLElement;
-        const canvas = await html2canvas(pageElement, {
+      const pages = docxWrapper.querySelectorAll('.docx');
+      
+      if(pages.length === 0) {
+        // Fallback for single page documents that might not have the .docx class on the page itself
+        const canvas = await html2canvas(docxWrapper as HTMLElement, {
             scale: 2,
             useCORS: true,
             allowTaint: true,
             logging: false,
         });
-
         const imgData = canvas.toDataURL('image/png');
         const pdfImage = await pdfDoc.embedPng(imgData);
-
         const page = pdfDoc.addPage([pdfImage.width, pdfImage.height]);
         page.drawImage(pdfImage, {
             x: 0,
@@ -90,6 +96,28 @@ export default function WordToPdfPage() {
             width: page.getWidth(),
             height: page.getHeight(),
         });
+
+      } else {
+        for (let i = 0; i < pages.length; i++) {
+          const pageElement = pages[i] as HTMLElement;
+          const canvas = await html2canvas(pageElement, {
+              scale: 2,
+              useCORS: true,
+              allowTaint: true,
+              logging: false,
+          });
+
+          const imgData = canvas.toDataURL('image/png');
+          const pdfImage = await pdfDoc.embedPng(imgData);
+
+          const page = pdfDoc.addPage([pdfImage.width, pdfImage.height]);
+          page.drawImage(pdfImage, {
+              x: 0,
+              y: 0,
+              width: page.getWidth(),
+              height: page.getHeight(),
+          });
+        }
       }
 
       const pdfBytes = await pdfDoc.save();
@@ -137,7 +165,7 @@ export default function WordToPdfPage() {
             <div className="space-y-6">
                 <div className="space-y-2">
                     <Label htmlFor="file-upload">Pilih File Word (.docx)</Label>
-                    <Input id="file-upload" type="file" accept=".docx" onChange={handleFileChange} />
+                    <Input id="file-upload" type="file" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" onChange={handleFileChange} />
                     {file && <p className="text-sm text-muted-foreground">File dipilih: {file.name}</p>}
                 </div>
 
