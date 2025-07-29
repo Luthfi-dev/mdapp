@@ -19,6 +19,7 @@ import { Label } from '@/components/ui/label';
 interface ScannedItem {
   id: number;
   data: string;
+  timestamp: string;
 }
 
 export default function ScannerPage() {
@@ -138,7 +139,11 @@ export default function ScannerPage() {
     playBeep();
     setIsCooldown(true);
 
-    const newScan: ScannedItem = { id: Date.now() + Math.random(), data: result };
+    const newScan: ScannedItem = { 
+        id: Date.now(), 
+        data: result,
+        timestamp: new Date().toISOString()
+    };
     setScannedHistory(prevHistory => [newScan, ...prevHistory]);
     
     toast({
