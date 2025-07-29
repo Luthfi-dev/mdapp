@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { CardHeader, CardTitle } from "@/components/ui/card";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Send, Bot, User, Loader2, ArrowRight, ArrowLeft } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { chat, ChatMessage, AppSuggestion } from "@/ai/flows/chat";
@@ -44,6 +44,7 @@ export default function MessagesPage() {
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [assistantName, setAssistantName] = useState('Assistant');
+    const [assistantAvatar, setAssistantAvatar] = useState('/avatar-placeholder.png');
     const viewportRef = useRef<HTMLDivElement>(null);
     const router = useRouter();
     const isMobile = useIsMobile();
@@ -51,6 +52,9 @@ export default function MessagesPage() {
     useEffect(() => {
         // Load assistant settings
         setAssistantName(assistantData.name);
+        if (assistantData.avatarUrl) {
+            setAssistantAvatar(assistantData.avatarUrl);
+        }
     }, []);
 
     const scrollToBottom = () => {
@@ -100,6 +104,7 @@ export default function MessagesPage() {
                     </Button>
                  )}
                  <Avatar>
+                    <AvatarImage src={assistantAvatar} alt={assistantName} />
                     <AvatarFallback className="bg-primary text-primary-foreground"><Bot /></AvatarFallback>
                 </Avatar>
                 <div>
@@ -114,6 +119,7 @@ export default function MessagesPage() {
                             <div key={index} className={cn("flex items-end gap-2", message.role === 'user' ? "justify-end" : "justify-start")}>
                                 {message.role === 'model' && (
                                     <Avatar className="h-8 w-8">
+                                        <AvatarImage src={assistantAvatar} alt={assistantName} />
                                         <AvatarFallback className="bg-primary text-primary-foreground"><Bot /></AvatarFallback>
                                     </Avatar>
                                 )}
@@ -135,6 +141,7 @@ export default function MessagesPage() {
                         {isLoading && (
                              <div className="flex items-end gap-2 justify-start">
                                  <Avatar className="h-8 w-8">
+                                    <AvatarImage src={assistantAvatar} alt={assistantName} />
                                     <AvatarFallback className="bg-primary text-primary-foreground"><Bot /></AvatarFallback>
                                 </Avatar>
                                 <div className="bg-card text-card-foreground border rounded-2xl rounded-bl-none px-4 py-3">

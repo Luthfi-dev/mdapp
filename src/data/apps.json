@@ -55,7 +55,7 @@
     "title": "Stopwatch",
     "description": "Ukur waktu dengan presisi hingga milidetik dan catat putaran (laps).",
     "href": "/stopwatch",
-    "icon": "Clock",
+    "icon": "Timer",
     "isPopular": false,
     "isNew": false,
     "order": 5

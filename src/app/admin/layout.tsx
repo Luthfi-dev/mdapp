@@ -1,6 +1,6 @@
 'use client';
 
-import { SidebarProvider, Sidebar, SidebarTrigger, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarInset } from '@/components/ui/sidebar';
+import { SidebarProvider, Sidebar, SidebarTrigger, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarInset, useSidebar } from '@/components/ui/sidebar';
 import { LayoutDashboard, Settings, Bot, LogOut, AppWindow } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -11,6 +11,11 @@ export default function AdminLayout({
   children: React.ReactNode;
 }>) {
   const pathname = usePathname();
+  const { setOpenMobile } = useSidebar();
+
+  const handleLinkClick = () => {
+    setOpenMobile(false);
+  };
 
   return (
     <SidebarProvider>
@@ -27,7 +32,7 @@ export default function AdminLayout({
           <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton asChild isActive={pathname === '/admin'}>
-                <Link href="/admin">
+                <Link href="/admin" onClick={handleLinkClick}>
                   <LayoutDashboard />
                   Dashboard
                 </Link>
@@ -35,7 +40,7 @@ export default function AdminLayout({
             </SidebarMenuItem>
             <SidebarMenuItem>
               <SidebarMenuButton asChild isActive={pathname.startsWith('/admin/apps')}>
-                <Link href="/admin/apps">
+                <Link href="/admin/apps" onClick={handleLinkClick}>
                   <AppWindow />
                   Kelola Aplikasi
                 </Link>
@@ -43,7 +48,7 @@ export default function AdminLayout({
             </SidebarMenuItem>
              <SidebarMenuItem>
               <SidebarMenuButton asChild isActive={pathname.startsWith('/admin/assistant')}>
-                <Link href="/admin/assistant">
+                <Link href="/admin/assistant" onClick={handleLinkClick}>
                   <Bot />
                   Asisten AI
                 </Link>
@@ -51,7 +56,7 @@ export default function AdminLayout({
             </SidebarMenuItem>
             <SidebarMenuItem>
               <SidebarMenuButton asChild isActive={pathname.startsWith('/admin/seo')}>
-                <Link href="/admin/seo">
+                <Link href="/admin/seo" onClick={handleLinkClick}>
                   <Settings />
                   Pengaturan SEO
                 </Link>
@@ -59,7 +64,7 @@ export default function AdminLayout({
             </SidebarMenuItem>
              <SidebarMenuItem>
               <SidebarMenuButton asChild>
-                <Link href="/">
+                <Link href="/" onClick={handleLinkClick}>
                   <LogOut />
                   Exit Admin
                 </Link>
@@ -69,8 +74,8 @@ export default function AdminLayout({
         </SidebarContent>
       </Sidebar>
       <SidebarInset>
-        <header className="flex items-center justify-between p-4 border-b">
-           <SidebarTrigger />
+        <header className="flex items-center justify-between p-4 border-b bg-card md:bg-transparent">
+           <SidebarTrigger className="md:hidden" />
            <h1 className="text-xl font-semibold">Admin Dashboard</h1>
         </header>
         <main className="p-4 bg-secondary/40 flex-1">
