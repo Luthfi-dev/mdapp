@@ -56,7 +56,7 @@ const RewardItem = React.memo(({ dayIndex, state, onClaimWithPosition }: { dayIn
             +50
           </p>
           <p className={cn("text-xs font-semibold", isClaimed ? "text-green-500" : "text-muted-foreground")}>
-            Poin
+            Coin
           </p>
         </div>
       </div>
@@ -86,7 +86,7 @@ export function DailyRewardDialog({ isOpen, onOpenChange, claimState, onClaim, o
           </div>
           <DialogTitle className="text-2xl font-bold">Hadiah Harian</DialogTitle>
           <DialogDescription>
-            Klaim hadiah setiap hari untuk mendapatkan poin!
+            Klaim hadiah setiap hari untuk mendapatkan Coin!
           </DialogDescription>
         </DialogHeader>
         <div className="grid grid-cols-4 gap-3 py-4">

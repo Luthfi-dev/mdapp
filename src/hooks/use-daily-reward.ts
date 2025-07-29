@@ -78,7 +78,7 @@ export function useDailyReward() {
             toast({
                 variant: 'destructive',
                 title: 'Gagal Menyimpan',
-                description: 'Tidak dapat menyimpan progres klaim Anda.'
+                description: 'Tidak dapat menyimpan progres klaim Coin Anda.'
             });
              resolve(false);
         }

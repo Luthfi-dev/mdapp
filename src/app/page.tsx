@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
-import { ArrowRight, BrainCircuit, Edit, FileText, Grid3x3, Moon, Search, Sun, Gift, Star } from "lucide-react";
+import { ArrowRight, BrainCircuit, Edit, FileText, Grid3x3, Moon, Search, Sun, Gift, Star, Info } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import Autoplay from "embla-carousel-autoplay"
 import React from "react";
@@ -16,6 +16,7 @@ import { useDailyReward } from "@/hooks/use-daily-reward";
 import { DailyRewardDialog } from "@/components/DailyRewardDialog";
 import { CountUp } from "@/components/CountUp";
 import BottomNavBar from "@/components/BottomNavBar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 const CategoryCard = ({ icon, label, href }: { icon: React.ReactNode, label: string, href: string }) => (
   <Link href={href} className="flex flex-col items-center gap-2 flex-shrink-0 w-20 text-center">
@@ -147,14 +148,37 @@ export default function HomePage() {
           </div>
           <div className="bg-primary-foreground/20 backdrop-blur-sm p-3 rounded-2xl flex justify-between items-center">
               <div>
-                  <p className="text-sm opacity-80">Poin Anda</p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm opacity-80">Coin Anda</p>
+                     <Popover>
+                        <PopoverTrigger asChild>
+                           <Info className="w-4 h-4 cursor-pointer opacity-80 hover:opacity-100"/>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-80">
+                            <div className="grid gap-4">
+                            <div className="space-y-2">
+                                <h4 className="font-medium leading-none">Apa itu Coin?</h4>
+                                <p className="text-sm text-muted-foreground">
+                                Coin adalah mata uang virtual di aplikasi ini. Anda bisa mendapatkannya secara gratis dengan check-in harian.
+                                </p>
+                            </div>
+                            <div className="space-y-2">
+                                <h4 className="font-medium leading-none">Untuk apa Coin digunakan?</h4>
+                                <p className="text-sm text-muted-foreground">
+                                Beberapa fitur canggih atau premium di aplikasi ini mungkin memerlukan sejumlah Coin untuk sekali pakai. Namun, sebagian besar alat tetap gratis digunakan tanpa batas!
+                                </p>
+                            </div>
+                            </div>
+                        </PopoverContent>
+                    </Popover>
+                  </div>
                   <div className="text-2xl font-bold">
                     <CountUp end={points} />
                   </div>
               </div>
               <Button variant="secondary" className="bg-white/90 hover:bg-white text-primary rounded-full font-bold" onClick={() => onOpenChange(true) }>
                   <Gift className="mr-2 h-4 w-4"/>
-                  Klaim Poin
+                  Klaim Coin
               </Button>
           </div>
         </header>
