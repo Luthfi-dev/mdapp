@@ -35,7 +35,7 @@ const DailyQuizCard = () => (
                 <p className="text-sm opacity-90 mt-1 max-w-[150px]">Asah kemampuanmu dengan kuis interaktif</p>
             </div>
             <div className="absolute bottom-4 right-4 w-16 h-16 rounded-full bg-white/20 flex items-center justify-center z-0">
-                 <BrainCircuit className="text-primary w-8 h-8"/>
+                 <BrainCircuit className="text-primary-foreground w-8 h-8"/>
             </div>
         </CardContent>
     </Card>
@@ -49,7 +49,7 @@ const LatihanSoalCard = () => (
                 <p className="text-sm opacity-90 mt-1 max-w-[150px]">Perbanyak latihan untuk persiapan ujian.</p>
             </div>
              <div className="absolute bottom-4 right-4 w-16 h-16 rounded-full bg-white/20 flex items-center justify-center z-0">
-                 <Edit className="text-primary w-8 h-8"/>
+                 <Edit className="text-primary-foreground w-8 h-8"/>
             </div>
         </CardContent>
     </Card>
@@ -278,3 +278,5 @@ export default function HomePage() {
     </>
   );
 }
+
+    
