@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview A simple chat flow for an AI assistant.
@@ -109,7 +110,7 @@ const chatFlow = ai.defineFlow(
       },
     });
 
-    const toolCall = response.toolCalls()?.[0];
+    const toolCall = response.toolCalls?.[0];
     if (toolCall?.name === 'findRelevantApp') {
         return {
             role: 'model',
