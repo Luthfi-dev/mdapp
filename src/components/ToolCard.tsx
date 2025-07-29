@@ -17,8 +17,8 @@ interface ToolCardProps {
 export function ToolCard({ href, icon, title, description, isFavorited, onFavoriteToggle }: ToolCardProps) {
 
   const handleFavoriteClick = (e: React.MouseEvent) => {
-    e.preventDefault(); // Prevent link navigation
-    e.stopPropagation(); // Stop event bubbling
+    e.preventDefault(); // Mencegah navigasi link
+    e.stopPropagation(); // Menghentikan event bubbling
     if (onFavoriteToggle) {
       onFavoriteToggle();
     }
@@ -36,6 +36,7 @@ export function ToolCard({ href, icon, title, description, isFavorited, onFavori
                 <div className="text-primary group-hover:text-primary transition-colors duration-300">
                     {icon}
                 </div>
+                {/* Tombol bintang akan muncul jika onFavoriteToggle disediakan */}
                 {onFavoriteToggle && (
                   <Button variant="ghost" size="icon" onClick={handleFavoriteClick} className="rounded-full h-8 w-8 z-10 -mr-2 -mt-2">
                       <Star className={cn("w-5 h-5 text-muted-foreground transition-colors", isFavorited && "text-yellow-400 fill-yellow-400")} />
