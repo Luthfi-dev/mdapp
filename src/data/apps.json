@@ -64,7 +64,7 @@
     "id": "app_all_apps",
     "title": "Semua App",
     "description": "Jelajahi semua alat produktivitas yang tersedia dalam satu tempat.",
-    "href": "/apps",
+    "href": "/explore",
     "icon": "Grid3x3",
     "isPopular": false,
     "isNew": false,

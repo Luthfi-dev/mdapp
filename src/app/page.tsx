@@ -121,7 +121,7 @@ export default function HomePage() {
 
    useEffect(() => {
         // In a real app, you'd fetch this. Here we filter from the imported JSON.
-        const features = appsData.filter(app => ['/converter', '/scanner', '/apps'].includes(app.href));
+        const features = appsData.filter(app => ['/converter', '/scanner', '/explore'].includes(app.href));
         setMainFeatures(features);
         setIsLoading(false);
     }, []);
