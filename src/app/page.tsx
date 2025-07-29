@@ -13,7 +13,6 @@ import { cn } from "@/lib/utils";
 import { useDailyReward } from "@/hooks/use-daily-reward";
 import { DailyRewardDialog } from "@/components/DailyRewardDialog";
 import { CountUp } from "@/components/CountUp";
-import BottomNavBar from "@/components/BottomNavBar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import type { AppDefinition } from "@/app/admin/apps/page";
 import * as LucideIcons from 'lucide-react';
@@ -302,7 +301,6 @@ export default function HomePage() {
           </div>
         </main>
       </div>
-      <BottomNavBar />
     </>
   );
 }

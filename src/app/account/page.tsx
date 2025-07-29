@@ -44,8 +44,8 @@ export default function AccountPage() {
                    <div className="flex items-center gap-2">
                      {/* Checkbox can be added here */}
                   </div>
-                  <Link href="#" className="font-medium text-primary hover:underline">
-                    Lupa kata sandi?
+                  <Link href="/login" className="font-medium text-primary hover:underline">
+                    Login sebagai Admin?
                   </Link>
                 </div>
               )}

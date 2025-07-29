@@ -16,11 +16,16 @@ const navItems = [
 const BottomNavBar = () => {
   const pathname = usePathname();
 
+  // Do not render if on admin pages
+  if (pathname.startsWith('/admin') || pathname === '/login') {
+    return null;
+  }
+
   return (
     <div className="fixed bottom-0 left-0 right-0 h-20 bg-card z-50 shadow-[0_-8px_32px_0_rgba(0,0,0,0.05)] border-t">
       <div className="flex justify-around items-center h-full">
           {navItems.map(({ href, label, icon: Icon }) => {
-             const isActive = (pathname === '/' && href === '/') || (pathname.startsWith(href) && href !== '/');
+             const isActive = (pathname === href) || (href !== '/' && pathname.startsWith(href));
 
             return (
               <Link key={label} href={href} className="flex flex-col items-center justify-center w-full h-full transition-colors duration-300">

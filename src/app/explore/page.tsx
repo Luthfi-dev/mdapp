@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, type ReactNode } from 'react';
@@ -100,7 +99,7 @@ export default function ExplorePage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-8 pb-24">
        <div className="max-w-4xl mx-auto">
         <div className="text-center mb-10">
           <h1 className="text-4xl font-bold font-headline tracking-tight">Semua Aplikasi</h1>
@@ -121,7 +120,7 @@ export default function ExplorePage() {
         </div>
 
         {filteredApps.length > 0 ? (
-            <div className="pb-24">
+            <div>
               {renderAppGrid(favorited, "Aplikasi Favorit", <Star className="text-yellow-400" />)}
               {renderAppGrid(popular, "Populer", <Flame className="text-orange-500" />)}
               {renderAppGrid(others, "Alat Lainnya")}

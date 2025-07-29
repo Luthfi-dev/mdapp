@@ -4,6 +4,7 @@ import './globals.css';
 import { cn } from "@/lib/utils"
 import { Toaster } from "@/components/ui/toaster"
 import { ThemeProvider } from '@/components/ThemeProvider';
+import { AppLayout } from '@/components/AppLayout';
 
 export const metadata: Metadata = {
   title: {
@@ -97,7 +98,7 @@ export default function RootLayout({
             enableSystem
             disableTransitionOnChange
         >
-          {children}
+          <AppLayout>{children}</AppLayout>
           <Toaster />
         </ThemeProvider>
       </body>
