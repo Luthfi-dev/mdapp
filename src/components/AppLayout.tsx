@@ -6,7 +6,6 @@ import { usePathname } from 'next/navigation';
 import React, { useEffect, useState } from 'react';
 import { MobileLayout } from './MobileLayout';
 import { DesktopLayout } from './DesktopLayout';
-import { admin } from 'googleapis/build/src/apis/admin';
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const isMobile = useIsMobile();
@@ -17,7 +16,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     setIsClient(true);
   }, []);
 
-  if (pathname.startsWith('/admin') || pathname === '/login') {
+  // Exclude AppLayout wrapper for these specific pages
+  if (pathname.startsWith('/admin') || pathname === '/login' || pathname === '/messages') {
     return <>{children}</>;
   }
   

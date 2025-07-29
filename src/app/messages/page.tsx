@@ -3,13 +3,15 @@
 import { useState, useRef, useEffect, FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Send, Bot, User, Loader2, ArrowRight } from "lucide-react";
+import { Send, Bot, User, Loader2, ArrowRight, ArrowLeft } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { chat, ChatMessage, AppSuggestion } from "@/ai/flows/chat";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
+import { useRouter } from 'next/navigation';
+import { useIsMobile } from "@/hooks/use-mobile";
 
 // Simulate fetching settings
 import assistantData from '@/data/assistant.json';
@@ -43,6 +45,8 @@ export default function MessagesPage() {
     const [isLoading, setIsLoading] = useState(false);
     const [assistantName, setAssistantName] = useState('Assistant');
     const viewportRef = useRef<HTMLDivElement>(null);
+    const router = useRouter();
+    const isMobile = useIsMobile();
 
     useEffect(() => {
         // Load assistant settings
@@ -88,8 +92,13 @@ export default function MessagesPage() {
     };
 
     return (
-        <div className="flex flex-col h-[calc(100vh-80px)] bg-background">
-             <CardHeader className="flex flex-row items-center gap-3 border-b bg-background z-10 shrink-0">
+        <div className="flex flex-col h-screen bg-background">
+             <CardHeader className="flex flex-row items-center gap-3 border-b bg-card z-10 shrink-0">
+                 {isMobile && (
+                    <Button variant="ghost" size="icon" onClick={() => router.push('/')}>
+                        <ArrowLeft />
+                    </Button>
+                 )}
                  <Avatar>
                     <AvatarFallback className="bg-primary text-primary-foreground"><Bot /></AvatarFallback>
                 </Avatar>
@@ -136,7 +145,7 @@ export default function MessagesPage() {
                     </div>
                 </ScrollArea>
             </div>
-            <CardFooter className="p-4 border-t bg-background shrink-0">
+            <div className="p-4 border-t bg-card shrink-0">
                 <form onSubmit={handleSubmit} className="flex w-full items-center gap-2">
                     <Input
                         value={input}
@@ -149,7 +158,7 @@ export default function MessagesPage() {
                         <Send className="h-5 w-5" />
                     </Button>
                 </form>
-            </CardFooter>
+            </div>
         </div>
     );
 }
