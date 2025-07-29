@@ -28,28 +28,28 @@ const CategoryCard = ({ icon, label, href }: { icon: React.ReactNode, label: str
 )
 
 const DailyQuizCard = () => (
-    <Card className="w-full h-full bg-gradient-to-br from-primary to-blue-700 text-white shadow-lg rounded-2xl overflow-hidden">
+    <Card className="w-full h-full bg-gradient-to-br from-primary/80 via-primary to-accent text-primary-foreground shadow-lg rounded-2xl overflow-hidden">
         <CardContent className="p-5 flex flex-col justify-between h-full relative">
             <div className="z-10">
                 <h3 className="text-lg font-bold">Kuis Harian</h3>
                 <p className="text-sm opacity-90 mt-1 max-w-[150px]">Asah kemampuanmu dengan kuis interaktif</p>
             </div>
             <div className="absolute bottom-4 right-4 w-16 h-16 rounded-full bg-white/20 flex items-center justify-center z-0">
-                 <BrainCircuit className="text-white w-8 h-8"/>
+                 <BrainCircuit className="text-primary w-8 h-8"/>
             </div>
         </CardContent>
     </Card>
 );
 
 const LatihanSoalCard = () => (
-    <Card className="w-full h-full bg-gradient-to-br from-primary to-blue-700 text-white shadow-lg rounded-2xl overflow-hidden">
+    <Card className="w-full h-full bg-gradient-to-br from-primary/80 via-primary to-accent text-primary-foreground shadow-lg rounded-2xl overflow-hidden">
         <CardContent className="p-5 flex flex-col justify-between h-full relative">
              <div className="z-10">
                 <h3 className="text-lg font-bold">Latihan Soal</h3>
                 <p className="text-sm opacity-90 mt-1 max-w-[150px]">Perbanyak latihan untuk persiapan ujian.</p>
             </div>
              <div className="absolute bottom-4 right-4 w-16 h-16 rounded-full bg-white/20 flex items-center justify-center z-0">
-                 <Edit className="text-white w-8 h-8"/>
+                 <Edit className="text-primary w-8 h-8"/>
             </div>
         </CardContent>
     </Card>
