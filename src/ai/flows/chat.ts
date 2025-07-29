@@ -41,10 +41,9 @@ const findRelevantApp = ai.defineTool(
         inputSchema: z.object({
             query: z.string().describe('A summary of the user\'s problem or what they are trying to do.'),
         }),
-        outputSchema: AppSuggestionSchema,
+        outputSchema: z.union([AppSuggestionSchema, z.null()]),
     },
     async (input) => {
-        // In a real app, this could be a more sophisticated search (e.g., vector search)
         const query = input.query.toLowerCase();
         const relevantApp = apps.find(app => 
             app.title.toLowerCase().includes(query) || 
@@ -61,7 +60,8 @@ const findRelevantApp = ai.defineTool(
             };
         }
         
-        throw new Error('No relevant app found for the query.');
+        // Return null if no app is found instead of throwing an error.
+        return null;
     }
 );
 
@@ -111,7 +111,8 @@ const chatFlow = ai.defineFlow(
     });
 
     const toolCall = response.toolCalls?.[0];
-    if (toolCall?.name === 'findRelevantApp') {
+    // Check if the tool was called and if its output is not null
+    if (toolCall?.name === 'findRelevantApp' && toolCall.output) {
         return {
             role: 'model',
             content: toolCall.output as AppSuggestion,
