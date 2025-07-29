@@ -28,7 +28,7 @@ const CategoryCard = ({ icon, label, href }: { icon: React.ReactNode, label: str
 )
 
 const DailyQuizCard = () => (
-    <Card className="w-full h-full bg-gradient-to-br from-primary/80 via-primary to-accent text-primary-foreground shadow-lg rounded-2xl overflow-hidden">
+    <Card className="w-full h-full bg-primary text-primary-foreground shadow-lg rounded-2xl overflow-hidden">
         <CardContent className="p-5 flex flex-col justify-between h-full relative">
             <div className="z-10">
                 <h3 className="text-lg font-bold">Kuis Harian</h3>
@@ -42,7 +42,7 @@ const DailyQuizCard = () => (
 );
 
 const LatihanSoalCard = () => (
-    <Card className="w-full h-full bg-gradient-to-br from-primary/80 via-primary to-accent text-primary-foreground shadow-lg rounded-2xl overflow-hidden">
+    <Card className="w-full h-full bg-primary text-primary-foreground shadow-lg rounded-2xl overflow-hidden">
         <CardContent className="p-5 flex flex-col justify-between h-full relative">
              <div className="z-10">
                 <h3 className="text-lg font-bold">Latihan Soal</h3>
