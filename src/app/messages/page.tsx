@@ -1,3 +1,4 @@
+
 'use client';
 import { useState, useRef, useEffect, FormEvent } from "react";
 import { Button } from "@/components/ui/button";
@@ -38,7 +39,7 @@ const renderContent = (content: string | AppSuggestion) => {
 
 export default function MessagesPage() {
     const [messages, setMessages] = useState<ChatMessage[]>([]);
-    const [input, setInput = useState('');
+    const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [assistantName, setAssistantName] = useState('Assistant');
     const viewportRef = useRef<HTMLDivElement>(null);
