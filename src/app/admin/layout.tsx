@@ -1,8 +1,7 @@
-
 'use client';
 
 import { SidebarProvider, Sidebar, SidebarTrigger, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarInset } from '@/components/ui/sidebar';
-import { LayoutDashboard, Settings, LogOut } from 'lucide-react';
+import { LayoutDashboard, Settings, Bot, LogOut, AppWindow } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
@@ -35,10 +34,26 @@ export default function AdminLayout({
               </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
+              <SidebarMenuButton asChild isActive={pathname.startsWith('/admin/apps')}>
+                <Link href="/admin/apps">
+                  <AppWindow />
+                  Kelola Aplikasi
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+             <SidebarMenuItem>
+              <SidebarMenuButton asChild isActive={pathname.startsWith('/admin/assistant')}>
+                <Link href="/admin/assistant">
+                  <Bot />
+                  Asisten AI
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
               <SidebarMenuButton asChild isActive={pathname.startsWith('/admin/seo')}>
                 <Link href="/admin/seo">
                   <Settings />
-                  SEO Settings
+                  Pengaturan SEO
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>

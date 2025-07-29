@@ -1,35 +1,100 @@
-
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, type ReactNode } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Search, FileText, BookOpen, ScanLine, Calculator, Palette, Clock, type LucideIcon } from 'lucide-react';
+import { Search, Loader2, Star, Flame } from 'lucide-react';
 import { ToolCard } from '@/components/ToolCard';
+import type { AppDefinition } from '@/app/admin/apps/page';
+import * as LucideIcons from 'lucide-react';
 
-interface App {
-  title: string;
-  description: string;
-  href: string;
-  icon: LucideIcon;
-}
+// Simulate fetching data
+import appsData from '@/data/apps.json';
 
-const allApps: App[] = [
-  { title: 'Konversi File', description: 'Ubah format file dengan mudah', href: '/converter', icon: FileText },
-  { title: 'Konversi Unit', description: 'Konversi berbagai satuan', href: '/unit-converter', icon: BookOpen },
-  { title: 'Scanner', description: 'Pindai QR dan Barcode', href: '/scanner', icon: ScanLine },
-  { title: 'Kalkulator', description: 'Hitung dengan cepat & akurat', href: '/calculator', icon: Calculator },
-  { title: 'Generator Warna', description: 'Buat palet warna harmonis', href: '/color-generator', icon: Palette },
-  { title: 'Stopwatch', description: 'Ukur waktu dengan presisi', href: '/stopwatch', icon: Clock },
-];
+const BROWSER_STORAGE_KEY_FAVORITES = 'favorite_apps';
+
+const getIcon = (iconName: string): ReactNode => {
+    const IconComponent = (LucideIcons as any)[iconName];
+    if (IconComponent) {
+        return <IconComponent className="w-8 h-8 text-primary" />;
+    }
+    return <LucideIcons.Package className="w-8 h-8 text-primary" />; // Fallback icon
+};
 
 export default function AllAppsPage() {
   const [searchTerm, setSearchTerm] = useState('');
+  const [allApps, setAllApps] = useState<AppDefinition[]>([]);
+  const [favoriteApps, setFavoriteApps] = useState<string[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    // Simulate API fetch and load favorites from localStorage
+    const sortedApps = [...appsData].sort((a, b) => a.order - b.order);
+    setAllApps(sortedApps);
+
+    try {
+        const storedFavorites = window.localStorage.getItem(BROWSER_STORAGE_KEY_FAVORITES);
+        if (storedFavorites) {
+            setFavoriteApps(JSON.parse(storedFavorites));
+        }
+    } catch (error) {
+        console.error("Failed to load favorite apps from localStorage", error);
+    }
+
+    setIsLoading(false);
+  }, []);
+
+  const toggleFavorite = (appId: string) => {
+    const newFavorites = favoriteApps.includes(appId)
+      ? favoriteApps.filter(id => id !== appId)
+      : [...favoriteApps, appId];
+    
+    setFavoriteApps(newFavorites);
+    try {
+        window.localStorage.setItem(BROWSER_STORAGE_KEY_FAVORITES, JSON.stringify(newFavorites));
+    } catch (error) {
+        console.error("Failed to save favorite apps to localStorage", error);
+    }
+  };
 
   const filteredApps = allApps.filter(app =>
     app.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
     app.description.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const favorited = filteredApps.filter(app => favoriteApps.includes(app.id));
+  const popular = filteredApps.filter(app => app.isPopular && !favoriteApps.includes(app.id));
+  const others = filteredApps.filter(app => !favoriteApps.includes(app.id) && !app.isPopular);
+
+  const renderAppGrid = (apps: AppDefinition[], title: string, icon?: ReactNode) => {
+    if (apps.length === 0) return null;
+    return (
+      <section className="mb-12">
+        <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">{icon}{title}</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+          {apps.map((app) => (
+            <ToolCard
+              key={app.id}
+              href={app.href}
+              icon={getIcon(app.icon)}
+              title={app.title}
+              description={app.description}
+              isFavorited={favoriteApps.includes(app.id)}
+              onFavoriteToggle={() => toggleFavorite(app.id)}
+            />
+          ))}
+        </div>
+      </section>
+    );
+  };
+
+  if (isLoading) {
+    return (
+        <div className="flex justify-center items-center h-screen">
+            <Loader2 className="w-12 h-12 animate-spin text-primary" />
+        </div>
+    )
+  }
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -53,20 +118,14 @@ export default function AllAppsPage() {
         </div>
 
         {filteredApps.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 pb-24">
-              {filteredApps.map((app) => (
-                <ToolCard
-                  key={app.title}
-                  href={app.href}
-                  icon={<app.icon className="w-8 h-8 text-muted-foreground" />}
-                  title={app.title}
-                  description={app.description}
-                />
-              ))}
+            <div className="pb-24">
+              {renderAppGrid(favorited, "Aplikasi Bintang", <Star className="text-yellow-400" />)}
+              {renderAppGrid(popular, "Populer", <Flame className="text-orange-500" />)}
+              {renderAppGrid(others, "Alat Lainnya")}
             </div>
         ) : (
             <div className="text-center py-16">
-              <p className="text-muted-foreground">Aplikasi tidak ditemukan.</p>
+              <p className="text-muted-foreground">Aplikasi tidak ditemukan untuk "{searchTerm}".</p>
             </div>
         )}
        </div>

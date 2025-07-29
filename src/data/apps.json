@@ -1,0 +1,73 @@
+
+[
+  {
+    "id": "app_converter",
+    "title": "Konversi File",
+    "description": "Ubah format file dengan mudah, dari PDF ke Word, gambar ke PDF, dan lainnya.",
+    "href": "/converter",
+    "icon": "FileText",
+    "isPopular": true,
+    "isNew": false,
+    "order": 0
+  },
+  {
+    "id": "app_unit_converter",
+    "title": "Konversi Unit",
+    "description": "Konversi berbagai satuan ukuran seperti panjang, berat, dan suhu secara instan.",
+    "href": "/unit-converter",
+    "icon": "BookOpen",
+    "isPopular": false,
+    "isNew": false,
+    "order": 2
+  },
+  {
+    "id": "app_scanner",
+    "title": "Scanner",
+    "description": "Pindai QR code atau barcode dengan cepat menggunakan kamera perangkat Anda.",
+    "href": "/scanner",
+    "icon": "ScanLine",
+    "isPopular": true,
+    "isNew": false,
+    "order": 1
+  },
+  {
+    "id": "app_calculator",
+    "title": "Kalkulator",
+    "description": "Hitung dengan cepat dan akurat, tersedia mode standar dan ilmiah.",
+    "href": "/calculator",
+    "icon": "Calculator",
+    "isPopular": true,
+    "isNew": false,
+    "order": 3
+  },
+  {
+    "id": "app_color_generator",
+    "title": "Generator Warna",
+    "description": "Buat palet warna yang harmonis untuk proyek desain Anda berikutnya.",
+    "href": "/color-generator",
+    "icon": "Palette",
+    "isPopular": false,
+    "isNew": true,
+    "order": 4
+  },
+  {
+    "id": "app_stopwatch",
+    "title": "Stopwatch",
+    "description": "Ukur waktu dengan presisi hingga milidetik dan catat putaran (laps).",
+    "href": "/stopwatch",
+    "icon": "Clock",
+    "isPopular": false,
+    "isNew": false,
+    "order": 5
+  },
+   {
+    "id": "app_all_apps",
+    "title": "Semua App",
+    "description": "Jelajahi semua alat produktivitas yang tersedia dalam satu tempat.",
+    "href": "/apps",
+    "icon": "Grid3x3",
+    "isPopular": false,
+    "isNew": false,
+    "order": 6
+  }
+]

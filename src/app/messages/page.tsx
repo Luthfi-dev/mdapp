@@ -1,20 +1,52 @@
-
 'use client';
 import { useState, useRef, useEffect, FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Send, Bot, User, Loader2 } from "lucide-react";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Send, Bot, User, Loader2, ArrowRight } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { chat, ChatMessage } from "@/ai/flows/chat";
+import { chat, ChatMessage, AppSuggestion } from "@/ai/flows/chat";
 import { cn } from "@/lib/utils";
+import Link from "next/link";
+
+// Simulate fetching settings
+import assistantData from '@/data/assistant.json';
+
+const renderContent = (content: string | AppSuggestion) => {
+    if (typeof content === 'string') {
+        return <p>{content}</p>;
+    }
+
+    // It's an AppSuggestion
+    return (
+        <div className="space-y-3">
+            <p>{content.introText}</p>
+            <div className="p-3 rounded-lg border bg-background/50">
+                <h4 className="font-bold">{content.title}</h4>
+                <p className="text-sm mt-1">{content.description}</p>
+                <Button asChild size="sm" className="mt-3">
+                    <Link href={content.href}>
+                        {content.buttonText} <ArrowRight className="ml-2 h-4 w-4" />
+                    </Link>
+                </Button>
+            </div>
+        </div>
+    );
+};
+
 
 export default function MessagesPage() {
     const [messages, setMessages] = useState<ChatMessage[]>([]);
-    const [input, setInput] = useState('');
+    const [input, setInput = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [assistantName, setAssistantName] = useState('Assistant');
     const viewportRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        // Load assistant settings
+        setAssistantName(assistantData.name);
+    }, []);
 
     const scrollToBottom = () => {
         if (viewportRef.current) {
@@ -55,17 +87,17 @@ export default function MessagesPage() {
     };
 
     return (
-        <Card className="flex flex-col h-[calc(100vh-80px)] bg-background rounded-none border-0">
+        <div className="flex flex-col h-[calc(100vh-80px)] bg-background">
              <CardHeader className="flex flex-row items-center gap-3 border-b bg-background z-10 shrink-0">
                  <Avatar>
                     <AvatarFallback className="bg-primary text-primary-foreground"><Bot /></AvatarFallback>
                 </Avatar>
                 <div>
-                    <CardTitle className="font-bold text-lg">Assisten Maudigi</CardTitle>
+                    <CardTitle className="font-bold text-lg">{assistantName}</CardTitle>
                     <p className="text-sm text-muted-foreground">Online</p>
                 </div>
             </CardHeader>
-            <CardContent className="flex-grow p-0 overflow-hidden">
+            <div className="flex-grow p-0 overflow-hidden">
                 <ScrollArea className="h-full" viewportRef={viewportRef}>
                     <div className="space-y-6 p-4">
                         {messages.map((message, index) => (
@@ -81,7 +113,7 @@ export default function MessagesPage() {
                                         ? "bg-primary text-primary-foreground rounded-br-none"
                                         : "bg-card text-card-foreground border rounded-bl-none"
                                 )}>
-                                    <p>{message.content}</p>
+                                    {renderContent(message.content)}
                                 </div>
                                  {message.role === 'user' && (
                                     <Avatar className="h-8 w-8">
@@ -102,7 +134,7 @@ export default function MessagesPage() {
                         )}
                     </div>
                 </ScrollArea>
-            </CardContent>
+            </div>
             <CardFooter className="p-4 border-t bg-background shrink-0">
                 <form onSubmit={handleSubmit} className="flex w-full items-center gap-2">
                     <Input
@@ -117,6 +149,6 @@ export default function MessagesPage() {
                     </Button>
                 </form>
             </CardFooter>
-        </Card>
+        </div>
     );
 }

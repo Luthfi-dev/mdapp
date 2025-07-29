@@ -1,14 +1,12 @@
-
 'use client';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
-import { ArrowRight, BrainCircuit, Edit, FileText, Grid3x3, Moon, Search, Sun, Gift, Star, Info } from "lucide-react";
+import { ArrowRight, BrainCircuit, Edit, Grid3x3, Moon, Search, Sun, Gift, Star, Info, Package, FileText, ScanLine, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import Autoplay from "embla-carousel-autoplay"
-import React from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
-import { ScanLine } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
@@ -17,6 +15,20 @@ import { DailyRewardDialog } from "@/components/DailyRewardDialog";
 import { CountUp } from "@/components/CountUp";
 import BottomNavBar from "@/components/BottomNavBar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import type { AppDefinition } from "@/app/admin/apps/page";
+import * as LucideIcons from 'lucide-react';
+
+
+// Simulate fetching data
+import appsData from '@/data/apps.json';
+
+const getIcon = (iconName: string): React.ReactNode => {
+    const IconComponent = (LucideIcons as any)[iconName];
+    if (IconComponent) {
+        return <IconComponent className="text-primary" />;
+    }
+    return <Package className="text-primary" />; // Fallback icon
+};
 
 const CategoryCard = ({ icon, label, href }: { icon: React.ReactNode, label: string, href: string }) => (
   <Link href={href} className="flex flex-col items-center gap-2 flex-shrink-0 w-20 text-center">
@@ -103,6 +115,16 @@ export default function HomePage() {
    
    const [flyingPointsVisible, setFlyingPointsVisible] = React.useState(false);
    const [startRect, setStartRect] = React.useState<DOMRect | null>(null);
+
+   const [mainFeatures, setMainFeatures] = useState<AppDefinition[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+
+   useEffect(() => {
+        // In a real app, you'd fetch this. Here we filter from the imported JSON.
+        const features = appsData.filter(app => ['/converter', '/scanner', '/apps'].includes(app.href));
+        setMainFeatures(features);
+        setIsLoading(false);
+    }, []);
 
    const handleClaimWithPosition = async (dayIndex: number, element: HTMLElement) => {
      const rect = element.getBoundingClientRect();
@@ -197,9 +219,15 @@ export default function HomePage() {
 
           <section id="features" className="mb-8 px-6">
               <div className="flex justify-around items-start bg-card p-2 rounded-2xl shadow-md">
-                  <CategoryCard href="/converter" icon={<FileText className="text-primary" />} label="Konversi File" />
-                  <CategoryCard href="/scanner" icon={<ScanLine className="text-primary" />} label="Scanner" />
-                  <CategoryCard href="/apps" icon={<Grid3x3 className="text-primary" />} label="Semua App" />
+                {isLoading ? (
+                    <div className="flex justify-center items-center h-20 w-full">
+                        <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                    </div>
+                ) : (
+                    mainFeatures.map(feature => (
+                        <CategoryCard key={feature.id} href={feature.href} icon={getIcon(feature.icon)} label={feature.title} />
+                    ))
+                )}
               </div>
           </section>
 
@@ -278,5 +306,3 @@ export default function HomePage() {
     </>
   );
 }
-
-    
