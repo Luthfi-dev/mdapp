@@ -6,7 +6,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { 
     FileSignature, Plus, Trash2, Pilcrow, Share2, UploadCloud, Eye, Image as ImageIcon,
@@ -39,7 +38,7 @@ const initialFields: SuratField[] = [
 ];
 
 const initialTemplate = `Kepada Yth.
-Bapak/Ibu {{nama_lengkap}}
+Bapak/Ibu <b>{{nama_lengkap}}</b>
 di Tempat
 
 Dengan hormat,
@@ -58,7 +57,7 @@ Hormat kami,
 
 
 Manajemen Perusahaan
-{{jabatan}}`;
+<i>{{jabatan}}</i>`;
 
 export default function SuratGeneratorPage() {
     const [fields, setFields] = useState<SuratField[]>(initialFields);
@@ -68,7 +67,7 @@ export default function SuratGeneratorPage() {
     const [letterheadImage, setLetterheadImage] = useState<string | null>(null);
     const [isClient, setIsClient] = useState(false);
     const { toast } = useToast();
-    const editorRef = useRef<HTMLTextAreaElement>(null);
+    const editorRef = useRef<HTMLDivElement>(null);
     const router = useRouter();
 
     useEffect(() => {
@@ -98,16 +97,8 @@ export default function SuratGeneratorPage() {
     const insertPlaceholder = (id: string) => {
         const placeholder = `{{${id}}}`;
         if (editorRef.current) {
-            const start = editorRef.current.selectionStart;
-            const text = editorRef.current.value;
-            const newText = text.substring(0, start) + placeholder + text.substring(start);
-            setTemplate(newText);
-            
-            setTimeout(() => {
-                editorRef.current?.focus();
-                const newCursorPos = start + placeholder.length;
-                editorRef.current?.setSelectionRange(newCursorPos, newCursorPos);
-            }, 0);
+            editorRef.current.focus();
+            document.execCommand('insertText', false, placeholder);
         }
     };
     
@@ -122,7 +113,11 @@ export default function SuratGeneratorPage() {
                     await docx.renderAsync(arrayBuffer, tempDiv);
                     // Remove style tags before extracting text
                     tempDiv.querySelectorAll('style').forEach(styleEl => styleEl.remove());
-                    setTemplate(tempDiv.innerText);
+                    // Use innerHTML to preserve basic formatting like paragraphs and breaks
+                    setTemplate(tempDiv.innerHTML);
+                    if (editorRef.current) {
+                        editorRef.current.innerHTML = tempDiv.innerHTML;
+                    }
                     toast({ title: 'Upload Berhasil', description: 'Template dari file .docx berhasil dimuat.' });
                 }
             };
@@ -147,49 +142,17 @@ export default function SuratGeneratorPage() {
     };
     
     const executeCommand = (command: 'bold' | 'italic' | 'underline' | 'justifyLeft' | 'justifyCenter' | 'justifyRight') => {
-        const editor = editorRef.current;
-        if (!editor) return;
-
-        const start = editor.selectionStart;
-        const end = editor.selectionEnd;
-        const selectedText = editor.value.substring(start, end);
-        let replacement = selectedText;
-
-        switch (command) {
-            case 'bold':
-                replacement = `<b>${selectedText}</b>`;
-                break;
-            case 'italic':
-                replacement = `<i>${selectedText}</i>`;
-                break;
-            case 'underline':
-                replacement = `<u>${selectedText}</u>`;
-                break;
-            case 'justifyLeft':
-                replacement = `<div style="text-align: left;">${selectedText}</div>`;
-                break;
-            case 'justifyCenter':
-                replacement = `<div style="text-align: center;">${selectedText}</div>`;
-                break;
-            case 'justifyRight':
-                replacement = `<div style="text-align: right;">${selectedText}</div>`;
-                break;
+        if (editorRef.current) {
+            editorRef.current.focus();
+            document.execCommand(command, false);
         }
-
-        const newText = editor.value.substring(0, start) + replacement + editor.value.substring(end);
-        setTemplate(newText);
-        
-        setTimeout(() => {
-          editor.focus();
-          editor.setSelectionRange(start, start + replacement.length);
-        }, 0);
     };
 
     const getFullTemplate = () => {
-        let fullTemplate = template;
+        let fullTemplate = editorRef.current?.innerHTML || template;
         if (letterheadImage) {
             const imgTag = `<div style="text-align: center; margin-bottom: 20px;"><img src="${letterheadImage}" alt="Kop Surat" style="max-width: 100%; height: auto;" /></div><hr/>`;
-            fullTemplate = imgTag + '\n' + template;
+            fullTemplate = imgTag + '<br/>' + fullTemplate;
         }
         return fullTemplate;
     }
@@ -242,21 +205,28 @@ export default function SuratGeneratorPage() {
                                 <CardTitle className="flex items-center gap-3">Editor Template</CardTitle>
                                 <CardDescription>Tulis, format, atau unggah template surat Anda.</CardDescription>
                             </div>
-                            <Button variant="ghost" size="icon" onClick={() => setTemplate('')}>
+                             <Button variant="ghost" size="icon" onClick={() => { setTemplate(''); if(editorRef.current) editorRef.current.innerHTML = ''; }}>
                                 <Trash2 className="w-5 h-5 text-destructive" />
                             </Button>
                         </CardHeader>
                         <CardContent>
                              <div className="border rounded-t-md p-2 flex items-center gap-2 bg-secondary/50 flex-wrap">
-                                <Button variant="outline" size="icon" onClick={() => executeCommand('bold')}><Bold /></Button>
-                                <Button variant="outline" size="icon" onClick={() => executeCommand('italic')}><Italic /></Button>
-                                <Button variant="outline" size="icon" onClick={() => executeCommand('underline')}><Underline /></Button>
+                                <Button variant="outline" size="icon" onMouseDown={(e) => { e.preventDefault(); executeCommand('bold'); }}><Bold /></Button>
+                                <Button variant="outline" size="icon" onMouseDown={(e) => { e.preventDefault(); executeCommand('italic'); }}><Italic /></Button>
+                                <Button variant="outline" size="icon" onMouseDown={(e) => { e.preventDefault(); executeCommand('underline'); }}><Underline /></Button>
                                 <div className="border-l h-6 mx-1"></div>
-                                <Button variant="outline" size="icon" onClick={() => executeCommand('justifyLeft')}><AlignLeft /></Button>
-                                <Button variant="outline" size="icon" onClick={() => executeCommand('justifyCenter')}><AlignCenter /></Button>
-                                <Button variant="outline" size="icon" onClick={() => executeCommand('justifyRight')}><AlignRight /></Button>
+                                <Button variant="outline" size="icon" onMouseDown={(e) => { e.preventDefault(); executeCommand('justifyLeft'); }}><AlignLeft /></Button>
+                                <Button variant="outline" size="icon" onMouseDown={(e) => { e.preventDefault(); executeCommand('justifyCenter'); }}><AlignCenter /></Button>
+                                <Button variant="outline" size="icon" onMouseDown={(e) => { e.preventDefault(); executeCommand('justifyRight'); }}><AlignRight /></Button>
                             </div>
-                            <Textarea ref={editorRef} value={template} onChange={(e) => setTemplate(e.target.value)} rows={25} placeholder="Tulis template surat Anda di sini..." className="font-mono text-sm leading-relaxed rounded-t-none focus-visible:ring-1" />
+                            <div
+                                ref={editorRef}
+                                contentEditable={true}
+                                onInput={(e) => setTemplate(e.currentTarget.innerHTML)}
+                                dangerouslySetInnerHTML={{ __html: template }}
+                                className="min-h-[500px] w-full rounded-b-md border border-input bg-background px-3 py-2 text-base ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm whitespace-pre-wrap font-mono"
+                                suppressContentEditableWarning={true}
+                             />
                         </CardContent>
                     </Card>
                 </div>
@@ -323,5 +293,3 @@ export default function SuratGeneratorPage() {
         </div>
     );
 }
-
-    
