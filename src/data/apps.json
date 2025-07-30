@@ -41,6 +41,16 @@
     "order": 3
   },
   {
+    "id": "app_surat_generator",
+    "title": "Generator Surat",
+    "description": "Buat template surat dinamis dengan placeholder yang bisa dibagikan dan diisi.",
+    "href": "/surat-generator",
+    "icon": "FileSignature",
+    "isPopular": true,
+    "isNew": true,
+    "order": 4
+  },
+  {
     "id": "app_color_generator",
     "title": "Generator Warna",
     "description": "Buat palet warna yang harmonis untuk proyek desain Anda berikutnya.",
@@ -48,7 +58,7 @@
     "icon": "Palette",
     "isPopular": false,
     "isNew": true,
-    "order": 4
+    "order": 5
   },
   {
     "id": "app_stopwatch",
@@ -58,7 +68,7 @@
     "icon": "Timer",
     "isPopular": false,
     "isNew": false,
-    "order": 5
+    "order": 6
   },
    {
     "id": "app_all_apps",
@@ -68,6 +78,6 @@
     "icon": "Grid3x3",
     "isPopular": false,
     "isNew": false,
-    "order": 6
+    "order": 7
   }
 ]
