@@ -8,13 +8,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trash2, Save, Flame, Star, ThumbsUp, Loader2 } from "lucide-react";
+import { Plus, Trash2, Save, Flame, Star, ThumbsUp, Loader2, Settings } from "lucide-react";
 import { Switch } from '@/components/ui/switch';
+import { AppSettingsDialog } from '@/components/admin/AppSettingsDialog';
 
 // Simulate fetching and saving data
 import appsData from '@/data/apps.json';
+import { AppSettings, loadAppSettings, saveAppSettings } from '@/data/app-settings';
 
-// In a real app, this would be defined in a shared types file
 export interface AppDefinition {
   id: string;
   title: string;
@@ -22,20 +23,23 @@ export interface AppDefinition {
   href: string;
   icon: string;
   isPopular: boolean;
-  isNew: boolean; // Let's use isNew instead of Sering Diakses for clarity
+  isNew: boolean;
   order: number;
 }
 
 export default function ManageAppsPage() {
   const [apps, setApps] = useState<AppDefinition[]>([]);
+  const [settings, setSettings] = useState<{ [key: string]: AppSettings }>({});
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [editingApp, setEditingApp] = useState<AppDefinition | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
     // Simulate fetching data
     const sortedApps = [...appsData].sort((a, b) => a.order - b.order);
     setApps(sortedApps);
+    setSettings(loadAppSettings());
     setIsLoading(false);
   }, []);
 
@@ -51,7 +55,7 @@ export default function ManageAppsPage() {
       title: 'Aplikasi Baru',
       description: 'Deskripsi singkat aplikasi baru.',
       href: '/new-app',
-      icon: 'Package', // Default Lucide icon
+      icon: 'Package',
       isPopular: false,
       isNew: true,
       order: apps.length,
@@ -65,20 +69,22 @@ export default function ManageAppsPage() {
   
   const handleSave = async () => {
     setIsSaving(true);
-    // In a real app, you'd send this data to your backend API
     console.log("Saving data:", JSON.stringify(apps, null, 2));
-    
-    // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 1000));
     
-    // Here you would typically get a success response.
-    // We'll just show a toast.
     toast({
       title: "Pengaturan Disimpan!",
       description: "Daftar aplikasi telah berhasil diperbarui.",
     });
     setIsSaving(false);
   };
+  
+  const handleSaveSettings = (appId: string, newSettings: AppSettings) => {
+    saveAppSettings(appId, newSettings);
+    setSettings(loadAppSettings());
+    toast({ title: 'Pengaturan Disimpan', description: `Pengaturan untuk ${appId} telah diperbarui.` });
+  };
+
 
   if (isLoading) {
     return (
@@ -90,6 +96,13 @@ export default function ManageAppsPage() {
 
   return (
     <div className="space-y-6">
+      <AppSettingsDialog 
+        app={editingApp}
+        settings={editingApp ? settings[editingApp.id] : undefined}
+        isOpen={!!editingApp}
+        onClose={() => setEditingApp(null)}
+        onSave={handleSaveSettings}
+      />
       <Card>
         <CardHeader>
           <CardTitle>Kelola Aplikasi</CardTitle>
@@ -142,7 +155,10 @@ export default function ManageAppsPage() {
                     <Switch id={`new-${app.id}`} checked={app.isNew} onCheckedChange={checked => handleInputChange(app.id, 'isNew', checked)} />
                     <Label htmlFor={`new-${app.id}`} className="flex items-center gap-1"><ThumbsUp className="w-4 h-4 text-green-500"/> Baru</Label>
                   </div>
-                  <div className="ml-auto">
+                  <div className="ml-auto flex items-center gap-2">
+                    <Button variant="outline" size="icon" onClick={() => setEditingApp(app)}>
+                      <Settings className="h-4 w-4" />
+                    </Button>
                     <Button variant="destructive" size="icon" onClick={() => handleDeleteApp(app.id)}>
                       <Trash2 className="h-4 w-4" />
                     </Button>

@@ -8,25 +8,16 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, FileDown, FileText, Edit } from 'lucide-react';
+import { Loader2, FileDown, FileText, Edit, AlertTriangle } from 'lucide-react';
 import { convertHtmlToWord } from '@/ai/flows/file-converter';
 import { saveAs } from 'file-saver';
+import { type TemplateDataToShare } from '@/types/surat';
 
 const LOCAL_STORAGE_KEY_SURAT_COUNTER = 'suratCounter_v1';
 
-interface SuratField {
-  id: string;
-  label: string;
-}
-
-interface TemplateData {
-  template: string;
-  fields: SuratField[];
-}
-
 export default function FillSuratPage() {
     const searchParams = useSearchParams();
-    const [data, setData] = useState<TemplateData | null>(null);
+    const [data, setData] = useState<TemplateDataToShare | null>(null);
     const [fieldValues, setFieldValues] = useState<{ [key: string]: string }>({});
     const [isLoading, setIsLoading] = useState(true);
     const [isGenerating, setIsGenerating] = useState(false);
@@ -38,7 +29,7 @@ export default function FillSuratPage() {
         if (encodedData) {
             try {
                 const decodedJson = decodeURIComponent(atob(encodedData));
-                const parsedData: TemplateData = JSON.parse(decodedJson);
+                const parsedData: TemplateDataToShare = JSON.parse(decodedJson);
 
                 if (parsedData.template && Array.isArray(parsedData.fields)) {
                     setData(parsedData);
@@ -67,6 +58,23 @@ export default function FillSuratPage() {
         setFieldValues(prev => ({ ...prev, [id]: value }));
     };
 
+    const isProFeatureUsed = useMemo(() => {
+        return data?.template.includes('{{NOMOR_SURAT_OTOMATIS}}');
+    }, [data]);
+
+    const canDownload = useMemo(() => {
+        if (!data) return false;
+        if (data.isPro && isProFeatureUsed) {
+            toast({
+                variant: 'destructive',
+                title: 'Fitur Pro Terdeteksi',
+                description: 'Penomoran otomatis hanya tersedia pada versi pro.',
+            });
+            return false;
+        }
+        return true;
+    }, [data, isProFeatureUsed, toast]);
+
     const generatedHtml = useMemo(() => {
         if (!data) return '';
         let result = data.template;
@@ -78,10 +86,10 @@ export default function FillSuratPage() {
 
         const autoNumberPlaceholder = /\{\{NOMOR_SURAT_OTOMATIS\}\}/g;
         if(autoNumberPlaceholder.test(result)) {
-             result = result.replace(autoNumberPlaceholder, '<span class="font-bold text-primary">[Nomor Surat Akan Dibuat]</span>');
+             result = result.replace(autoNumberPlaceholder, '<span class="font-bold text-primary">[Nomor Surat Akan Dibuat Saat Unduh]</span>');
         }
         
-        return result.replace(/\n/g, '<br />');
+        return result;
     }, [data, fieldValues]);
 
     const getNextSuratNumber = (): number => {
@@ -92,14 +100,12 @@ export default function FillSuratPage() {
             return nextNumber;
         } catch (error) {
             console.error("Failed to access localStorage for letter counter", error);
-            // Fallback to a random number if localStorage is not available
             return Math.floor(Math.random() * 1000) + 1;
         }
     };
 
-
     const handleDownload = async () => {
-        if (!data) return;
+        if (!data || !canDownload) return;
         setIsGenerating(true);
         
         let docxContent = data.template;
@@ -116,7 +122,7 @@ export default function FillSuratPage() {
         
         try {
             const response = await convertHtmlToWord({
-                htmlContent: `<div style="font-family: 'Times New Roman', Times, serif; font-size: 12pt; line-height: 1.5;">${docxContent.replace(/\n/g, '<br />')}</div>`,
+                htmlContent: `<div style="font-family: 'Times New Roman', Times, serif; font-size: 12pt; line-height: 1.5;">${docxContent}</div>`,
                 filename: 'surat-yang-dihasilkan.docx'
             });
 
@@ -169,13 +175,19 @@ export default function FillSuratPage() {
                             <CardDescription>Lengkapi field di bawah ini untuk mengisi surat secara otomatis.</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
+                            {isProFeatureUsed && data.isPro && (
+                                <div className="p-3 rounded-md bg-destructive/10 text-destructive-foreground border border-destructive/20">
+                                    <p className="text-sm font-bold flex items-center gap-2"><AlertTriangle className="w-4 h-4"/>Fitur Pro Tidak Tersedia</p>
+                                    <p className="text-xs">Template ini menggunakan fitur yang tidak tersedia di paket Anda.</p>
+                                </div>
+                            )}
                             {data.fields.map(field => (
                                 <div key={field.id} className="space-y-2">
                                     <Label htmlFor={field.id}>{field.label}</Label>
                                     <Input id={field.id} value={fieldValues[field.id] || ''} onChange={e => handleInputChange(field.id, e.target.value)} placeholder={`Masukkan ${field.label}...`} />
                                 </div>
                             ))}
-                             <Button onClick={handleDownload} disabled={isGenerating} className="w-full">
+                             <Button onClick={handleDownload} disabled={isGenerating || !canDownload} className="w-full">
                                 {isGenerating ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Memproses...</> : <><FileDown className="mr-2 h-4 w-4" /> Unduh sebagai Word</>}
                             </Button>
                         </CardContent>
@@ -189,24 +201,13 @@ export default function FillSuratPage() {
                             <CardDescription>Surat akan diperbarui secara otomatis saat Anda mengisi data.</CardDescription>
                         </CardHeader>
                         <CardContent>
-                           <div ref={previewRef} className="bg-white p-8 shadow-inner min-h-[800px] rounded-lg border">
+                           <div ref={previewRef} className="bg-white p-8 shadow-inner min-h-[800px] rounded-lg border font-serif">
                                 <div dangerouslySetInnerHTML={{ __html: generatedHtml }} style={{ fontFamily: "'Times New Roman', Times, serif", fontSize: "12pt", lineHeight: "1.5" }} />
                            </div>
                         </CardContent>
                     </Card>
                 </div>
-
             </div>
         </div>
     );
 }
-
-// Fallback component for when the ID is just "share" from the old URL structure
-// This is to maintain compatibility with any old links that might be out there.
-const SharePageFallback = () => {
-    return <FillSuratPage />;
-}
-
-export { SharePageFallback as Page };
-
-    

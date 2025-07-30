@@ -2,7 +2,7 @@
 'use client';
 
 import { SidebarProvider, Sidebar, SidebarTrigger, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarInset, useSidebar } from '@/components/ui/sidebar';
-import { LayoutDashboard, Settings, Bot, LogOut, AppWindow } from 'lucide-react';
+import { LayoutDashboard, Settings, Bot, LogOut, AppWindow, ChevronsLeftRight } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
@@ -52,6 +52,14 @@ function AdminLayoutContent({
                 <Link href="/admin/assistant" onClick={handleLinkClick}>
                   <Bot />
                   Asisten AI
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+             <SidebarMenuItem>
+              <SidebarMenuButton asChild isActive={pathname.startsWith('/admin/pagination')}>
+                <Link href="/admin/pagination" onClick={handleLinkClick}>
+                  <ChevronsLeftRight />
+                  Paginasi
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
