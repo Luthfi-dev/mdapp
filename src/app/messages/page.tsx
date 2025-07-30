@@ -5,37 +5,19 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Send, Bot, User, Loader2, ArrowRight, ArrowLeft } from "lucide-react";
+import { Send, Bot, User, Loader2, ArrowLeft } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { chat, ChatMessage, AppSuggestion } from "@/ai/flows/chat";
+import { chat, ChatMessage } from "@/ai/flows/chat";
 import { cn } from "@/lib/utils";
-import Link from "next/link";
 import { useRouter } from 'next/navigation';
-import { useIsMobile } from "@/hooks/use-mobile";
+import { useIsMobile } from "@/hooks/use-is-mobile";
 
 // Simulate fetching settings
 import assistantData from '@/data/assistant.json';
 
-const renderContent = (content: string | AppSuggestion) => {
-    if (typeof content === 'string') {
-        return <p>{content}</p>;
-    }
-
-    // It's an AppSuggestion
-    return (
-        <div className="space-y-3">
-            <p>{content.introText}</p>
-            <div className="p-3 rounded-lg border bg-background/50">
-                <h4 className="font-bold">{content.title}</h4>
-                <p className="text-sm mt-1">{content.description}</p>
-                <Button asChild size="sm" className="mt-3">
-                    <Link href={content.href}>
-                        {content.buttonText} <ArrowRight className="ml-2 h-4 w-4" />
-                    </Link>
-                </Button>
-            </div>
-        </div>
-    );
+const renderContent = (content: string) => {
+    // Render HTML content directly.
+    return <div dangerouslySetInnerHTML={{ __html: content.replace(/\n/g, '<br />') }} />;
 };
 
 
