@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useRef, useEffect, ChangeEvent } from 'react';
+import { useState, useRef, useEffect, ChangeEvent, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { 
     FileSignature, Plus, Trash2, Pilcrow, Share2, UploadCloud, Eye, Image as ImageIcon,
-    Bold, Italic, Underline, AlignLeft, AlignCenter, AlignRight, Hash, Save, Loader2
+    Bold, Italic, Underline, AlignLeft, AlignCenter, AlignRight, Hash, Save, Loader2, Crown
 } from 'lucide-react';
 import {
   AlertDialog,
@@ -116,14 +116,15 @@ export default function SuratGeneratorPage() {
         }
     }, [content, template]); // Rerun when template is loaded
 
-    const handleContentChange = () => {
+    const handleContentChange = useCallback(() => {
         if (editorRef.current) {
             const newContent = editorRef.current.innerHTML;
             if(contentRef.current !== newContent) {
+                contentRef.current = newContent; // Update ref immediately
                 setContent(newContent);
             }
         }
-    };
+    }, []);
 
     const addField = () => {
         if (!template) return;
@@ -188,7 +189,7 @@ export default function SuratGeneratorPage() {
         if (file && file.type.startsWith('image/')) {
             const reader = new FileReader();
             reader.onloadend = () => {
-                const newContent = `<p style="text-align: center;"><img src="${reader.result as string}" alt="Kop Surat" style="max-width: 100%; height: auto;" /></p><hr>${content}`;
+                const newContent = `<p style="text-align: center;"><img src="${reader.result as string}" alt="Kop Surat" style="max-width: 100%; height: auto;" /></p><hr>${contentRef.current}`;
                 setContent(newContent);
                 toast({ title: "Kop Surat Ditambahkan", description: "Gambar telah ditambahkan ke awal template."});
             };
@@ -208,9 +209,10 @@ export default function SuratGeneratorPage() {
 
     const handleSaveTemplate = () => {
         if (!template) return;
+        const currentContent = editorRef.current?.innerHTML || content;
 
         // Pro feature validation
-        if (appSettings?.isPro && content.includes('{{NOMOR_SURAT_OTOMATIS}}')) {
+        if (appSettings?.isPro && currentContent.includes('{{NOMOR_SURAT_OTOMATIS}}')) {
              toast({
                 variant: 'destructive',
                 title: 'Simpan Gagal: Fitur Pro Digunakan',
@@ -220,7 +222,7 @@ export default function SuratGeneratorPage() {
             return; // Stop the save process
         }
 
-        const updatedTemplate = { ...template, content, lastModified: new Date().toISOString() };
+        const updatedTemplate = { ...template, content: currentContent, lastModified: new Date().toISOString() };
         
         const storedTemplatesRaw = localStorage.getItem(LOCAL_STORAGE_KEY_TEMPLATES);
         let storedTemplates: Template[] = storedTemplatesRaw ? JSON.parse(storedTemplatesRaw) : [];
@@ -244,9 +246,10 @@ export default function SuratGeneratorPage() {
 
     const handleShare = () => {
         if (!template) return;
+        const currentContent = editorRef.current?.innerHTML || content;
 
         // Check for Pro features if user is not Pro
-        if (appSettings?.isPro && content.includes('{{NOMOR_SURAT_OTOMATIS}}')) {
+        if (appSettings?.isPro && currentContent.includes('{{NOMOR_SURAT_OTOMATIS}}')) {
             toast({
                 variant: 'destructive',
                 title: 'Gagal Berbagi: Fitur Pro Digunakan',
@@ -257,7 +260,7 @@ export default function SuratGeneratorPage() {
         }
 
         const dataToEncode = {
-            template: content,
+            template: currentContent,
             fields: template.fields,
             isPro: appSettings?.isPro || false
         };
@@ -270,8 +273,9 @@ export default function SuratGeneratorPage() {
     
     const handlePreview = () => {
         if (!template) return;
+        const currentContent = editorRef.current?.innerHTML || content;
         const dataToEncode = {
-            template: content,
+            template: currentContent,
             fields: template.fields,
             isPro: appSettings?.isPro || false
         };
@@ -340,6 +344,7 @@ export default function SuratGeneratorPage() {
                             <div
                                 ref={editorRef}
                                 contentEditable={true}
+                                onBlur={handleContentChange}
                                 onInput={handleContentChange}
                                 className="min-h-[500px] w-full rounded-b-md border border-input bg-background px-3 py-2 text-base ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm whitespace-pre-wrap font-serif"
                                 dangerouslySetInnerHTML={{ __html: content }}
@@ -390,7 +395,11 @@ export default function SuratGeneratorPage() {
                         </CardHeader>
                         <CardContent className="space-y-3">
                             <div className="space-y-2 max-h-48 overflow-y-auto pr-2">
-                                <Button variant="outline" className="flex-grow justify-start w-full" onClick={() => insertPlaceholder('NOMOR_SURAT_OTOMATIS')}><Hash className="mr-2 h-4 w-4 text-primary" />Nomor Surat Otomatis</Button>
+                                <Button variant="outline" className="flex-grow justify-start w-full" onClick={() => insertPlaceholder('NOMOR_SURAT_OTOMATIS')}>
+                                    <Hash className="mr-2 h-4 w-4 text-primary" />
+                                    Nomor Surat Otomatis
+                                    {appSettings?.isPro && <Crown className="ml-auto h-4 w-4 text-primary" />}
+                                </Button>
                                 {template.fields.map(field => (
                                     <div key={field.id} className="flex items-center gap-2">
                                         <Button variant="outline" className="flex-grow justify-start" onClick={() => insertPlaceholder(field.id)}><Pilcrow className="mr-2 h-4 w-4 text-primary" />{field.label}</Button>
@@ -406,3 +415,5 @@ export default function SuratGeneratorPage() {
         </div>
     );
 }
+
+    
