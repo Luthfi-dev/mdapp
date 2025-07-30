@@ -11,13 +11,30 @@ import { chat, ChatMessage } from "@/ai/flows/chat";
 import { cn } from "@/lib/utils";
 import { useRouter } from 'next/navigation';
 import { useIsMobile } from "@/hooks/use-mobile";
+import Link from "next/link";
+
 
 // Simulate fetching settings
 import assistantData from '@/data/assistant.json';
 
 const renderContent = (content: string) => {
-    // Render HTML content directly.
-    return <div dangerouslySetInnerHTML={{ __html: content.replace(/\n/g, '<br />') }} />;
+    const parts = content.split(/(<Link .*?<\/Link>)/g);
+    return parts.map((part, index) => {
+        const match = part.match(/<Link href="(.+?)">(.+?)<\/Link>/);
+        if (match) {
+            const href = match[1];
+            const text = match[2];
+            return <Link key={index} href={href} className="text-primary underline hover:text-primary/80">{text}</Link>;
+        }
+        // Render newlines as <br>
+        const textParts = part.split('\n').map((line, i) => (
+            <span key={i}>
+                {line}
+                {i < part.split('\n').length - 1 && <br />}
+            </span>
+        ));
+        return <span key={index}>{textParts}</span>;
+    });
 };
 
 
