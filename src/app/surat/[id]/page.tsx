@@ -8,10 +8,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, FileDown, FileText, Send, User, Edit } from 'lucide-react';
+import { Loader2, FileDown, FileText, Edit } from 'lucide-react';
 import { convertHtmlToWord } from '@/ai/flows/file-converter';
 import { saveAs } from 'file-saver';
-import { cn } from '@/lib/utils';
 
 
 interface SuratField {
@@ -42,7 +41,6 @@ export default function FillSuratPage() {
 
                 if (parsedData.template && Array.isArray(parsedData.fields)) {
                     setData(parsedData);
-                    // Initialize fieldValues
                     const initialValues: { [key: string]: string } = {};
                     parsedData.fields.forEach(field => {
                         initialValues[field.id] = '';
@@ -72,12 +70,10 @@ export default function FillSuratPage() {
         if (!data) return '';
         let result = data.template;
         Object.entries(fieldValues).forEach(([id, value]) => {
-            const placeholder = `{{${id}}}`;
-            // Use a simple span for highlighting filled values
+            const placeholder = new RegExp(`{{${id}}}`, 'g');
             const replacement = value ? `<span class="font-bold text-primary">${value}</span>` : `<span class="text-destructive">[${data.fields.find(f=>f.id===id)?.label || id}]</span>`;
-            result = result.replace(new RegExp(placeholder, 'g'), replacement);
+            result = result.replace(placeholder, replacement);
         });
-        // Convert newlines to <br> for HTML rendering
         return result.replace(/\n/g, '<br />');
     }, [data, fieldValues]);
 
@@ -85,17 +81,15 @@ export default function FillSuratPage() {
         if (!data) return;
         setIsGenerating(true);
         
-        // Generate content for DOCX (without the highlighting spans)
         let docxContent = data.template;
-         Object.entries(fieldValues).forEach(([id, value]) => {
-            const placeholder = `{{${id}}}`;
-            // Replace with plain text for the document
-            docxContent = docxContent.replace(new RegExp(placeholder, 'g'), value || `[${data.fields.find(f=>f.id===id)?.label || id}]`);
+        Object.entries(fieldValues).forEach(([id, value]) => {
+            const placeholder = new RegExp(`{{${id}}}`, 'g');
+            docxContent = docxContent.replace(placeholder, value || `[${data.fields.find(f=>f.id===id)?.label || id}]`);
         });
         
         try {
             const response = await convertHtmlToWord({
-                htmlContent: `<div style="font-family: 'Times New Roman', Times, serif; font-size: 12pt;">${docxContent.replace(/\n/g, '<br />')}</div>`,
+                htmlContent: `<div style="font-family: 'Times New Roman', Times, serif; font-size: 12pt; line-height: 1.5;">${docxContent.replace(/\n/g, '<br />')}</div>`,
                 filename: 'surat-yang-dihasilkan.docx'
             });
 
@@ -131,9 +125,7 @@ export default function FillSuratPage() {
              <div className="flex justify-center items-center h-screen">
                  <Card className="max-w-md text-center p-8">
                      <CardTitle className="text-2xl text-destructive">Link Tidak Valid</CardTitle>
-                     <CardDescription className="mt-2">
-                         Kami tidak dapat memproses link yang Anda berikan. Pastikan link sudah benar dan coba lagi.
-                     </CardDescription>
+                     <CardDescription className="mt-2">Kami tidak dapat memproses link ini. Pastikan link sudah benar.</CardDescription>
                  </Card>
              </div>
         );
@@ -153,26 +145,11 @@ export default function FillSuratPage() {
                             {data.fields.map(field => (
                                 <div key={field.id} className="space-y-2">
                                     <Label htmlFor={field.id}>{field.label}</Label>
-                                    <Input
-                                        id={field.id}
-                                        value={fieldValues[field.id] || ''}
-                                        onChange={e => handleInputChange(field.id, e.target.value)}
-                                        placeholder={`Masukkan ${field.label}...`}
-                                    />
+                                    <Input id={field.id} value={fieldValues[field.id] || ''} onChange={e => handleInputChange(field.id, e.target.value)} placeholder={`Masukkan ${field.label}...`} />
                                 </div>
                             ))}
                              <Button onClick={handleDownload} disabled={isGenerating} className="w-full">
-                                {isGenerating ? (
-                                    <>
-                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                        Memproses...
-                                    </>
-                                ) : (
-                                    <>
-                                        <FileDown className="mr-2 h-4 w-4" />
-                                        Unduh sebagai Word
-                                    </>
-                                )}
+                                {isGenerating ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Memproses...</> : <><FileDown className="mr-2 h-4 w-4" /> Unduh sebagai Word</>}
                             </Button>
                         </CardContent>
                      </Card>
@@ -186,11 +163,7 @@ export default function FillSuratPage() {
                         </CardHeader>
                         <CardContent>
                            <div ref={previewRef} className="bg-white p-8 shadow-inner min-h-[800px] rounded-lg border">
-                                <div 
-                                    className="prose max-w-none" 
-                                    dangerouslySetInnerHTML={{ __html: generatedHtml }}
-                                    style={{ fontFamily: "'Times New Roman', Times, serif", fontSize: "12pt", lineHeight: "1.5" }}
-                                />
+                                <div dangerouslySetInnerHTML={{ __html: generatedHtml }} style={{ fontFamily: "'Times New Roman', Times, serif", fontSize: "12pt", lineHeight: "1.5" }} />
                            </div>
                         </CardContent>
                     </Card>
@@ -208,3 +181,5 @@ const SharePageFallback = () => {
 }
 
 export { SharePageFallback as Page };
+
+    
