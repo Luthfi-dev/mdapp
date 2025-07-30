@@ -28,7 +28,7 @@ import { cn } from '@/lib/utils';
 import type { SuratField, Template } from '@/types/surat';
 import { AdBanner } from '@/components/AdBanner';
 import { loadAppSettings, AppSettings } from '@/data/app-settings';
-import { useIsMobile } from '@/hooks/use-is-mobile';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 
 const LOCAL_STORAGE_KEY_TEMPLATES = 'surat_templates_v1';
