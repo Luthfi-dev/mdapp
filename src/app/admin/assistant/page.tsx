@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, type FormEvent, useRef } from 'react';
@@ -10,16 +11,10 @@ import { useToast } from "@/hooks/use-toast";
 import { Save, Loader2, Bot, Upload } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { optimizeImage } from '@/lib/utils';
+import { saveAssistantSettings, type AssistantSettings } from './actions';
 
-
-// Simulate fetching and saving data
+// Simulate fetching data
 import assistantData from '@/data/assistant.json';
-
-interface AssistantSettings {
-  name: string;
-  systemPrompt: string;
-  avatarUrl?: string;
-}
 
 export default function AssistantSettingsPage() {
   const [settings, setSettings] = useState<AssistantSettings>({ name: '', systemPrompt: '', avatarUrl: '' });
@@ -56,8 +51,6 @@ export default function AssistantSettingsPage() {
         reader.onloadend = () => {
           const dataUrl = reader.result as string;
           setPreviewImage(dataUrl);
-          // In a real app, you would upload `optimizedFile` to a storage service
-          // and get back a URL to save in the settings.
           // For this simulation, we'll just use the data URL.
           setSettings(s => ({ ...s, avatarUrl: dataUrl }));
         };
@@ -77,15 +70,21 @@ export default function AssistantSettingsPage() {
     e.preventDefault();
     setIsSaving(true);
     
-    console.log("Saving assistant settings:", JSON.stringify(settings, null, 2));
-
-    await new Promise(resolve => setTimeout(resolve, 1000));
-
-    setIsSaving(false);
-    toast({
-      title: "Pengaturan Disimpan!",
-      description: "Pengaturan asisten AI telah berhasil diperbarui.",
-    });
+    try {
+      await saveAssistantSettings(settings);
+      toast({
+        title: "Pengaturan Disimpan!",
+        description: "Pengaturan asisten AI telah berhasil diperbarui.",
+      });
+    } catch (error) {
+       toast({
+        variant: "destructive",
+        title: "Gagal Menyimpan!",
+        description: error instanceof Error ? error.message : "Terjadi kesalahan yang tidak diketahui.",
+      });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   if (isLoading) {
