@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { 
     FileSignature, Plus, Trash2, Pilcrow, Share2, UploadCloud, Eye, Image as ImageIcon,
-    Bold, Italic, Underline, AlignLeft, AlignCenter, AlignRight, Hash, Save
+    Bold, Italic, Underline, AlignLeft, AlignCenter, AlignRight, Hash, Save, Loader2
 } from 'lucide-react';
 import {
   AlertDialog,
@@ -28,7 +28,7 @@ import { cn } from '@/lib/utils';
 import type { SuratField, Template } from '@/types/surat';
 import { AdBanner } from '@/components/AdBanner';
 import { loadAppSettings, AppSettings } from '@/data/app-settings';
-import { useIsMobile } from '@/hooks/use-mobile';
+import { useIsMobile } from '@/hooks/use-is-mobile';
 
 
 const LOCAL_STORAGE_KEY_TEMPLATES = 'surat_templates_v1';
