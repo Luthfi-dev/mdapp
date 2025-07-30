@@ -23,7 +23,7 @@ const RewardItem = React.memo(({ dayIndex, state, onClaimWithPosition }: { dayIn
   const buttonRef = useRef<HTMLButtonElement>(null);
 
   const handleClaim = async () => {
-    if (!buttonRef.current) return;
+    if (!buttonRef.current || !isClaimable) return;
     setIsClaiming(true);
     onClaimWithPosition(dayIndex, buttonRef.current);
     // Simulate a delay for the animation to be seen
@@ -40,8 +40,8 @@ const RewardItem = React.memo(({ dayIndex, state, onClaimWithPosition }: { dayIn
         isClaimable ? "bg-primary/10 border-2 border-primary" :
         "bg-secondary/50 border-2 border-dashed"
       )}>
-        {isToday && !isClaimed && (
-          <div className="absolute -top-2 px-2 py-0.5 text-xs font-bold text-white bg-primary rounded-full animate-bounce">
+        {isToday && (
+          <div className={cn("absolute -top-2 px-2 py-0.5 text-xs font-bold text-white rounded-full", isClaimable ? "bg-primary animate-bounce" : "bg-muted-foreground")}>
             HARI INI
           </div>
         )}
@@ -64,7 +64,7 @@ const RewardItem = React.memo(({ dayIndex, state, onClaimWithPosition }: { dayIn
         ref={buttonRef}
         size="sm"
         className="w-full mt-1 h-8"
-        disabled={isClaiming}
+        disabled={!isClaimable || isClaiming}
         onClick={handleClaim}
       >
         {isClaiming ? <Loader2 className="w-4 h-4 animate-spin"/> : (isClaimed ? "Diklaim" : "Klaim")}
@@ -103,3 +103,4 @@ export function DailyRewardDialog({ isOpen, onOpenChange, claimState, onClaim, o
     </Dialog>
   );
 }
+

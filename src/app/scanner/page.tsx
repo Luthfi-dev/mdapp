@@ -229,7 +229,7 @@ export default function ScannerPage() {
     navigator.clipboard.writeText(text);
     toast({
       title: 'Berhasil Disalin!',
-      description: singleItem ? 'Data pindaian disalin ke clipboard.' : 'Semua data pindaian disalin ke clipboard.',
+      description: singleItem ? 'Data pindaian disalin.' : 'Semua data pindaian disalin.',
     });
   };
 
@@ -273,7 +273,7 @@ export default function ScannerPage() {
                 toast({ variant: "destructive", title: "Flash Error", description: "Tidak dapat mengaktifkan flash."});
             }
         } else {
-            toast({ title: "Flash Tidak Didukung", description: "Perangkat ini tidak mendukung kontrol flash."});
+            toast({ variant: "destructive", title: "Flash Tidak Didukung", description: "Perangkat ini tidak mendukung kontrol flash."});
         }
     }
   }

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useRef } from 'react';
@@ -76,8 +77,8 @@ export default function ImageToPdfPage() {
     if (files.length === 0) {
       toast({
         variant: 'destructive',
-        title: 'Tidak ada file',
-        description: 'Silakan pilih setidaknya satu gambar untuk dikonversi.',
+        title: 'Tidak Ada File',
+        description: 'Pilih setidaknya satu gambar untuk dikonversi.',
       });
       return;
     }
@@ -112,8 +113,8 @@ export default function ImageToPdfPage() {
       saveAs(blob, getTargetFilename());
 
       toast({
-        title: 'Konversi Berhasil',
-        description: `${files.length} gambar telah berhasil dikonversi dan diunduh menjadi PDF.`,
+        title: 'Konversi Berhasil!',
+        description: `${files.length} gambar telah diubah menjadi PDF.`,
       });
 
     } catch (error) {

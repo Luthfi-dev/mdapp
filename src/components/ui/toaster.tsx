@@ -1,35 +1,64 @@
+
 "use client"
 
 import { useToast } from "@/hooks/use-toast"
 import {
-  Toast,
-  ToastClose,
-  ToastDescription,
-  ToastProvider,
-  ToastTitle,
-  ToastViewport,
-} from "@/components/ui/toast"
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import { CheckCircle2, XCircle } from "lucide-react";
+import { Button } from "./button";
+
 
 export function Toaster() {
-  const { toasts } = useToast()
+  const { toasts, dismiss } = useToast();
 
   return (
-    <ToastProvider>
-      {toasts.map(function ({ id, title, description, action, ...props }) {
+    <>
+      {toasts.map(function ({ id, title, description, action, variant, ...props }) {
+        const onDismiss = () => dismiss(id);
+        const Icon = variant === 'destructive' ? XCircle : CheckCircle2;
+        const iconColor = variant === 'destructive' ? 'text-destructive' : 'text-green-500';
+        
         return (
-          <Toast key={id} {...props}>
-            <div className="grid gap-1">
-              {title && <ToastTitle>{title}</ToastTitle>}
-              {description && (
-                <ToastDescription>{description}</ToastDescription>
-              )}
-            </div>
-            {action}
-            <ToastClose />
-          </Toast>
+          <AlertDialog key={id} open={props.open} onOpenChange={(open) => {
+            if(!open) onDismiss();
+          }}>
+            <AlertDialogContent className="max-w-xs rounded-2xl">
+              <AlertDialogHeader className="items-center text-center">
+                <Icon className={`w-14 h-14 mb-2 ${iconColor}`} />
+                <AlertDialogTitle className="text-xl">
+                  {title}
+                </AlertDialogTitle>
+                {description && (
+                  <AlertDialogDescription className="text-base">
+                    {description}
+                  </AlertDialogDescription>
+                )}
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                {action ? (
+                  action
+                ) : (
+                  <Button
+                    onClick={onDismiss}
+                    className="w-full"
+                    variant={variant === 'destructive' ? 'destructive' : 'default'}
+                  >
+                    Oke
+                  </Button>
+                )}
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         )
       })}
-      <ToastViewport />
-    </ToastProvider>
+    </>
   )
 }

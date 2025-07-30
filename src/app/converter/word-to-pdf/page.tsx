@@ -46,7 +46,7 @@ export default function WordToPdfPage() {
                         toast({
                             variant: "destructive",
                             title: "Gagal Mempratinjau",
-                            description: "Gagal merender file Word. File mungkin rusak atau tidak didukung."
+                            description: "File mungkin rusak atau tidak didukung."
                         })
                     });
             }
@@ -66,7 +66,7 @@ export default function WordToPdfPage() {
       toast({
         variant: 'destructive',
         title: 'Tidak Ada Konten',
-        description: 'Tidak ada pratinjau untuk dikonversi. Silakan unggah file terlebih dahulu.',
+        description: 'Pratinjau kosong, unggah file dahulu.',
       });
       return;
     }
@@ -135,8 +135,8 @@ export default function WordToPdfPage() {
       saveAs(blob, getTargetFilename());
 
       toast({
-        title: 'Konversi Berhasil',
-        description: 'File Word Anda telah berhasil dikonversi dan diunduh.',
+        title: 'Konversi Berhasil!',
+        description: 'File Word Anda telah berhasil diubah menjadi PDF.',
       });
 
     } catch (error) {

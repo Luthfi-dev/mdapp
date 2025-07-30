@@ -1,11 +1,11 @@
+
 'use client';
 import { useState, useCallback, useEffect } from 'react';
 import { useToast } from './use-toast';
 
 const REWARD_AMOUNT = 50;
 const TOTAL_DAYS = 7;
-const LOCAL_STORAGE_KEY_REWARD = 'dailyRewardState';
-const LOCAL_STORAGE_KEY_USER = 'maudigiUser';
+const LOCAL_STORAGE_KEY_REWARD = 'dailyRewardState_v2';
 
 export interface ClaimState {
   isClaimed: boolean;
@@ -15,27 +15,15 @@ export interface ClaimState {
 
 interface StoredRewardData {
   points: number;
-  lastClaimDate: string | null; // 'YYYY-MM-DD'
-  streak: number; // 0-7
-}
-
-interface UserData {
-    userId: string;
+  lastClaimTimestamps: { [dayIndex: number]: string }; // 'YYYY-MM-DD'
 }
 
 const getDayIndex = (date: Date) => {
-    return (date.getDay() + 6) % 7;
+    return (date.getDay() + 6) % 7; // Monday = 0, Sunday = 6
 }
 
 const getTodayDateString = () => {
     return new Date().toISOString().split('T')[0];
-}
-
-const isYesterday = (dateString: string) => {
-    const today = new Date();
-    const yesterday = new Date(today);
-    yesterday.setDate(today.getDate() - 1);
-    return dateString === yesterday.toISOString().split('T')[0];
 }
 
 export function useDailyReward() {
@@ -43,67 +31,42 @@ export function useDailyReward() {
   const [claimState, setClaimState] = useState<ClaimState[]>([]);
   const { toast } = useToast();
 
-  const getOrCreateUser = useCallback((): UserData => {
-    try {
-        const storedUser = window.localStorage.getItem(LOCAL_STORAGE_KEY_USER);
-        if (storedUser) {
-            return JSON.parse(storedUser);
-        }
-        const newUser: UserData = {
-            userId: `user_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`
-        };
-        window.localStorage.setItem(LOCAL_STORAGE_KEY_USER, JSON.stringify(newUser));
-        return newUser;
-    } catch (error) {
-        console.error("Failed to manage user data in localStorage", error);
-        // Fallback for SSR or disabled storage
-        return { userId: 'anonymous' };
-    }
-  }, []);
-
-  const loadData = useCallback(() => {
-    getOrCreateUser(); // Ensure user exists
+  const loadData = useCallback((): StoredRewardData => {
     try {
       const storedDataRaw = window.localStorage.getItem(LOCAL_STORAGE_KEY_REWARD);
       if (storedDataRaw) {
         const data: StoredRewardData = JSON.parse(storedDataRaw);
-        const todayStr = getTodayDateString();
-        
-        // Reset streak if user missed a day
-        if (data.lastClaimDate && data.lastClaimDate !== todayStr && !isYesterday(data.lastClaimDate)) {
-            data.streak = 0;
-            // No need to reset lastClaimDate, it will allow claiming for today
-             window.localStorage.setItem(LOCAL_STORAGE_KEY_REWARD, JSON.stringify(data));
+        // Basic validation in case stored data is malformed
+        if (data && typeof data.points === 'number' && typeof data.lastClaimTimestamps === 'object') {
+           setPoints(data.points);
+           return data;
         }
-
-        setPoints(data.points || 0);
-        return data;
       }
     } catch (error) {
       console.error("Failed to load or parse daily reward data from localStorage", error);
     }
-    // Default initial data if nothing is stored
-    const defaultData: StoredRewardData = { points: 1250, lastClaimDate: null, streak: 0 };
-    window.localStorage.setItem(LOCAL_STORAGE_KEY_REWARD, JSON.stringify(defaultData));
+    // Default initial data if nothing is stored or data is invalid
+    const defaultData: StoredRewardData = { points: 1250, lastClaimTimestamps: {} };
+     try {
+        window.localStorage.setItem(LOCAL_STORAGE_KEY_REWARD, JSON.stringify(defaultData));
+    } catch(e) {
+        console.error("Failed to set default reward data", e)
+    }
     setPoints(defaultData.points);
     return defaultData;
-  }, [getOrCreateUser]);
+  }, []);
 
   const updateClaimState = useCallback(() => {
     const data = loadData();
     const todayStr = getTodayDateString();
+    const todayIndex = getDayIndex(new Date());
 
     const newClaimState = Array.from({ length: TOTAL_DAYS }, (_, i) => {
-      const alreadyClaimedToday = data.lastClaimDate === todayStr;
-      
-      // A day is claimable if it matches the current streak count AND it hasn't been claimed today.
-      const isClaimable = i === data.streak && !alreadyClaimedToday;
-      
-      // A day is marked as claimed if its index is less than the current streak.
-      const isClaimed = i < data.streak;
-
-      // isToday is purely based on the day of the week, for UI highlighting.
-      const isToday = i === getDayIndex(new Date());
+      const isToday = i === todayIndex;
+      // A day is claimed if the last claim timestamp for that day is today's date.
+      const isClaimed = data.lastClaimTimestamps[i] === todayStr;
+      // A day is claimable only if it's today AND it hasn't been claimed yet.
+      const isClaimable = isToday && !isClaimed;
 
       return {
         isClaimed,
@@ -121,33 +84,44 @@ export function useDailyReward() {
 
   const claimReward = useCallback(async (dayIndex: number): Promise<boolean> => {
     const data = loadData();
-    const todayStr = getTodayDateString();
+    const todayIndex = getDayIndex(new Date());
 
-    if (data.lastClaimDate === todayStr) {
-        toast({ variant: 'destructive', title: 'Sudah Diklaim', description: 'Anda sudah mengklaim hadiah untuk hari ini.' });
+    if (dayIndex !== todayIndex) {
+        toast({ 
+            variant: "destructive", 
+            title: 'Klaim Gagal', 
+            description: 'Anda hanya dapat mengklaim hadiah untuk hari ini.' 
+        });
         return false;
     }
-    
-    // The day being claimed must match the current streak progress.
-    if (dayIndex !== data.streak) {
-         toast({ variant: 'destructive', title: 'Klaim Gagal', description: 'Anda harus klaim secara berurutan.' });
+
+    const todayStr = getTodayDateString();
+    if (data.lastClaimTimestamps[todayIndex] === todayStr) {
+        toast({ 
+            variant: 'destructive',
+            title: 'Sudah Diklaim', 
+            description: 'Anda sudah mengklaim hadiah untuk hari ini.' 
+        });
         return false;
     }
 
     try {
       const newPoints = data.points + REWARD_AMOUNT;
-      // If streak reaches 7, it resets to 0 for the next cycle.
-      const newStreak = (data.streak + 1) % TOTAL_DAYS; 
+      const newTimestamps = { ...data.lastClaimTimestamps, [todayIndex]: todayStr };
       
       const newData: StoredRewardData = {
         points: newPoints,
-        lastClaimDate: todayStr,
-        streak: newStreak,
+        lastClaimTimestamps: newTimestamps,
       };
       
       window.localStorage.setItem(LOCAL_STORAGE_KEY_REWARD, JSON.stringify(newData));
       setPoints(newPoints);
       updateClaimState(); // Refresh UI state after claiming
+      
+      toast({
+          title: 'Klaim Berhasil!',
+          description: `Selamat! Anda mendapatkan ${REWARD_AMOUNT} Coin. Sampai jumpa besok!`,
+      });
       return true;
 
     } catch (error) {

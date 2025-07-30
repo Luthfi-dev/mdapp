@@ -86,7 +86,7 @@ export default function PdfToWordPage() {
 
   const handleConvertToWord = async () => {
     if (!file) {
-      toast({ variant: 'destructive', title: 'File belum dipilih', description: 'Silakan pilih file PDF terlebih dahulu.' });
+      toast({ variant: 'destructive', title: 'File Belum Dipilih', description: 'Silakan pilih file PDF terlebih dahulu.' });
       return;
     }
 
@@ -120,7 +120,7 @@ export default function PdfToWordPage() {
       if (response.docxDataUri) {
         setConvertedFileUrl(response.docxDataUri);
         toast({
-          title: 'Konversi Berhasil',
+          title: 'Konversi Berhasil!',
           description: 'File Anda siap untuk diunduh.',
         });
       } else {
