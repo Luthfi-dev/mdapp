@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useRef } from 'react';
@@ -11,6 +10,7 @@ import { Loader2, FileImage, FileText, ArrowRightLeft, X } from 'lucide-react';
 import { PDFDocument, PDFImage } from 'pdf-lib';
 import Image from 'next/image';
 import { saveAs } from 'file-saver';
+import { optimizeImage } from '@/lib/utils';
 
 interface UploadedImage {
   file: File;
@@ -19,29 +19,46 @@ interface UploadedImage {
 
 export default function ImageToPdfPage() {
   const [files, setFiles] = useState<UploadedImage[]>([]);
-  const [isConverting, setIsConverting] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFiles = e.target.files;
     if (selectedFiles) {
-      const newImages = Array.from(selectedFiles)
+      setIsProcessing(true);
+      const newImagesPromises = Array.from(selectedFiles)
         .filter(file => file.type.startsWith('image/'))
-        .map(file => ({
-          file,
-          url: URL.createObjectURL(file),
-        }));
+        .map(async file => {
+          try {
+            const optimizedFile = await optimizeImage(file, 1240); // Optimize for A4-like width
+            return {
+              file: optimizedFile,
+              url: URL.createObjectURL(optimizedFile),
+            };
+          } catch (error) {
+            console.error("Failed to optimize image:", file.name, error);
+            toast({
+              variant: 'destructive',
+              title: `Gagal Memproses ${file.name}`,
+              description: 'Gambar ini akan dilewati.',
+            });
+            return null;
+          }
+        });
+
+      const newImages = (await Promise.all(newImagesPromises)).filter((img): img is UploadedImage => img !== null);
       
       if (newImages.length > 0) {
         setFiles(prev => [...prev, ...newImages]);
-      } else {
+      } else if (files.length === 0) {
         toast({
           variant: 'destructive',
           title: 'File Tidak Valid',
           description: 'Silakan pilih file dengan format gambar (JPG, PNG, dll).',
         });
       }
+      setIsProcessing(false);
     }
   };
 
@@ -65,7 +82,7 @@ export default function ImageToPdfPage() {
       return;
     }
 
-    setIsConverting(true);
+    setIsProcessing(true);
 
     try {
       const pdfDoc = await PDFDocument.create();
@@ -76,19 +93,9 @@ export default function ImageToPdfPage() {
 
         if (file.type === 'image/png') {
             pdfImage = await pdfDoc.embedPng(arrayBuffer);
-        } else if (file.type === 'image/jpeg') {
-            pdfImage = await pdfDoc.embedJpg(arrayBuffer);
         } else {
-            const image = new window.Image();
-            image.src = URL.createObjectURL(file);
-            await new Promise(resolve => image.onload = resolve);
-            const canvas = document.createElement('canvas');
-            canvas.width = image.width;
-            canvas.height = image.height;
-            const ctx = canvas.getContext('2d');
-            ctx?.drawImage(image, 0, 0);
-            const dataUrl = canvas.toDataURL('image/jpeg');
-            pdfImage = await pdfDoc.embedJpg(dataUrl);
+            // Default to JPG for other types, as our optimizer outputs jpeg
+            pdfImage = await pdfDoc.embedJpg(arrayBuffer);
         }
         
         const page = pdfDoc.addPage([pdfImage.width, pdfImage.height]);
@@ -118,7 +125,7 @@ export default function ImageToPdfPage() {
         description: errorMessage,
       });
     } finally {
-      setIsConverting(false);
+      setIsProcessing(false);
     }
   };
 
@@ -139,11 +146,12 @@ export default function ImageToPdfPage() {
             <div className="space-y-4">
               <Label>File Gambar</Label>
               <div className="border-2 border-dashed rounded-lg p-4 text-center">
-                 <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()}>
+                 <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()} disabled={isProcessing}>
+                   {isProcessing ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : null}
                    Pilih Gambar
                  </Button>
                  <Input ref={fileInputRef} id="file-upload" type="file" accept="image/*" multiple onChange={handleFileChange} className="hidden"/>
-                 <p className="text-xs text-muted-foreground mt-2">Anda dapat memilih beberapa file sekaligus.</p>
+                 <p className="text-xs text-muted-foreground mt-2">Gambar akan dioptimalkan secara otomatis.</p>
               </div>
               
               {files.length > 0 && (
@@ -169,11 +177,11 @@ export default function ImageToPdfPage() {
               )}
             </div>
 
-            <Button type="submit" className="w-full" disabled={isConverting || files.length === 0}>
-              {isConverting ? (
+            <Button type="submit" className="w-full" disabled={isProcessing || files.length === 0}>
+              {isProcessing ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Mengonversi...
+                  Memproses...
                 </>
               ) : (
                 'Konversi & Unduh Otomatis'

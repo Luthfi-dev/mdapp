@@ -16,6 +16,7 @@ import { CountUp } from "@/components/CountUp";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import type { AppDefinition } from "@/app/admin/apps/page";
 import * as LucideIcons from 'lucide-react';
+import Image from 'next/image';
 
 
 // Simulate fetching data
@@ -270,7 +271,7 @@ export default function HomePage() {
                 <div className="space-y-4">
                     <Card className="shadow-sm border-0 bg-card">
                         <CardContent className="p-4 flex gap-4 items-center">
-                            <img data-ai-hint="education learning" src="https://placehold.co/100x100.png" alt="Edukasi" className="w-20 h-20 rounded-lg object-cover" />
+                            <Image data-ai-hint="education learning" src="https://placehold.co/100x100.png" alt="Edukasi" className="w-20 h-20 rounded-lg object-cover" width={100} height={100} />
                             <div className="flex-1">
                                 <h3 className="font-bold leading-tight">Tips Belajar Efektif di Era Digital</h3>
                                 <p className="text-sm text-muted-foreground mt-1">Maksimalkan waktumu dengan metode yang terbukti.</p>
@@ -284,7 +285,7 @@ export default function HomePage() {
                     </Card>
                     <Card className="shadow-sm border-0 bg-card">
                         <CardContent className="p-4 flex gap-4 items-center">
-                            <img data-ai-hint="technology education" src="https://placehold.co/100x100.png" alt="Teknologi" className="w-20 h-20 rounded-lg object-cover" />
+                            <Image data-ai-hint="technology education" src="https://placehold.co/100x100.png" alt="Teknologi" className="w-20 h-20 rounded-lg object-cover" width={100} height={100}/>
                             <div className="flex-1">
                                 <h3 className="font-bold leading-tight">Teknologi dalam Pendidikan</h3>
                                 <p className="text-sm text-muted-foreground mt-1">Peran AI dan teknologi dalam proses belajar.</p>

@@ -9,6 +9,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Save, Loader2, Bot, Upload } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { optimizeImage } from '@/lib/utils';
+
 
 // Simulate fetching and saving data
 import assistantData from '@/data/assistant.json';
@@ -36,18 +38,38 @@ export default function AssistantSettingsPage() {
     setIsLoading(false);
   }, []);
 
-  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setPreviewImage(reader.result as string);
-        // In a real app, you would upload this to a storage service
-        // and get back a URL to save in the settings.
-        // For this simulation, we'll just use a placeholder.
-        setSettings(s => ({ ...s, avatarUrl: reader.result as string }));
-      };
-      reader.readAsDataURL(file);
+      if (!file.type.startsWith('image/')) {
+        toast({
+          variant: 'destructive',
+          title: 'File Tidak Valid',
+          description: 'Hanya file gambar yang diizinkan.'
+        });
+        return;
+      }
+
+      try {
+        const optimizedFile = await optimizeImage(file, 800); // Optimize to max 800px width
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const dataUrl = reader.result as string;
+          setPreviewImage(dataUrl);
+          // In a real app, you would upload `optimizedFile` to a storage service
+          // and get back a URL to save in the settings.
+          // For this simulation, we'll just use the data URL.
+          setSettings(s => ({ ...s, avatarUrl: dataUrl }));
+        };
+        reader.readAsDataURL(optimizedFile);
+      } catch (error) {
+        console.error("Image optimization failed:", error);
+        toast({
+          variant: 'destructive',
+          title: 'Gagal Mengoptimalkan Gambar',
+          description: 'Terjadi kesalahan saat memproses gambar Anda.',
+        });
+      }
     }
   };
 
