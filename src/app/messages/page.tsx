@@ -10,7 +10,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { chat, ChatMessage } from "@/ai/flows/chat";
 import { cn } from "@/lib/utils";
 import { useRouter } from 'next/navigation';
-import { useIsMobile } from "@/hooks/use-is-mobile";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 // Simulate fetching settings
 import assistantData from '@/data/assistant.json';
