@@ -27,20 +27,28 @@ const chatFlow = ai.defineFlow(
   },
   async (history) => {
     // Transform the chat history into the format the model expects.
-    const modelHistory = history.map(msg => ({
-      role: msg.role,
-      parts: [{ text: msg.content }],
-    }));
-
+    // The Gemini API requires roles to alternate between 'user' and 'model'.
+    // We filter out consecutive messages from the same role to prevent errors.
+    const modelHistory = history.reduce((acc, msg) => {
+      if (acc.length === 0 || acc[acc.length - 1].role !== msg.role) {
+        acc.push({
+          role: msg.role,
+          parts: [{ text: msg.content }],
+        });
+      }
+      return acc;
+    }, [] as { role: 'user' | 'model'; parts: { text: string }[] }[]);
+    
     // The last message is the prompt, the rest is history.
     const lastMessage = modelHistory.pop();
+    const prompt = lastMessage?.parts[0].text ?? '';
 
     try {
         const response = await ai.generate({
             model: 'googleai/gemini-2.0-flash',
             system: assistant.systemPrompt,
             history: modelHistory,
-            prompt: lastMessage?.parts[0].text ?? '',
+            prompt: prompt,
             config: {
                 safetySettings: [
                     { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_ONLY_HIGH' },

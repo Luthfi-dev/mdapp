@@ -126,8 +126,10 @@ export default function MessagesPage() {
                                     <AvatarImage src={assistantAvatar} alt={assistantName} />
                                     <AvatarFallback className="bg-primary text-primary-foreground"><Bot /></AvatarFallback>
                                 </Avatar>
-                                <div className="bg-card text-card-foreground border rounded-2xl rounded-bl-none px-4 py-3">
-                                    <Loader2 className="h-5 w-5 animate-spin text-muted-foreground"/>
+                                <div className="bg-card text-card-foreground border rounded-2xl rounded-bl-none px-4 py-3 flex items-center gap-1">
+                                    <span className="w-2 h-2 rounded-full bg-muted-foreground animate-pulse" style={{animationDelay: '0ms'}}></span>
+                                    <span className="w-2 h-2 rounded-full bg-muted-foreground animate-pulse" style={{animationDelay: '200ms'}}></span>
+                                    <span className="w-2 h-2 rounded-full bg-muted-foreground animate-pulse" style={{animationDelay: '400ms'}}></span>
                                 </div>
                             </div>
                         )}
