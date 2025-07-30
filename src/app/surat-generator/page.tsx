@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { 
     FileSignature, Plus, Trash2, Pilcrow, Share2, UploadCloud, Eye, Image as ImageIcon,
-    Bold, Italic, Underline, AlignLeft, AlignCenter, AlignRight, RotateCcw
+    Bold, Italic, Underline, AlignLeft, AlignCenter, AlignRight, Hash
 } from 'lucide-react';
 import {
   AlertDialog,
@@ -37,7 +37,9 @@ const initialFields: SuratField[] = [
     { id: 'tanggal', label: 'Tanggal Surat' },
 ];
 
-const initialTemplate = `Kepada Yth.
+const initialTemplate = `Nomor: {{NOMOR_SURAT_OTOMATIS}}
+
+Kepada Yth.
 Bapak/Ibu <b>{{nama_lengkap}}</b>
 di Tempat
 
@@ -72,7 +74,10 @@ export default function SuratGeneratorPage() {
 
     useEffect(() => {
         setIsClient(true);
-    }, []);
+        if (editorRef.current) {
+            editorRef.current.innerHTML = template;
+        }
+    }, [template]);
 
     const addField = () => {
         if (!newFieldLabel.trim()) {
@@ -80,7 +85,7 @@ export default function SuratGeneratorPage() {
             return;
         }
         const newId = newFieldLabel.trim().toLowerCase().replace(/[^a-z0-9]+/g, '_');
-        if (fields.some(f => f.id === newId)) {
+        if (fields.some(f => f.id === newId) || newId === 'nomor_surat_otomatis') {
             toast({ variant: 'destructive', title: 'Field Sudah Ada', description: 'ID field yang dibuat dari label ini sudah ada.' });
             return;
         }
@@ -111,12 +116,11 @@ export default function SuratGeneratorPage() {
                 if(arrayBuffer instanceof ArrayBuffer) {
                     const tempDiv = document.createElement('div');
                     await docx.renderAsync(arrayBuffer, tempDiv);
-                    // Remove style tags before extracting text
                     tempDiv.querySelectorAll('style').forEach(styleEl => styleEl.remove());
-                    // Use innerHTML to preserve basic formatting like paragraphs and breaks
-                    setTemplate(tempDiv.innerHTML);
+                    const newTemplate = tempDiv.innerHTML;
+                    setTemplate(newTemplate);
                     if (editorRef.current) {
-                        editorRef.current.innerHTML = tempDiv.innerHTML;
+                        editorRef.current.innerHTML = newTemplate;
                     }
                     toast({ title: 'Upload Berhasil', description: 'Template dari file .docx berhasil dimuat.' });
                 }
@@ -278,6 +282,7 @@ export default function SuratGeneratorPage() {
                         </CardHeader>
                         <CardContent className="space-y-3">
                             <div className="space-y-2 max-h-48 overflow-y-auto pr-2">
+                                <Button variant="outline" className="flex-grow justify-start w-full" onClick={() => insertPlaceholder('NOMOR_SURAT_OTOMATIS')}><Hash className="mr-2 h-4 w-4 text-primary" />Nomor Surat Otomatis</Button>
                                 {fields.map(field => (
                                     <div key={field.id} className="flex items-center gap-2">
                                         <Button variant="outline" className="flex-grow justify-start" onClick={() => insertPlaceholder(field.id)}><Pilcrow className="mr-2 h-4 w-4 text-primary" />{field.label}</Button>
