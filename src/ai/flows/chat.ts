@@ -28,7 +28,6 @@ const chatFlow = ai.defineFlow(
   async (history) => {
     // Transform the chat history into the format the model expects.
     // The Gemini API requires roles to alternate between 'user' and 'model'.
-    // We filter out consecutive messages from the same role to prevent errors.
     const modelHistory = history.reduce((acc, msg) => {
       if (acc.length === 0 || acc[acc.length - 1].role !== msg.role) {
         acc.push({
