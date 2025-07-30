@@ -88,14 +88,14 @@ export default function SuratListPage() {
       </AlertDialog>
 
       <div className="max-w-4xl mx-auto">
-        <div className="flex justify-between items-center mb-8">
+        <div className="flex flex-col md:flex-row justify-between md:items-center gap-4 mb-8">
           <div>
             <h1 className="text-3xl font-bold font-headline tracking-tight">Template Surat Anda</h1>
             <p className="text-muted-foreground mt-1">
               Kelola, edit, atau buat template surat baru.
             </p>
           </div>
-          <Button onClick={handleCreateNew}>
+          <Button onClick={handleCreateNew} className="md:ml-auto w-full md:w-auto">
             <Plus className="mr-2" /> Buat Baru
           </Button>
         </div>
