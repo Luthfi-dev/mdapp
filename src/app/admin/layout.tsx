@@ -1,3 +1,4 @@
+
 'use client';
 
 import { SidebarProvider, Sidebar, SidebarTrigger, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarInset, useSidebar } from '@/components/ui/sidebar';
@@ -5,7 +6,7 @@ import { LayoutDashboard, Settings, Bot, LogOut, AppWindow } from 'lucide-react'
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
-export default function AdminLayout({
+function AdminLayoutContent({
   children,
 }: Readonly<{
   children: React.ReactNode;
@@ -16,9 +17,9 @@ export default function AdminLayout({
   const handleLinkClick = () => {
     setOpenMobile(false);
   };
-
+  
   return (
-    <SidebarProvider>
+    <>
       <Sidebar>
         <SidebarHeader>
           <div className="flex items-center gap-2">
@@ -82,6 +83,19 @@ export default function AdminLayout({
           {children}
         </main>
       </SidebarInset>
+    </>
+  )
+}
+
+
+export default function AdminLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
+  return (
+    <SidebarProvider>
+      <AdminLayoutContent>{children}</AdminLayoutContent>
     </SidebarProvider>
   );
 }
