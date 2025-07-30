@@ -120,6 +120,8 @@ export default function SuratGeneratorPage() {
                 if(arrayBuffer instanceof ArrayBuffer) {
                     const tempDiv = document.createElement('div');
                     await docx.renderAsync(arrayBuffer, tempDiv);
+                    // Remove style tags before extracting text
+                    tempDiv.querySelectorAll('style').forEach(styleEl => styleEl.remove());
                     setTemplate(tempDiv.innerText);
                     toast({ title: 'Upload Berhasil', description: 'Template dari file .docx berhasil dimuat.' });
                 }
