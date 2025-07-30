@@ -208,6 +208,18 @@ export default function SuratGeneratorPage() {
 
     const handleSaveTemplate = () => {
         if (!template) return;
+
+        // Pro feature validation
+        if (appSettings?.isPro && content.includes('{{NOMOR_SURAT_OTOMATIS}}')) {
+             toast({
+                variant: 'destructive',
+                title: 'Simpan Gagal: Fitur Pro Digunakan',
+                description: 'Template ini menggunakan {{NOMOR_SURAT_OTOMATIS}}. Harap hapus fitur ini untuk menyimpan karena Mode Pro aktif.',
+                duration: 7000,
+            });
+            return; // Stop the save process
+        }
+
         const updatedTemplate = { ...template, content, lastModified: new Date().toISOString() };
         
         const storedTemplatesRaw = localStorage.getItem(LOCAL_STORAGE_KEY_TEMPLATES);
@@ -234,12 +246,12 @@ export default function SuratGeneratorPage() {
         if (!template) return;
 
         // Check for Pro features if user is not Pro
-        if (!appSettings?.isPro && content.includes('{{NOMOR_SURAT_OTOMATIS}}')) {
+        if (appSettings?.isPro && content.includes('{{NOMOR_SURAT_OTOMATIS}}')) {
             toast({
                 variant: 'destructive',
-                title: 'Fitur Pro Digunakan',
-                description: 'Hapus placeholder {{NOMOR_SURAT_OTOMATIS}} untuk dapat membagikan link ini.',
-                duration: 5000,
+                title: 'Gagal Berbagi: Fitur Pro Digunakan',
+                description: 'Hapus placeholder {{NOMOR_SURAT_OTOMATIS}} untuk dapat membagikan link ini karena Mode Pro sedang aktif.',
+                duration: 7000,
             });
             return;
         }
@@ -330,6 +342,7 @@ export default function SuratGeneratorPage() {
                                 contentEditable={true}
                                 onInput={handleContentChange}
                                 className="min-h-[500px] w-full rounded-b-md border border-input bg-background px-3 py-2 text-base ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm whitespace-pre-wrap font-serif"
+                                dangerouslySetInnerHTML={{ __html: content }}
                                 suppressContentEditableWarning={true}
                              />
                         </CardContent>

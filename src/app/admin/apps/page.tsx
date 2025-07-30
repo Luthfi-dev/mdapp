@@ -113,11 +113,11 @@ export default function ManageAppsPage() {
         <CardContent className="space-y-4">
           <div className="flex justify-between items-center">
             <Button onClick={handleAddNewApp}>
-              <Plus className="mr-2 h-4 w-4" /> Tambah Aplikasi
+              <Plus className="mr-2 h-4 w-4" /> Tambah
             </Button>
             <Button onClick={handleSave} disabled={isSaving}>
               {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-              Simpan Perubahan
+              Update
             </Button>
           </div>
 
