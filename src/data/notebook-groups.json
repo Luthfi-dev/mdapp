@@ -1,0 +1,89 @@
+
+[
+  {
+    "id": "group_project_alpha",
+    "title": "Proyek Alpha - Marketing Campaign",
+    "members": [
+      {
+        "id": "user_1",
+        "name": "Alice",
+        "avatarUrl": "https://placehold.co/40x40/F87171/FFFFFF.png?text=A"
+      },
+      {
+        "id": "user_2",
+        "name": "Bob",
+        "avatarUrl": "https://placehold.co/40x40/60A5FA/FFFFFF.png?text=B"
+      },
+      {
+        "id": "user_3",
+        "name": "Charlie",
+        "avatarUrl": "https://placehold.co/40x40/34D399/FFFFFF.png?text=C"
+      }
+    ],
+    "tasks": [
+      {
+        "id": "task_1",
+        "label": "Riset kompetitor untuk iklan media sosial",
+        "completed": true,
+        "assignedTo": ["user_1"]
+      },
+      {
+        "id": "task_2",
+        "label": "Buat draf konten untuk Instagram dan TikTok",
+        "completed": false,
+        "assignedTo": ["user_1", "user_3"]
+      },
+      {
+        "id": "task_3",
+        "label": "Finalisasi desain visual untuk semua platform",
+        "completed": false,
+        "assignedTo": ["user_2"]
+      }
+    ]
+  },
+  {
+    "id": "group_acara_kantor",
+    "title": "Panitia Acara Tahunan Kantor",
+    "members": [
+      {
+        "id": "user_1",
+        "name": "Alice",
+        "avatarUrl": "https://placehold.co/40x40/F87171/FFFFFF.png?text=A"
+      },
+      {
+        "id": "user_4",
+        "name": "David",
+        "avatarUrl": "https://placehold.co/40x40/FBBF24/FFFFFF.png?text=D"
+      },
+      {
+        "id": "user_5",
+        "name": "Eve",
+        "avatarUrl": "https://placehold.co/40x40/A78BFA/FFFFFF.png?text=E"
+      },
+      {
+        "id": "user_6",
+        "name": "Frank",
+        "avatarUrl": "https://placehold.co/40x40/EC4899/FFFFFF.png?text=F"
+      },
+       {
+        "id": "user_7",
+        "name": "Grace",
+        "avatarUrl": "https://placehold.co/40x40/22D3EE/FFFFFF.png?text=G"
+      }
+    ],
+     "tasks": [
+      {
+        "id": "task_4",
+        "label": "Booking venue dan katering",
+        "completed": true,
+        "assignedTo": ["user_4"]
+      },
+      {
+        "id": "task_5",
+        "label": "Kirim undangan ke semua karyawan",
+        "completed": false,
+        "assignedTo": []
+      }
+    ]
+  }
+]
