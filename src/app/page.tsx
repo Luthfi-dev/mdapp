@@ -232,40 +232,24 @@ export default function HomePage() {
           </div>
 
           <section id="features" className="mb-8 px-6">
-            <Collapsible>
-              <div className="grid grid-cols-4 gap-y-4 gap-x-2 bg-card p-4 rounded-2xl shadow-md">
-                {isLoading ? (
-                    <div className="col-span-4 flex justify-center items-center h-20 w-full">
-                        <Loader2 className="w-6 h-6 animate-spin text-primary" />
-                    </div>
-                ) : (
-                    mainFeatures.slice(0, 3).map(feature => (
-                        <CategoryCard key={feature.id} href={feature.href} icon={getIcon(feature.icon)} label={feature.title} />
-                    ))
-                )}
-                 <CollapsibleTrigger asChild>
-                    <div className="flex flex-col items-center justify-center gap-2 text-center group cursor-pointer">
-                        <div className={`w-16 h-16 rounded-2xl flex items-center justify-center bg-secondary`}>
-                           <ChevronDown className="h-6 w-6 text-muted-foreground transition-transform duration-300 group-data-[state=open]:rotate-180" />
-                        </div>
-                         <span className="text-xs font-medium text-foreground leading-tight">Lainnya</span>
-                    </div>
-                 </CollapsibleTrigger>
-
-                <CollapsibleContent className="col-span-4">
-                  <div className="grid grid-cols-4 gap-y-4 gap-x-2 pt-4">
-                    {mainFeatures.slice(3, 5).map(feature => (
-                        <CategoryCard key={feature.id} href={feature.href} icon={getIcon(feature.icon)} label={feature.title} />
-                    ))}
-                    <CategoryCard 
-                      href="/explore" 
-                      icon={<Grid3x3 className="text-primary"/>} 
-                      label="Semua App" 
-                    />
+            <div className="flex justify-around items-start gap-y-4 gap-x-2 bg-card p-4 rounded-2xl shadow-md">
+              {isLoading ? (
+                  <div className="col-span-4 flex justify-center items-center h-20 w-full">
+                      <Loader2 className="w-6 h-6 animate-spin text-primary" />
                   </div>
-                </CollapsibleContent>
-              </div>
-            </Collapsible>
+              ) : (
+                <>
+                  {mainFeatures.slice(0, 2).map(feature => (
+                      <CategoryCard key={feature.id} href={feature.href} icon={getIcon(feature.icon)} label={feature.title} />
+                  ))}
+                   <CategoryCard 
+                    href="/explore" 
+                    icon={<Grid3x3 className="text-primary"/>} 
+                    label="Semua App" 
+                  />
+                </>
+              )}
+            </div>
           </section>
 
           <section id="interactive-cards" className="mb-8 w-full">
