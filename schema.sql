@@ -1,26 +1,32 @@
--- Skema ini dirancang untuk mendukung otentikasi, RBAC dinamis, dan SSO.
+-- Skema Database Lengkap untuk Aplikasi Toolkit Cerdas
 
--- Tabel untuk peran (Roles)
+-- =============================================
+-- Bagian Otentikasi dan Manajemen Pengguna
+-- =============================================
+
+-- Tabel untuk menyimpan peran pengguna (RBAC)
 CREATE TABLE IF NOT EXISTS roles (
     id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(50) UNIQUE NOT NULL,
-    description TEXT
+    description TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Tabel untuk pengguna (Users)
+-- Tabel untuk menyimpan data pengguna
 CREATE TABLE IF NOT EXISTS users (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(100) NOT NULL,
-    email VARCHAR(100) UNIQUE NOT NULL,
+    name VARCHAR(255) NOT NULL,
+    email VARCHAR(255) UNIQUE NOT NULL,
     password VARCHAR(255) NOT NULL,
     role_id INT,
-    status ENUM('active', 'deactivated', 'blocked') NOT NULL DEFAULT 'active',
+    status ENUM('active', 'deactivated', 'blocked') DEFAULT 'active',
+    points INT DEFAULT 0, -- Kolom baru untuk poin pengguna
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (role_id) REFERENCES roles(id)
 );
 
--- Tabel penghubung untuk peran pengguna (User-Roles)
+-- Tabel penghubung untuk peran pengguna (mendukung banyak peran per pengguna jika diperlukan)
 CREATE TABLE IF NOT EXISTS user_roles (
     user_id INT,
     role_id INT,
@@ -29,14 +35,14 @@ CREATE TABLE IF NOT EXISTS user_roles (
     FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE CASCADE
 );
 
--- Tabel untuk izin (Permissions)
+-- Tabel untuk menyimpan izin spesifik (RBAC)
 CREATE TABLE IF NOT EXISTS permissions (
     id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(100) UNIQUE NOT NULL,
     description TEXT
 );
 
--- Tabel penghubung untuk peran dan izin (Role-Permissions)
+-- Tabel penghubung untuk izin peran (RBAC)
 CREATE TABLE IF NOT EXISTS role_permissions (
     role_id INT,
     permission_id INT,
@@ -45,33 +51,130 @@ CREATE TABLE IF NOT EXISTS role_permissions (
     FOREIGN KEY (permission_id) REFERENCES permissions(id) ON DELETE CASCADE
 );
 
--- Tabel untuk domain yang diizinkan untuk SSO
+-- Tabel untuk mengelola domain yang diizinkan untuk SSO
 CREATE TABLE IF NOT EXISTS sso_domains (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    domain VARCHAR(255) UNIQUE NOT NULL,
+    domain_name VARCHAR(255) UNIQUE NOT NULL,
     is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- === INSERT DATA AWAL ===
+-- =============================================
+-- Bagian Fitur: Catatan Cerdas
+-- =============================================
+
+-- Tabel untuk catatan pribadi (personal notes)
+CREATE TABLE IF NOT EXISTS notes (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    title VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- Tabel untuk item checklist dalam catatan pribadi
+CREATE TABLE IF NOT EXISTS note_items (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    note_id INT NOT NULL,
+    label TEXT NOT NULL,
+    is_completed BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (note_id) REFERENCES notes(id) ON DELETE CASCADE
+);
+
+-- Tabel untuk grup catatan (group notes)
+CREATE TABLE IF NOT EXISTS note_groups (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    owner_id INT NOT NULL, -- User yang membuat grup
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (owner_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- Tabel penghubung untuk anggota grup
+CREATE TABLE IF NOT EXISTS group_members (
+    group_id INT NOT NULL,
+    user_id INT NOT NULL,
+    role ENUM('admin', 'member') DEFAULT 'member',
+    joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (group_id, user_id),
+    FOREIGN KEY (group_id) REFERENCES note_groups(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- Tabel untuk tugas dalam grup
+CREATE TABLE IF NOT EXISTS group_tasks (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    group_id INT NOT NULL,
+    label TEXT NOT NULL,
+    is_completed BOOLEAN DEFAULT FALSE,
+    created_by INT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (group_id) REFERENCES note_groups(id) ON DELETE CASCADE,
+    FOREIGN KEY (created_by) REFERENCES users(id)
+);
+
+-- Tabel penghubung untuk penugasan tugas (siapa mengerjakan tugas apa)
+CREATE TABLE IF NOT EXISTS task_assignees (
+    task_id INT NOT NULL,
+    user_id INT NOT NULL,
+    PRIMARY KEY (task_id, user_id),
+    FOREIGN KEY (task_id) REFERENCES group_tasks(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+
+-- =============================================
+-- Bagian Fitur: Generator Surat
+-- =============================================
+
+-- Tabel untuk menyimpan template surat
+CREATE TABLE IF NOT EXISTS letter_templates (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    title VARCHAR(255) NOT NULL,
+    content LONGTEXT NOT NULL,
+    status ENUM('public', 'private') DEFAULT 'private',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- Tabel untuk menyimpan field dinamis yang terkait dengan setiap template
+CREATE TABLE IF NOT EXISTS template_fields (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    template_id INT NOT NULL,
+    field_id VARCHAR(100) NOT NULL, -- e.g., 'nama_lengkap'
+    label VARCHAR(255) NOT NULL,    -- e.g., 'Nama Lengkap'
+    FOREIGN KEY (template_id) REFERENCES letter_templates(id) ON DELETE CASCADE
+);
+
+
+-- =============================================
+-- Inisialisasi Data Awal (Contoh)
+-- =============================================
 
 -- Masukkan peran-peran dasar
 INSERT INTO roles (id, name, description) VALUES
 (1, 'superadmin', 'Akses penuh ke seluruh sistem, termasuk manajemen admin.'),
-(2, 'admin', 'Akses ke fitur-fitur administratif yang ditentukan.'),
-(3, 'user', 'Akses standar untuk pengguna aplikasi.')
-ON DUPLICATE KEY UPDATE name=name;
+(2, 'admin', 'Akses terbatas untuk mengelola aplikasi dan pengguna.'),
+(3, 'user', 'Pengguna reguler dengan akses ke fitur-fitur aplikasi.')
+ON DUPLICATE KEY UPDATE name=name; -- Tidak melakukan apa-apa jika sudah ada
 
--- (Opsional) Masukkan beberapa izin dasar
+-- Masukkan izin-izin dasar (contoh)
 INSERT INTO permissions (name, description) VALUES
-('manage_users', 'Kemampuan untuk membuat, mengedit, dan menghapus pengguna.'),
-('manage_roles', 'Kemampuan untuk membuat, mengedit, dan menghapus peran.'),
-('manage_settings', 'Kemampuan untuk mengubah pengaturan aplikasi.'),
-('view_admin_dashboard', 'Kemampuan untuk melihat dashboard admin.')
+('manage_users', 'Dapat menambah, mengedit, dan menghapus pengguna.'),
+('manage_roles', 'Dapat membuat dan mengatur izin untuk peran.'),
+('view_admin_dashboard', 'Dapat mengakses dasbor admin.')
 ON DUPLICATE KEY UPDATE name=name;
 
--- (Opsional) Tetapkan beberapa izin ke peran admin
+-- Berikan semua izin ke superadmin (contoh)
 INSERT INTO role_permissions (role_id, permission_id) VALUES
-(2, 1), -- admin bisa manage_users
-(2, 4)  -- admin bisa view_admin_dashboard
+(1, 1),
+(1, 2),
+(1, 3)
 ON DUPLICATE KEY UPDATE role_id=role_id;
