@@ -6,9 +6,9 @@ import { db } from '@/lib/db';
 import type { ResultSetHeader } from 'mysql2';
 
 const registerSchema = z.object({
-  name: z.string().min(3, { message: "Name must be at least 3 characters long." }),
-  email: z.string().email({ message: "Invalid email address." }),
-  password: z.string().min(8, { message: "Password must be at least 8 characters long." }),
+  name: z.string().min(3, { message: "Nama harus memiliki setidaknya 3 karakter." }),
+  email: z.string().email({ message: "Format email tidak valid." }),
+  password: z.string().min(8, { message: "Kata sandi harus memiliki setidaknya 8 karakter." }),
 });
 
 // Role IDs from schema.sql
@@ -37,45 +37,54 @@ export async function POST(request: Request) {
     const [existingUsers]: [any[], any] = await connection.execute('SELECT id FROM users WHERE email = ?', [email]);
     if (existingUsers.length > 0) {
       await connection.rollback();
-      return NextResponse.json({ success: false, message: 'User with this email already exists.' }, { status: 409 });
+      return NextResponse.json({ success: false, message: 'Email ini sudah terdaftar.' }, { status: 409 });
     }
 
     // 3. Hash the password
     const hashedPassword = await hashPassword(password);
 
-    // 4. Create the new user
-    const [result] = await connection.execute<ResultSetHeader>(
+    // 4. Create the new user in the `users` table
+    const [userResult] = await connection.execute<ResultSetHeader>(
       'INSERT INTO users (name, email, password, role_id) VALUES (?, ?, ?, ?)',
       [name, email, hashedPassword, ROLE_ID_USER]
     );
 
-    const newUserId = result.insertId;
+    const newUserId = userResult.insertId;
 
     if (!newUserId) {
-        throw new Error('Failed to create user.');
+        throw new Error('Gagal membuat pengguna baru di tabel users.');
     }
 
-    // 5. Assign default role to the new user in user_roles table
-    await connection.execute(
+    // 5. Assign the default role to the new user in the `user_roles` table
+    const [roleResult] = await connection.execute<ResultSetHeader>(
         'INSERT INTO user_roles (user_id, role_id) VALUES (?, ?)',
         [newUserId, ROLE_ID_USER]
     );
+    
+    if (roleResult.affectedRows === 0) {
+        throw new Error('Gagal menetapkan peran untuk pengguna baru.');
+    }
 
     await connection.commit();
 
     return NextResponse.json({
       success: true,
-      message: 'User registered successfully!',
+      message: 'Registrasi berhasil! Silakan masuk.',
       user: { id: newUserId, name, email, role: 'user' } // Do NOT return the password
     }, { status: 201 });
 
   } catch (error) {
     if (connection) await connection.rollback();
+    
     console.error('Registration error:', error);
+    
+    const errorMessage = error instanceof Error ? error.message : 'Terjadi kesalahan yang tidak diketahui.';
+    
     return NextResponse.json({
       success: false,
-      message: 'An unexpected error occurred during registration.'
+      message: `Registrasi gagal: ${errorMessage}`
     }, { status: 500 });
+
   } finally {
       if (connection) {
           connection.release();
