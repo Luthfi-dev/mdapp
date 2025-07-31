@@ -1,8 +1,8 @@
-
 'use client';
 
 import BottomNavBar from './BottomNavBar';
 import { usePathname } from 'next/navigation';
+import { cn } from '@/lib/utils';
 
 export function MobileLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
