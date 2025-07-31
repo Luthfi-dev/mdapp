@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { 
     FileSignature, Plus, Trash2, Pilcrow, Share2, UploadCloud, Eye, Image as ImageIcon,
-    Bold, Italic, Underline, AlignLeft, AlignCenter, AlignRight, Hash, Save, Crown, Loader2, Lock, Globe
+    Bold, Italic, Underline, AlignLeft, AlignCenter, AlignRight, Hash, Save, Crown, Loader2, Lock, Globe, Gem
 } from 'lucide-react';
 import {
   AlertDialog,
