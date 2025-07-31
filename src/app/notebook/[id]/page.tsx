@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -37,6 +37,9 @@ export default function NotebookEditPage({ params }: { params: { id: string } })
   const [isNumbered, setIsNumbered] = useState(false);
 
   useEffect(() => {
+    // Wait until id is available from router params
+    if (!id) return;
+
     if (id === 'new') {
       setNote({
         id: `note_${Date.now()}`,
@@ -55,6 +58,8 @@ export default function NotebookEditPage({ params }: { params: { id: string } })
           } else {
             router.push('/notebook');
           }
+        } else {
+            router.push('/notebook');
         }
       } catch (error) {
         console.error("Failed to load note", error);
@@ -63,12 +68,12 @@ export default function NotebookEditPage({ params }: { params: { id: string } })
     }
   }, [id, router]);
 
-  const updateNote = (field: keyof Note, value: any) => {
+  const updateNote = useCallback((field: keyof Note, value: any) => {
     if (!note) return;
-    setNote({ ...note, [field]: value });
-  };
+    setNote(currentNote => currentNote ? { ...currentNote, [field]: value } : null);
+  }, [note]);
 
-  const addItem = () => {
+  const addItem = useCallback(() => {
     if (!note) return;
     const newItem: ChecklistItem = {
       id: `item_${Date.now()}`,
@@ -76,30 +81,30 @@ export default function NotebookEditPage({ params }: { params: { id: string } })
       completed: false,
     };
     updateNote('items', [...note.items, newItem]);
-  };
+  }, [note, updateNote]);
 
-  const updateItem = (itemId: string, newLabel: string) => {
+  const updateItem = useCallback((itemId: string, newLabel: string) => {
     if (!note) return;
     const updatedItems = note.items.map(item => 
       item.id === itemId ? { ...item, label: newLabel } : item
     );
     updateNote('items', updatedItems);
-  };
+  }, [note, updateNote]);
 
-  const toggleItemCompletion = (itemId: string) => {
+  const toggleItemCompletion = useCallback((itemId: string) => {
     if (!note) return;
     const updatedItems = note.items.map(item =>
       item.id === itemId ? { ...item, completed: !item.completed } : item
     );
     updateNote('items', updatedItems);
-  };
+  }, [note, updateNote]);
 
-  const removeItem = (itemId: string) => {
+  const removeItem = useCallback((itemId: string) => {
     if (!note) return;
     updateNote('items', note.items.filter(item => item.id !== itemId));
-  };
+  }, [note, updateNote]);
   
-  const handleBulkAdd = () => {
+  const handleBulkAdd = useCallback(() => {
      if (!note || bulkAddCount <= 0) return;
      const newItems: ChecklistItem[] = Array.from({ length: bulkAddCount }, (_, i) => ({
       id: `item_${Date.now()}_${i}`,
@@ -110,7 +115,7 @@ export default function NotebookEditPage({ params }: { params: { id: string } })
     setIsBulkAddOpen(false);
     setBulkAddCount(10);
     setIsNumbered(false);
-  }
+  }, [note, updateNote, bulkAddCount, isNumbered]);
   
   const handleSave = () => {
     if (!note) return;
@@ -247,4 +252,3 @@ export default function NotebookEditPage({ params }: { params: { id: string } })
     </div>
   );
 }
-
