@@ -5,8 +5,8 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Plus, Notebook, Trash2, Edit, Users } from 'lucide-react';
-import { type Note } from '@/types/notebook';
+import { Plus, Notebook, Trash2, Edit, Users, MessageSquare, Phone, UserPlus } from 'lucide-react';
+import { type Note, type NotebookGroup } from '@/types/notebook';
 import { Progress } from '@/components/ui/progress';
 import {
   AlertDialog,
@@ -17,17 +17,99 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
+  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogTrigger,
+  DialogClose,
+} from "@/components/ui/dialog"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { useToast } from '@/hooks/use-toast';
+
 
 // Simulate data
 import notebookGroupsData from '@/data/notebook-groups.json';
 
 const LOCAL_STORAGE_KEY_NOTES = 'notebook_notes_v1';
 
+const CreateGroupDialog = ({ onGroupCreated }: { onGroupCreated: (newGroup: NotebookGroup) => void }) => {
+    const [groupName, setGroupName] = useState('');
+    const { toast } = useToast();
+
+    const handleCreateGroup = () => {
+        if (!groupName.trim()) {
+            toast({ variant: 'destructive', title: 'Nama Grup Wajib Diisi' });
+            return;
+        }
+        const newGroup: NotebookGroup = {
+            id: `group_${Date.now()}`,
+            title: groupName,
+            members: [
+                { id: "user_0", name: "Anda", avatarUrl: "https://placehold.co/40x40/3B82F6/FFFFFF.png?text=Y" }
+            ],
+            tasks: []
+        };
+        onGroupCreated(newGroup);
+        // Automatically close the dialog by using DialogClose in the button
+    };
+
+    return (
+        <Dialog>
+            <DialogTrigger asChild>
+                <Button className="w-full md:w-auto">
+                    <Plus className="mr-2" /> Buat Grup Baru
+                </Button>
+            </DialogTrigger>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Buat Grup Catatan Baru</DialogTitle>
+                    <DialogDescription>
+                        Mulai kolaborasi dengan membuat grup baru. Anda akan otomatis menjadi admin.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="py-4 space-y-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="group-name">Nama Grup</Label>
+                        <Input id="group-name" placeholder="Contoh: Proyek Desain Ulang Web" value={groupName} onChange={(e) => setGroupName(e.target.value)} />
+                    </div>
+                    <div className="space-y-2">
+                        <Label>Undang Anggota</Label>
+                        <div className="p-4 border-2 border-dashed rounded-lg text-center space-y-3">
+                             <Input placeholder="Ketik nama, username, atau email..." />
+                             <p className="text-xs text-muted-foreground">ATAU</p>
+                             <div className='flex gap-2 justify-center'>
+                                <Button variant="outline" size="sm"><Phone className="mr-2"/> Undang dari Kontak</Button>
+                                <Button variant="outline" size="sm"><MessageSquare className="mr-2"/> Undang via WhatsApp</Button>
+                             </div>
+                        </div>
+                    </div>
+                </div>
+                <DialogFooter>
+                    <DialogClose asChild>
+                      <Button variant="outline">Batal</Button>
+                    </DialogClose>
+                    <DialogClose asChild>
+                        <Button onClick={handleCreateGroup}>Buat Grup</Button>
+                    </DialogClose>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
+};
+
+
 export default function NotebookListPage() {
-  const [notes, setNotes] = useState<Note[]>([]);
+  const [personalNotes, setPersonalNotes] = useState<Note[]>([]);
+  const [groupNotes, setGroupNotes] = useState<NotebookGroup[]>([]);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
   const router = useRouter();
 
@@ -35,19 +117,24 @@ export default function NotebookListPage() {
     try {
       const storedNotes = localStorage.getItem(LOCAL_STORAGE_KEY_NOTES);
       if (storedNotes) {
-        setNotes(JSON.parse(storedNotes));
+        setPersonalNotes(JSON.parse(storedNotes));
       }
+      setGroupNotes(notebookGroupsData);
     } catch (error) {
       console.error("Failed to load notes", error);
     }
   }, []);
 
-  const handleCreateNew = () => {
+  const handleCreateNewPersonalNote = () => {
     router.push(`/notebook/new`);
   };
 
   const handleCardClick = (id: string) => {
     router.push(`/notebook/${id}`);
+  }
+  
+  const handleGroupCardClick = (id: string) => {
+    router.push(`/notebook/group/${id}`);
   }
 
   const handleEdit = (id: string) => {
@@ -56,13 +143,18 @@ export default function NotebookListPage() {
 
   const handleDelete = (id: string) => {
     try {
-      const updatedNotes = notes.filter(n => n.id !== id);
-      setNotes(updatedNotes);
+      const updatedNotes = personalNotes.filter(n => n.id !== id);
+      setPersonalNotes(updatedNotes);
       localStorage.setItem(LOCAL_STORAGE_KEY_NOTES, JSON.stringify(updatedNotes));
     } catch (error) {
       console.error("Failed to delete note from localStorage", error);
     }
     setIsDeleting(null);
+  };
+  
+  const handleCreateGroup = (newGroup: NotebookGroup) => {
+      // In a real app, this would be an API call. Here we just update the state.
+      setGroupNotes(prev => [newGroup, ...prev]);
   };
   
   const getProgress = (note: Note) => {
@@ -73,12 +165,12 @@ export default function NotebookListPage() {
   
   const renderPersonalNotes = () => (
     <div className="space-y-4">
-      <Button onClick={handleCreateNew} className="w-full md:w-auto">
+      <Button onClick={handleCreateNewPersonalNote} className="w-full md:w-auto">
         <Plus className="mr-2" /> Buat Catatan Baru
       </Button>
       
-      {notes.length > 0 ? (
-        notes.map(note => {
+      {personalNotes.length > 0 ? (
+        personalNotes.map(note => {
           const progress = getProgress(note);
           const isCompleted = progress === 100 && note.items.length > 0;
 
@@ -126,12 +218,10 @@ export default function NotebookListPage() {
 
   const renderGroupNotes = () => (
     <div className="space-y-4">
-      <Button className="w-full md:w-auto">
-        <Plus className="mr-2" /> Buat Grup Baru
-      </Button>
-      {notebookGroupsData.length > 0 ? (
-        notebookGroupsData.map(group => (
-          <Card key={group.id} className="hover:shadow-md transition-shadow cursor-pointer">
+      <CreateGroupDialog onGroupCreated={handleCreateGroup} />
+      {groupNotes.length > 0 ? (
+        groupNotes.map(group => (
+          <Card key={group.id} className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => handleGroupCardClick(group.id)}>
             <CardHeader>
               <CardTitle>{group.title}</CardTitle>
               <CardDescription>{group.tasks.length} Tugas Aktif</CardDescription>

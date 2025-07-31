@@ -5,6 +5,11 @@
     "title": "Proyek Alpha - Marketing Campaign",
     "members": [
       {
+        "id": "user_0",
+        "name": "Anda",
+        "avatarUrl": "https://placehold.co/40x40/3B82F6/FFFFFF.png?text=Y"
+      },
+      {
         "id": "user_1",
         "name": "Alice",
         "avatarUrl": "https://placehold.co/40x40/F87171/FFFFFF.png?text=A"
@@ -37,7 +42,7 @@
         "id": "task_3",
         "label": "Finalisasi desain visual untuk semua platform",
         "completed": false,
-        "assignedTo": ["user_2"]
+        "assignedTo": []
       }
     ]
   },
@@ -45,10 +50,10 @@
     "id": "group_acara_kantor",
     "title": "Panitia Acara Tahunan Kantor",
     "members": [
-      {
-        "id": "user_1",
-        "name": "Alice",
-        "avatarUrl": "https://placehold.co/40x40/F87171/FFFFFF.png?text=A"
+       {
+        "id": "user_0",
+        "name": "Anda",
+        "avatarUrl": "https://placehold.co/40x40/3B82F6/FFFFFF.png?text=Y"
       },
       {
         "id": "user_4",
@@ -59,16 +64,6 @@
         "id": "user_5",
         "name": "Eve",
         "avatarUrl": "https://placehold.co/40x40/A78BFA/FFFFFF.png?text=E"
-      },
-      {
-        "id": "user_6",
-        "name": "Frank",
-        "avatarUrl": "https://placehold.co/40x40/EC4899/FFFFFF.png?text=F"
-      },
-       {
-        "id": "user_7",
-        "name": "Grace",
-        "avatarUrl": "https://placehold.co/40x40/22D3EE/FFFFFF.png?text=G"
       }
     ],
      "tasks": [
