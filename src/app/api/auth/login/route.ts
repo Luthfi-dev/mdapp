@@ -2,6 +2,7 @@
 import { NextResponse } from 'next/server';
 import { verifyPassword } from '@/lib/auth-utils';
 import { z } from 'zod';
+import { db } from '@/lib/db';
 
 const loginSchema = z.object({
   email: z.string().email({ message: "Invalid email address." }),
@@ -9,6 +10,7 @@ const loginSchema = z.object({
 });
 
 export async function POST(request: Request) {
+  let connection;
   try {
     const body = await request.json();
 
@@ -23,34 +25,28 @@ export async function POST(request: Request) {
 
     const { email, password } = validationResult.data;
 
-    // 2. Find the user (Placeholder)
-    // In a real app, you would query your database for the user by email
-    // Example: const user = await db.user.findUnique({ where: { email } });
-    
-    // --- Mock User Data (Remove in production) ---
-    const MOCK_USER_HASH = '$2a$10$TjG0pXvG6S0mF0s2n3J5X.z/d2L4f8h9j1k0s5m2f7g1h8i3j6k'; // A bcrypt hash for "password123"
-    const user = {
-        email: 'user@example.com',
-        passwordHash: MOCK_USER_HASH,
-        name: 'John Doe',
-        role: 'user'
-    };
-    // --- End Mock User Data ---
-    
-    if (!user) {
-        return NextResponse.json({ success: false, message: 'Invalid credentials.' }, { status: 401 });
+    // 2. Find the user in the database
+    connection = await db.getConnection();
+    const [rows]: [any[], any] = await connection.execute(
+      'SELECT id, name, email, password as passwordHash, role_id FROM users WHERE email = ?',
+      [email]
+    );
+
+    if (rows.length === 0) {
+      return NextResponse.json({ success: false, message: 'Invalid credentials.' }, { status: 401 });
     }
+
+    const user = rows[0];
 
     // 3. Verify the password
     const isPasswordValid = await verifyPassword(password, user.passwordHash);
 
     if (!isPasswordValid) {
-        return NextResponse.json({ success: false, message: 'Invalid credentials.' }, { status: 401 });
+      return NextResponse.json({ success: false, message: 'Invalid credentials.' }, { status: 401 });
     }
-    
-    // 4. Create a session/token (Placeholder)
-    // Here you would typically generate a JWT or create a session cookie.
-    // This token would be sent back to the client to be used for authenticated requests.
+
+    // 4. Create a session/token (Placeholder for JWT or session logic)
+    // For now, we just return user data.
     console.log('--- User Login Successful ---');
     console.log('User:', user.email);
     console.log('This is where you would create a JWT or session.');
@@ -60,7 +56,8 @@ export async function POST(request: Request) {
     return NextResponse.json({
       success: true,
       message: 'Login successful!',
-      user: { name: user.name, email: user.email, role: user.role } // Do NOT return the password hash
+      // Do NOT return the password hash
+      user: { name: user.name, email: user.email, role_id: user.role_id } 
     }, { status: 200 });
 
   } catch (error) {
@@ -69,5 +66,9 @@ export async function POST(request: Request) {
       success: false,
       message: 'An unexpected error occurred.'
     }, { status: 500 });
+  } finally {
+    if (connection) {
+        connection.release();
+    }
   }
 }
