@@ -1,13 +1,68 @@
+
 'use client';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowRight, ChevronRight, Lock, Mail, User } from "lucide-react";
+import { ArrowRight, ChevronRight, Loader2, Lock, Mail, User } from "lucide-react";
 import Link from "next/link";
-import React from "react";
+import React, { useState } from "react";
+import { useToast } from "@/hooks/use-toast";
 
 export default function AccountPage() {
-  const [isLogin, setIsLogin] = React.useState(true);
+  const [isLogin, setIsLogin] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
+
+  const handleFormSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setIsLoading(true);
+
+    const formData = new FormData(event.currentTarget);
+    const name = formData.get("name") as string;
+    const email = formData.get("email") as string;
+    const password = formData.get("password") as string;
+
+    const endpoint = isLogin ? '/api/auth/login' : '/api/auth/register';
+    const body = isLogin ? { email, password } : { name, email, password };
+
+    try {
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        toast({
+          title: isLogin ? 'Login Berhasil!' : 'Registrasi Berhasil!',
+          description: result.message,
+        });
+        // Here you would typically handle the session, e.g., save JWT, redirect user
+        if (isLogin) {
+            // router.push('/dashboard');
+        } else {
+            setIsLogin(true); // Switch to login view after successful registration
+        }
+      } else {
+        toast({
+          variant: 'destructive',
+          title: isLogin ? 'Login Gagal' : 'Registrasi Gagal',
+          description: result.message || 'Terjadi kesalahan.',
+        });
+      }
+
+    } catch (error) {
+       toast({
+          variant: 'destructive',
+          title: 'Error',
+          description: 'Tidak dapat terhubung ke server.',
+        });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <div className="flex flex-col min-h-screen bg-gradient-to-br from-primary/5 via-background to-background">
@@ -23,20 +78,20 @@ export default function AccountPage() {
           </div>
 
           <div className="bg-card p-8 rounded-2xl shadow-xl">
-            <form className="space-y-6">
+            <form onSubmit={handleFormSubmit} className="space-y-6">
               {!isLogin && (
                 <div className="relative">
                   <User className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                  <Input id="name" type="text" placeholder="Nama Lengkap" className="pl-10 h-12 rounded-full" />
+                  <Input id="name" name="name" type="text" placeholder="Nama Lengkap" className="pl-10 h-12 rounded-full" required />
                 </div>
               )}
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                <Input id="email" type="email" placeholder="m@example.com" required className="pl-10 h-12 rounded-full" />
+                <Input id="email" name="email" type="email" placeholder="m@example.com" required className="pl-10 h-12 rounded-full" />
               </div>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                <Input id="password" type="password" required placeholder="Kata Sandi" className="pl-10 h-12 rounded-full" />
+                <Input id="password" name="password" type="password" required placeholder="Kata Sandi" className="pl-10 h-12 rounded-full" />
               </div>
 
               {isLogin && (
@@ -50,9 +105,13 @@ export default function AccountPage() {
                 </div>
               )}
               
-              <Button className="w-full h-12 rounded-full bg-primary hover:bg-primary/90 text-lg font-bold group">
-                {isLogin ? "Masuk" : "Daftar"}
-                <ArrowRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" />
+              <Button type="submit" className="w-full h-12 rounded-full bg-primary hover:bg-primary/90 text-lg font-bold group" disabled={isLoading}>
+                {isLoading ? <Loader2 className="animate-spin" /> : (
+                  <>
+                    {isLogin ? "Masuk" : "Daftar"}
+                    <ArrowRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" />
+                  </>
+                )}
               </Button>
             </form>
           </div>
@@ -60,7 +119,7 @@ export default function AccountPage() {
           <div className="text-center mt-8">
             <p className="text-muted-foreground">
               {isLogin ? "Belum punya akun?" : "Sudah punya akun?"}{' '}
-              <button onClick={() => setIsLogin(!isLogin)} className="font-semibold text-primary hover:underline">
+              <button onClick={() => setIsLogin(!isLogin)} className="font-semibold text-primary hover:underline" disabled={isLoading}>
                 {isLogin ? "Daftar sekarang" : "Masuk"}
               </button>
             </p>

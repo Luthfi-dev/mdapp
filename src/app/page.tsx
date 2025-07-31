@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
-import { ArrowRight, BrainCircuit, Edit, Grid3x3, Moon, Search, Sun, Gift, Star, Info, Package, FileText, ScanLine, Loader2 } from "lucide-react";
+import { ArrowRight, BrainCircuit, Edit, Grid3x3, Moon, Search, Sun, Gift, Star, Info, Package, FileText, ScanLine, Loader2, ChevronDown } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import Autoplay from "embla-carousel-autoplay"
 import React, { useEffect, useState } from "react";
@@ -19,6 +19,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import type { AppDefinition } from "@/app/admin/apps/page";
 import * as LucideIcons from 'lucide-react';
 import Image from 'next/image';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 
 // Simulate fetching data
@@ -120,12 +121,12 @@ export default function HomePage() {
    const [startRect, setStartRect] = React.useState<DOMRect | null>(null);
 
    const [mainFeatures, setMainFeatures] = useState<AppDefinition[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
+   const [isLoading, setIsLoading] = useState(true);
 
    useEffect(() => {
-        // In a real app, you'd fetch this. Here we filter from the imported JSON.
-        const features = appsData.filter(app => ['/converter', '/scanner', '/explore'].includes(app.href));
-        setMainFeatures(features);
+        // In a real app, this will be replaced with logic to fetch admin-defined or recently-used apps.
+        const sortedApps = [...appsData].sort((a, b) => a.order - b.order);
+        setMainFeatures(sortedApps);
         setIsLoading(false);
     }, []);
 
@@ -231,17 +232,40 @@ export default function HomePage() {
           </div>
 
           <section id="features" className="mb-8 px-6">
-              <div className="flex justify-around items-start bg-card p-2 rounded-2xl shadow-md">
+            <Collapsible>
+              <div className="grid grid-cols-4 gap-y-4 gap-x-2 bg-card p-4 rounded-2xl shadow-md">
                 {isLoading ? (
-                    <div className="flex justify-center items-center h-20 w-full">
+                    <div className="col-span-4 flex justify-center items-center h-20 w-full">
                         <Loader2 className="w-6 h-6 animate-spin text-primary" />
                     </div>
                 ) : (
-                    mainFeatures.map(feature => (
+                    mainFeatures.slice(0, 3).map(feature => (
                         <CategoryCard key={feature.id} href={feature.href} icon={getIcon(feature.icon)} label={feature.title} />
                     ))
                 )}
+                 <CollapsibleTrigger asChild>
+                    <div className="flex flex-col items-center justify-center gap-2 text-center group cursor-pointer">
+                        <div className={`w-16 h-16 rounded-2xl flex items-center justify-center bg-secondary`}>
+                           <ChevronDown className="h-6 w-6 text-muted-foreground transition-transform duration-300 group-data-[state=open]:rotate-180" />
+                        </div>
+                         <span className="text-xs font-medium text-foreground leading-tight">Lainnya</span>
+                    </div>
+                 </CollapsibleTrigger>
+
+                <CollapsibleContent className="col-span-4">
+                  <div className="grid grid-cols-4 gap-y-4 gap-x-2 pt-4">
+                    {mainFeatures.slice(3, 5).map(feature => (
+                        <CategoryCard key={feature.id} href={feature.href} icon={getIcon(feature.icon)} label={feature.title} />
+                    ))}
+                    <CategoryCard 
+                      href="/explore" 
+                      icon={<Grid3x3 className="text-primary"/>} 
+                      label="Semua App" 
+                    />
+                  </div>
+                </CollapsibleContent>
               </div>
+            </Collapsible>
           </section>
 
           <section id="interactive-cards" className="mb-8 w-full">
