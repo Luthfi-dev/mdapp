@@ -30,7 +30,7 @@ export function Toaster() {
           <AlertDialog key={id} open={props.open} onOpenChange={(open) => {
             if(!open) onDismiss();
           }}>
-            <AlertDialogContent className="max-w-xs rounded-2xl">
+            <AlertDialogContent className="max-w-xs rounded-2xl shadow-2xl">
               <AlertDialogHeader className="items-center text-center">
                 <Icon className={`w-14 h-14 mb-2 ${iconColor}`} />
                 <AlertDialogTitle className="text-xl">
@@ -48,7 +48,7 @@ export function Toaster() {
                 ) : (
                   <Button
                     onClick={onDismiss}
-                    className="w-full"
+                    className="w-full text-lg font-bold rounded-full h-12 shadow-lg shadow-primary/30 bg-gradient-to-br from-primary to-primary/70 text-primary-foreground transition-all duration-300 hover:shadow-primary/50 hover:scale-105 active:scale-95"
                     variant={variant === 'destructive' ? 'destructive' : 'default'}
                   >
                     Oke
