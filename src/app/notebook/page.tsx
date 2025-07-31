@@ -34,6 +34,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 
 // Simulate data
@@ -44,6 +45,7 @@ const LOCAL_STORAGE_KEY_NOTES = 'notebook_notes_v1';
 const CreateGroupDialog = ({ onGroupCreated }: { onGroupCreated: (newGroup: NotebookGroup) => void }) => {
     const [groupName, setGroupName] = useState('');
     const { toast } = useToast();
+    const isMobile = useIsMobile();
 
     const handleCreateGroup = () => {
         if (!groupName.trim()) {
@@ -59,7 +61,8 @@ const CreateGroupDialog = ({ onGroupCreated }: { onGroupCreated: (newGroup: Note
             tasks: []
         };
         onGroupCreated(newGroup);
-        // Automatically close the dialog by using DialogClose in the button
+        // Reset state for next use
+        setGroupName('');
     };
 
     return (
@@ -82,13 +85,13 @@ const CreateGroupDialog = ({ onGroupCreated }: { onGroupCreated: (newGroup: Note
                         <Input id="group-name" placeholder="Contoh: Proyek Desain Ulang Web" value={groupName} onChange={(e) => setGroupName(e.target.value)} />
                     </div>
                     <div className="space-y-2">
-                        <Label>Undang Anggota</Label>
+                        <Label>Undang Anggota (Opsional)</Label>
                         <div className="p-4 border-2 border-dashed rounded-lg text-center space-y-3">
                              <Input placeholder="Ketik nama, username, atau email..." />
                              <p className="text-xs text-muted-foreground">ATAU</p>
-                             <div className='flex gap-2 justify-center'>
-                                <Button variant="outline" size="sm"><Phone className="mr-2"/> Undang dari Kontak</Button>
-                                <Button variant="outline" size="sm"><MessageSquare className="mr-2"/> Undang via WhatsApp</Button>
+                             <div className='flex flex-col sm:flex-row gap-2 justify-center'>
+                                <Button variant="outline" size="sm" className="w-full"><Phone className="mr-2"/> Undang {isMobile ? '' : 'dari Kontak'}</Button>
+                                <Button variant="outline" size="sm" className="w-full"><MessageSquare className="mr-2"/> Undang {isMobile ? '' : 'via WhatsApp'}</Button>
                              </div>
                         </div>
                     </div>
@@ -137,7 +140,8 @@ export default function NotebookListPage() {
     router.push(`/notebook/group/${id}`);
   }
 
-  const handleEdit = (id: string) => {
+  const handleEdit = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
     router.push(`/notebook/${id}?edit=true`);
   };
 
@@ -179,15 +183,17 @@ export default function NotebookListPage() {
             <CardHeader>
                 <CardTitle className="flex justify-between items-center">
                     <span className="truncate">{note.title || 'Tanpa Judul'}</span>
-                    <div className="flex items-center gap-2">
-                       {!isCompleted && (
-                         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); handleEdit(note.id) }}>
-                           <Edit className="h-4 w-4" />
-                         </Button>
-                       )}
-                       <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={(e) => { e.stopPropagation(); setIsDeleting(note.id) }}>
-                         <Trash2 className="h-4 w-4" />
-                       </Button>
+                     <div className="flex items-center gap-1 shrink-0">
+                        {!isCompleted && (
+                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => handleEdit(note.id, e)}>
+                                <Edit className="h-4 w-4" />
+                            </Button>
+                        )}
+                        <AlertDialogTrigger asChild>
+                           <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={(e) => { e.stopPropagation(); setIsDeleting(note.id); }}>
+                             <Trash2 className="h-4 w-4" />
+                           </Button>
+                        </AlertDialogTrigger>
                     </div>
                 </CardTitle>
             </CardHeader>
