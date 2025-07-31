@@ -1,4 +1,3 @@
-
 'use client';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -39,11 +38,11 @@ export default function AccountPage() {
           title: isLogin ? 'Login Berhasil!' : 'Registrasi Berhasil!',
           description: result.message,
         });
-        // Here you would typically handle the session, e.g., save JWT, redirect user
+        // Di sini Anda biasanya akan menangani sesi, misalnya menyimpan JWT, mengarahkan pengguna
         if (isLogin) {
-            // router.push('/dashboard');
+            // Contoh: router.push('/dashboard');
         } else {
-            setIsLogin(true); // Switch to login view after successful registration
+            setIsLogin(true); // Beralih ke tampilan login setelah registrasi berhasil
         }
       } else {
         toast({
@@ -97,7 +96,7 @@ export default function AccountPage() {
               {isLogin && (
                 <div className="flex items-center justify-between text-sm">
                    <div className="flex items-center gap-2">
-                     {/* Checkbox can be added here */}
+                     {/* Checkbox bisa ditambahkan di sini */}
                   </div>
                   <Link href="/login" className="font-medium text-primary hover:underline">
                     Login sebagai Admin?
