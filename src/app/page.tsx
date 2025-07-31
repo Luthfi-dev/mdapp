@@ -1,3 +1,4 @@
+
 'use client';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -7,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import Autoplay from "embla-carousel-autoplay"
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
@@ -108,6 +110,7 @@ export default function HomePage() {
    const plugin = React.useRef(
     Autoplay({ delay: 3000, stopOnInteraction: true, stopOnMouseEnter: true })
    )
+   const router = useRouter();
    const { theme, setTheme } = useTheme();
    const isMobile = useIsMobile();
    const [isDialogOpen, setIsDialogOpen] = React.useState(false);
@@ -144,6 +147,15 @@ export default function HomePage() {
        }
        setIsDialogOpen(isOpen);
    }
+
+   const handleSearch = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+    const searchQuery = formData.get('search') as string;
+    if (searchQuery.trim()) {
+      router.push(`/explore?q=${encodeURIComponent(searchQuery.trim())}`);
+    }
+   };
    
   return (
     <>
@@ -207,14 +219,15 @@ export default function HomePage() {
         
         <main className="flex-1 flex flex-col -mt-10 z-10">
           <div className="w-full px-6">
-              <div className="relative mb-8">
+              <form className="relative mb-8" onSubmit={handleSearch}>
                   <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                   <Input
+                    name="search"
                     type="search"
                     placeholder="Cari tool yg kamu butuhkan"
                     className="w-full rounded-full bg-card text-foreground placeholder:text-muted-foreground pl-11 pr-4 py-2 h-12 border-2 border-transparent focus-visible:border-primary focus-visible:ring-0"
                   />
-              </div>
+              </form>
           </div>
 
           <section id="features" className="mb-8 px-6">

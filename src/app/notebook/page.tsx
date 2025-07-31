@@ -46,7 +46,7 @@ export default function NotebookListPage() {
   }
 
   const handleEdit = (id: string) => {
-    router.push(`/notebook/${id}`);
+    router.push(`/notebook/${id}?edit=true`);
   };
 
   const handleDelete = (id: string) => {
@@ -85,7 +85,7 @@ export default function NotebookListPage() {
 
       <div className="max-w-4xl mx-auto space-y-8">
         <div className="text-center">
-            <h1 className="text-4xl font-bold font-headline tracking-tight">Jurnal Cerdas</h1>
+            <h1 className="text-4xl font-bold font-headline tracking-tight">Catatan Cerdas</h1>
             <p className="text-muted-foreground mt-2 text-lg">
                 Organisir ide dan tugas Anda dengan checklist canggih.
             </p>

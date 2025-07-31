@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { useRouter, useParams } from 'next/navigation';
+import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -29,6 +29,8 @@ const LOCAL_STORAGE_KEY_NOTES = 'notebook_notes_v1';
 export default function NotebookEditPage() {
   const router = useRouter();
   const params = useParams();
+  const searchParams = useSearchParams();
+
   const id = params.id as string;
   const { toast } = useToast();
   
@@ -40,6 +42,8 @@ export default function NotebookEditPage() {
 
   useEffect(() => {
     if (!id) return;
+    
+    const editModeParam = searchParams.get('edit') === 'true';
 
     if (id === 'new') {
       setNote({
@@ -57,6 +61,9 @@ export default function NotebookEditPage() {
           const currentNote = notes.find(n => n.id === id);
           if (currentNote) {
             setNote(currentNote);
+            if(editModeParam) {
+              setIsEditMode(true);
+            }
           } else {
             router.push('/notebook');
           }
@@ -68,7 +75,7 @@ export default function NotebookEditPage() {
         router.push('/notebook');
       }
     }
-  }, [id, router]);
+  }, [id, router, searchParams]);
 
   const updateNote = useCallback((field: keyof Note, value: any) => {
     setNote(currentNote => currentNote ? { ...currentNote, [field]: value } : null);
@@ -221,7 +228,7 @@ export default function NotebookEditPage() {
                            </AlertDialogTrigger>
                            <AlertDialogContent>
                               <AlertDialogHeader>
-                                <AlertDialogTitle>Cara Penggunaan Jurnal Cerdas</AlertDialogTitle>
+                                <AlertDialogTitle>Cara Penggunaan Catatan Cerdas</AlertDialogTitle>
                               </AlertDialogHeader>
                                <div className="space-y-3 text-sm text-muted-foreground">
                                 <p>1. Klik ikon <Edit size={16} className="inline-block"/> untuk masuk mode edit.</p>

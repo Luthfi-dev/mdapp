@@ -1,6 +1,8 @@
+
 'use client';
 
 import { useState, useEffect, type ReactNode } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Search, Loader2, Star, Flame } from 'lucide-react';
@@ -22,7 +24,9 @@ const getIcon = (iconName: string): ReactNode => {
 };
 
 export default function ExplorePage() {
-  const [searchTerm, setSearchTerm] = useState('');
+  const searchParams = useSearchParams();
+  const initialSearch = searchParams.get('q') || '';
+  const [searchTerm, setSearchTerm] = useState(initialSearch);
   const [allApps, setAllApps] = useState<AppDefinition[]>([]);
   const [favoriteApps, setFavoriteApps] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
