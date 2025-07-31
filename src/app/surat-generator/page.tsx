@@ -20,6 +20,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
+  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import * as docx from 'docx-preview';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -30,7 +31,6 @@ import { AdBanner } from '@/components/AdBanner';
 import { loadAppSettings, AppSettings } from '@/data/app-settings';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-
 
 const LOCAL_STORAGE_KEY_TEMPLATES = 'surat_templates_v1';
 
@@ -58,7 +58,6 @@ const initialTemplateContent = `<p style="text-align: right;">{{tanggal}}</p>
 <p><i>Manajemen Perusahaan</i><br><u>{{jabatan}}</u></p>
 `;
 
-
 export default function SuratGeneratorPage() {
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -66,18 +65,15 @@ export default function SuratGeneratorPage() {
     const [newFieldLabel, setNewFieldLabel] = useState('');
     const [isAddFieldAlertOpen, setIsAddFieldAlertOpen] = useState(false);
     const [isPosterAdOpen, setIsPosterAdOpen] = useState(false);
+    const [isProInfoOpen, setIsProInfoOpen] = useState(false);
     
-    const [content, setContent] = useState('');
     const [appSettings, setAppSettings] = useState<AppSettings>();
 
     const { toast } = useToast();
     const editorRef = useRef<HTMLDivElement>(null);
+    const contentRef = useRef(initialTemplateContent);
     const isMobile = useIsMobile();
     
-    // This ref helps prevent cursor jump by avoiding re-renders on every keystroke
-    const isFirstRender = useRef(true);
-
-
     useEffect(() => {
         const id = searchParams.get('id');
         const storedTemplatesRaw = localStorage.getItem(LOCAL_STORAGE_KEY_TEMPLATES);
@@ -87,11 +83,11 @@ export default function SuratGeneratorPage() {
         const settings = loadAppSettings()['app_surat_generator'];
         setAppSettings(settings);
 
+        let initialContent: string;
         if (existingTemplate) {
             setTemplate(existingTemplate);
-            setContent(existingTemplate.content);
+            initialContent = existingTemplate.content;
         } else {
-            // Create new template structure
             const newTemplate: Template = {
                 id: `surat_${Date.now()}`,
                 title: 'Template Surat Baru',
@@ -103,29 +99,23 @@ export default function SuratGeneratorPage() {
                     poster: { enabled: true, type: 'manual', value: 'https://placehold.co/300x400.png' },
                 },
                 lastModified: new Date().toISOString(),
-                status: 'public', // Default to public
+                status: 'public',
             };
             setTemplate(newTemplate);
-            setContent(newTemplate.content);
+            initialContent = newTemplate.content;
+        }
+
+        contentRef.current = initialContent;
+        if (editorRef.current) {
+            editorRef.current.innerHTML = initialContent;
         }
     }, [searchParams]);
 
     const handleContentUpdate = useCallback(() => {
         if (editorRef.current) {
-            const newContent = editorRef.current.innerHTML;
-            if (content !== newContent) {
-                setContent(newContent);
-            }
+            contentRef.current = editorRef.current.innerHTML;
         }
-    }, [content]);
-
-    useEffect(() => {
-        if (editorRef.current && (isFirstRender.current || content !== editorRef.current.innerHTML)) {
-            editorRef.current.innerHTML = content;
-            isFirstRender.current = false;
-        }
-    }, [content]);
-
+    }, []);
 
     const addField = () => {
         if (!template) return;
@@ -150,6 +140,10 @@ export default function SuratGeneratorPage() {
     };
 
     const insertPlaceholder = (id: string) => {
+        if (id === 'NOMOR_SURAT_OTOMATIS' && appSettings?.isPro) {
+            setIsProInfoOpen(true);
+            return;
+        }
         const placeholder = `{{${id}}}`;
         if (editorRef.current) {
             editorRef.current.focus();
@@ -170,7 +164,10 @@ export default function SuratGeneratorPage() {
                     tempDiv.querySelectorAll('style').forEach(styleEl => styleEl.remove());
                     
                     const newContent = tempDiv.innerHTML;
-                    setContent(newContent);
+                    if(editorRef.current) {
+                        editorRef.current.innerHTML = newContent;
+                        handleContentUpdate();
+                    }
                 }
             };
             reader.readAsArrayBuffer(file);
@@ -186,7 +183,10 @@ export default function SuratGeneratorPage() {
             const reader = new FileReader();
             reader.onloadend = () => {
                 const newContent = `<p style="text-align: center;"><img src="${reader.result as string}" alt="Kop Surat" style="max-width: 100%; height: auto;" /></p><hr>${editorRef.current?.innerHTML || ''}`;
-                setContent(newContent);
+                if(editorRef.current) {
+                    editorRef.current.innerHTML = newContent;
+                    handleContentUpdate();
+                }
             };
             reader.readAsDataURL(file);
         } else if (file) {
@@ -201,24 +201,27 @@ export default function SuratGeneratorPage() {
             handleContentUpdate();
         }
     };
+    
+    const checkProFeatures = (content: string) => {
+        if (appSettings?.isPro && content.includes('{{NOMOR_SURAT_OTOMATIS}}')) {
+            toast({
+                variant: 'destructive',
+                title: 'Fitur Pro Terdeteksi',
+                description: 'Hapus placeholder {{NOMOR_SURAT_OTOMATIS}} untuk menyimpan atau membagikan template karena Mode Pro sedang aktif.',
+                duration: 7000,
+            });
+            return true;
+        }
+        return false;
+    };
 
     const handleSaveTemplate = () => {
         if (!template) return;
-        handleContentUpdate(); // Ensure content is up to date before saving
-        const currentContent = editorRef.current?.innerHTML || content;
-
-        // Pro feature validation
-        if (appSettings?.isPro && currentContent.includes('{{NOMOR_SURAT_OTOMATIS}}')) {
-             toast({
-                variant: 'destructive',
-                title: 'Simpan Gagal: Fitur Pro Digunakan',
-                description: 'Template ini menggunakan {{NOMOR_SURAT_OTOMATIS}}. Harap hapus fitur ini untuk menyimpan karena Mode Pro aktif.',
-                duration: 7000,
-            });
-            return; // Stop the save process
-        }
+        handleContentUpdate();
+        const currentContent = contentRef.current;
         
-        // Private status validation
+        if (checkProFeatures(currentContent)) return;
+        
         if (appSettings?.isPro && template.status === 'private') {
             toast({
                 variant: 'destructive',
@@ -228,7 +231,6 @@ export default function SuratGeneratorPage() {
             });
             return;
         }
-
 
         const updatedTemplate = { ...template, content: currentContent, lastModified: new Date().toISOString() };
         
@@ -255,17 +257,9 @@ export default function SuratGeneratorPage() {
     const handleShare = () => {
         if (!template) return;
         handleContentUpdate();
-        const currentContent = editorRef.current?.innerHTML || content;
+        const currentContent = contentRef.current;
 
-        if (appSettings?.isPro && currentContent.includes('{{NOMOR_SURAT_OTOMATIS}}')) {
-            toast({
-                variant: 'destructive',
-                title: 'Gagal Berbagi: Fitur Pro Digunakan',
-                description: 'Hapus placeholder {{NOMOR_SURAT_OTOMATIS}} untuk dapat membagikan link ini karena Mode Pro sedang aktif.',
-                duration: 7000,
-            });
-            return;
-        }
+        if (checkProFeatures(currentContent)) return;
 
         const dataToEncode = {
             template: currentContent,
@@ -282,7 +276,8 @@ export default function SuratGeneratorPage() {
     const handlePreview = () => {
         if (!template) return;
         handleContentUpdate();
-        const currentContent = editorRef.current?.innerHTML || content;
+        const currentContent = contentRef.current;
+        
         const dataToEncode = {
             template: currentContent,
             fields: template.fields,
@@ -316,6 +311,26 @@ export default function SuratGeneratorPage() {
                     <AlertDialogFooter><AlertDialogCancel>Batal</AlertDialogCancel><AlertDialogAction onClick={addField}>Tambah</AlertDialogAction></AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
+
+            <AlertDialog open={isProInfoOpen} onOpenChange={setIsProInfoOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <div className="flex justify-center">
+                           <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center border-4 border-primary/20">
+                             <Gem className="h-8 w-8 text-primary" />
+                           </div>
+                        </div>
+                        <AlertDialogTitle className="text-center text-2xl">Fitur Premium</AlertDialogTitle>
+                        <AlertDialogDescription className="text-center">
+                            Ini adalah fitur premium yang hanya tersedia untuk pelanggan Pro. Upgrade akun Anda untuk menikmati penomoran otomatis dan fitur canggih lainnya!
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter className="sm:justify-center flex-col-reverse sm:flex-row gap-2">
+                        <AlertDialogCancel>Nanti Saja</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => router.push('/pricing')}>Upgrade Sekarang</AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
             
             <AlertDialog open={isPosterAdOpen} onOpenChange={setIsPosterAdOpen}>
                  <AlertDialogContent className="p-0 border-0 max-w-xs w-full overflow-hidden">
@@ -327,7 +342,6 @@ export default function SuratGeneratorPage() {
                  </AlertDialogContent>
             </AlertDialog>
 
-
             <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <div className="lg:col-span-2 order-2 lg:order-1">
                      <Card className="shadow-lg h-full">
@@ -336,7 +350,7 @@ export default function SuratGeneratorPage() {
                                 <CardTitle className="flex items-center gap-3">Editor Template</CardTitle>
                                 <Input value={template.title} onChange={(e) => setTemplate({ ...template, title: e.target.value })} className="text-sm text-muted-foreground border-0 p-0 h-auto focus-visible:ring-0" />
                             </div>
-                             <Button variant="ghost" size="icon" onClick={() => { setContent('') }}>
+                             <Button variant="ghost" size="icon" onClick={() => { if(editorRef.current) { editorRef.current.innerHTML = ''; handleContentUpdate(); }}}>
                                 <Trash2 className="w-5 h-5 text-destructive" />
                             </Button>
                         </CardHeader>
@@ -354,9 +368,8 @@ export default function SuratGeneratorPage() {
                                 ref={editorRef}
                                 contentEditable={true}
                                 onBlur={handleContentUpdate}
-                                onInput={handleContentUpdate}
                                 className="min-h-[500px] w-full rounded-b-md border border-input bg-background px-3 py-2 text-base ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm whitespace-pre-wrap font-serif"
-                                dangerouslySetInnerHTML={{ __html: content }}
+                                dangerouslySetInnerHTML={{ __html: contentRef.current }}
                                 suppressContentEditableWarning={true}
                              />
                         </CardContent>
@@ -388,24 +401,27 @@ export default function SuratGeneratorPage() {
                                 <Label className="font-semibold">Status Template</Label>
                                 <RadioGroup 
                                     value={template.status} 
-                                    onValueChange={(value: 'public' | 'private') => setTemplate({ ...template, status: value })}
+                                    onValueChange={(value: 'public' | 'private') => {
+                                        if (value === 'private' && appSettings?.isPro) {
+                                            setIsProInfoOpen(true);
+                                            return;
+                                        }
+                                        setTemplate({ ...template, status: value });
+                                    }}
                                     className="mt-2"
                                 >
                                     <div className="flex items-center space-x-2">
                                         <RadioGroupItem value="public" id="status-public" />
                                         <Label htmlFor="status-public" className="flex items-center gap-2"><Globe/> Publik</Label>
                                     </div>
-                                    <div className="flex items-center space-x-2">
-                                        <RadioGroupItem value="private" id="status-private" disabled={appSettings?.isPro} />
-                                        <Label htmlFor="status-private" className={cn("flex items-center gap-2", appSettings?.isPro && "text-muted-foreground cursor-not-allowed")}>
+                                     <div className="flex items-center space-x-2">
+                                        <RadioGroupItem value="private" id="status-private" />
+                                        <Label htmlFor="status-private" className={cn("flex items-center gap-2 cursor-pointer", appSettings?.isPro && "text-muted-foreground")} onClick={() => appSettings?.isPro && setIsProInfoOpen(true)}>
                                             <Lock /> Privat
                                             <Crown className="h-4 w-4 text-primary" />
                                         </Label>
                                     </div>
                                 </RadioGroup>
-                                {appSettings?.isPro && template.status === 'private' && (
-                                    <p className="text-xs text-destructive mt-2">Mode Pro aktif. Simpan sebagai Privat tidak diizinkan.</p>
-                                )}
                             </div>
                             <div className="flex flex-col items-center justify-center p-4 border-2 border-dashed rounded-lg text-center">
                                  <UploadCloud className="w-10 h-10 text-muted-foreground mb-2"/>

@@ -1,0 +1,53 @@
+
+[
+  {
+    "id": "plan_basic",
+    "name": "Gratis",
+    "price": "0",
+    "priceDetails": "",
+    "description": "Untuk penggunaan pribadi dan mencoba fitur dasar.",
+    "features": [
+      "Akses ke semua alat dasar",
+      "Generator surat standar",
+      "Riwayat pindaian terbatas",
+      "Dukungan komunitas"
+    ],
+    "isPopular": false,
+    "buttonText": "Mulai Gratis",
+    "buttonVariant": "outline"
+  },
+  {
+    "id": "plan_pro",
+    "name": "Pro",
+    "price": "49.000",
+    "priceDetails": "/bulan",
+    "description": "Pilihan terbaik untuk profesional dan pengguna aktif.",
+    "features": [
+      "Semua fitur paket Gratis",
+      "Penomoran Surat Otomatis",
+      "Template Surat Privat",
+      "Tanpa Iklan",
+      "Dukungan Prioritas"
+    ],
+    "isPopular": true,
+    "buttonText": "Upgrade ke Pro",
+    "buttonVariant": "default"
+  },
+  {
+    "id": "plan_business",
+    "name": "Bisnis",
+    "price": "149.000",
+    "priceDetails": "/bulan",
+    "description": "Solusi lengkap untuk tim dan kebutuhan bisnis.",
+    "features": [
+      "Semua fitur paket Pro",
+      "Manajemen anggota tim",
+      "Analitik penggunaan",
+      "Branding kustom",
+      "Dukungan SLA"
+    ],
+    "isPopular": false,
+    "buttonText": "Hubungi Sales",
+    "buttonVariant": "secondary"
+  }
+]
