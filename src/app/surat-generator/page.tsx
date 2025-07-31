@@ -66,12 +66,13 @@ export default function SuratGeneratorPage() {
     const [isAddFieldAlertOpen, setIsAddFieldAlertOpen] = useState(false);
     const [isPosterAdOpen, setIsPosterAdOpen] = useState(false);
     const [isProInfoOpen, setIsProInfoOpen] = useState(false);
+    const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
+    const [templateTitleInput, setTemplateTitleInput] = useState('');
     
     const [appSettings, setAppSettings] = useState<AppSettings>();
 
     const { toast } = useToast();
     const editorRef = useRef<HTMLDivElement>(null);
-    const contentRef = useRef(initialTemplateContent);
     const isMobile = useIsMobile();
     
     useEffect(() => {
@@ -86,6 +87,7 @@ export default function SuratGeneratorPage() {
         let initialContent: string;
         if (existingTemplate) {
             setTemplate(existingTemplate);
+            setTemplateTitleInput(existingTemplate.title);
             initialContent = existingTemplate.content;
         } else {
             const newTemplate: Template = {
@@ -102,20 +104,19 @@ export default function SuratGeneratorPage() {
                 status: 'public',
             };
             setTemplate(newTemplate);
+            setTemplateTitleInput(newTemplate.title);
             initialContent = newTemplate.content;
         }
-
-        contentRef.current = initialContent;
+        
         if (editorRef.current) {
             editorRef.current.innerHTML = initialContent;
         }
     }, [searchParams]);
-
+    
     const handleContentUpdate = useCallback(() => {
-        if (editorRef.current) {
-            contentRef.current = editorRef.current.innerHTML;
-        }
-    }, []);
+        if (!editorRef.current || !template) return;
+        setTemplate(t => t ? { ...t, content: editorRef.current!.innerHTML } : null);
+    }, [template]);
 
     const addField = () => {
         if (!template) return;
@@ -216,9 +217,13 @@ export default function SuratGeneratorPage() {
     };
 
     const handleSaveTemplate = () => {
-        if (!template) return;
-        handleContentUpdate();
-        const currentContent = contentRef.current;
+        if (!template || !templateTitleInput.trim()) {
+            toast({ variant: 'destructive', title: 'Judul Template Wajib Diisi' });
+            return;
+        }
+
+        handleContentUpdate(); 
+        const currentContent = editorRef.current?.innerHTML || '';
         
         if (checkProFeatures(currentContent)) return;
         
@@ -232,7 +237,7 @@ export default function SuratGeneratorPage() {
             return;
         }
 
-        const updatedTemplate = { ...template, content: currentContent, lastModified: new Date().toISOString() };
+        const updatedTemplate = { ...template, content: currentContent, title: templateTitleInput, lastModified: new Date().toISOString() };
         
         const storedTemplatesRaw = localStorage.getItem(LOCAL_STORAGE_KEY_TEMPLATES);
         let storedTemplates: Template[] = storedTemplatesRaw ? JSON.parse(storedTemplatesRaw) : [];
@@ -246,8 +251,9 @@ export default function SuratGeneratorPage() {
         
         localStorage.setItem(LOCAL_STORAGE_KEY_TEMPLATES, JSON.stringify(storedTemplates));
         setTemplate(updatedTemplate);
+        setIsSaveDialogOpen(false);
 
-        toast({ title: 'Template Disimpan!', description: `"${template.title}" telah berhasil disimpan.` });
+        toast({ title: 'Template Disimpan!', description: `"${templateTitleInput}" telah berhasil disimpan.` });
         
         if(appSettings?.ads.poster.enabled){
             setIsPosterAdOpen(true);
@@ -257,7 +263,7 @@ export default function SuratGeneratorPage() {
     const handleShare = () => {
         if (!template) return;
         handleContentUpdate();
-        const currentContent = contentRef.current;
+        const currentContent = editorRef.current?.innerHTML || '';
 
         if (checkProFeatures(currentContent)) return;
 
@@ -276,7 +282,7 @@ export default function SuratGeneratorPage() {
     const handlePreview = () => {
         if (!template) return;
         handleContentUpdate();
-        const currentContent = contentRef.current;
+        const currentContent = editorRef.current?.innerHTML || '';
         
         const dataToEncode = {
             template: currentContent,
@@ -309,6 +315,20 @@ export default function SuratGeneratorPage() {
                         <Input id="new-field-label" value={newFieldLabel} onChange={(e) => setNewFieldLabel(e.target.value)} placeholder="Contoh: NIP, Alamat" onKeyDown={(e) => e.key === 'Enter' && addField()} />
                     </div>
                     <AlertDialogFooter><AlertDialogCancel>Batal</AlertDialogCancel><AlertDialogAction onClick={addField}>Tambah</AlertDialogAction></AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+            
+             <AlertDialog open={isSaveDialogOpen} onOpenChange={setIsSaveDialogOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Simpan Template Surat</AlertDialogTitle>
+                        <AlertDialogDescription>Berikan nama yang deskriptif untuk template Anda agar mudah ditemukan nanti.</AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <div className="py-4">
+                        <Label htmlFor="template-title-input">Nama Template</Label>
+                        <Input id="template-title-input" value={templateTitleInput} onChange={(e) => setTemplateTitleInput(e.target.value)} placeholder="Contoh: Surat Undangan Rapat" onKeyDown={(e) => e.key === 'Enter' && handleSaveTemplate()} />
+                    </div>
+                    <AlertDialogFooter><AlertDialogCancel>Batal</AlertDialogCancel><AlertDialogAction onClick={handleSaveTemplate}>Simpan</AlertDialogAction></AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
 
@@ -348,7 +368,7 @@ export default function SuratGeneratorPage() {
                         <CardHeader className='flex-row items-center justify-between'>
                             <div>
                                 <CardTitle className="flex items-center gap-3">Editor Template</CardTitle>
-                                <Input value={template.title} onChange={(e) => setTemplate({ ...template, title: e.target.value })} className="text-sm text-muted-foreground border-0 p-0 h-auto focus-visible:ring-0" />
+                                <CardDescription>Ubah judul template di dialog simpan.</CardDescription>
                             </div>
                              <Button variant="ghost" size="icon" onClick={() => { if(editorRef.current) { editorRef.current.innerHTML = ''; handleContentUpdate(); }}}>
                                 <Trash2 className="w-5 h-5 text-destructive" />
@@ -369,7 +389,7 @@ export default function SuratGeneratorPage() {
                                 contentEditable={true}
                                 onBlur={handleContentUpdate}
                                 className="min-h-[500px] w-full rounded-b-md border border-input bg-background px-3 py-2 text-base ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm whitespace-pre-wrap font-serif"
-                                dangerouslySetInnerHTML={{ __html: contentRef.current }}
+                                dangerouslySetInnerHTML={{ __html: template.content }}
                                 suppressContentEditableWarning={true}
                              />
                         </CardContent>
@@ -382,7 +402,7 @@ export default function SuratGeneratorPage() {
                             <CardTitle className="flex items-center gap-3"><FileSignature className="w-6 h-6 text-primary" />Aksi & Opsi</CardTitle>
                         </CardHeader>
                         <CardContent className="flex flex-col gap-4">
-                             <Button onClick={handleSaveTemplate} className="w-full"><Save className="mr-2 h-4 w-4" /> Simpan Template</Button>
+                             <Button onClick={() => setIsSaveDialogOpen(true)} className="w-full"><Save className="mr-2 h-4 w-4" /> Simpan Template</Button>
                              <Button onClick={handleShare} className="w-full" variant="secondary"><Share2 className="mr-2 h-4 w-4" /> Salin Link</Button>
                             <Button onClick={handlePreview} className="w-full" variant="secondary"><Eye className="mr-2 h-4 w-4" /> Pratinjau & Isi</Button>
                         </CardContent>

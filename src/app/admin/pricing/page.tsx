@@ -116,7 +116,7 @@ export default function ManagePricingPage() {
             <Button onClick={handleAddNewPlan}><Plus className="mr-2 h-4 w-4" /> Tambah Paket</Button>
             <Button onClick={handleSave} disabled={isSaving}>
               {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-              Simpan Perubahan
+              Update
             </Button>
           </div>
 
