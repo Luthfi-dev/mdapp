@@ -15,6 +15,7 @@ export interface Template {
     poster: AdSetting;
   };
   lastModified: string; // ISO string
+  status: 'public' | 'private'; // New status field
 }
 
 export interface AdSetting {

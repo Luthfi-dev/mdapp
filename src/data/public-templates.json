@@ -1,0 +1,44 @@
+
+[
+  {
+    "id": "public_surat_undangan_rapat",
+    "title": "Surat Undangan Rapat",
+    "content": "<p style=\"text-align: right;\">Bandung, {{tanggal}}</p><br><p>Nomor: .../UND/HRD/IX/2024<br>Perihal: Undangan Rapat</p><br><p>Kepada Yth.<br><b>{{nama_penerima}}</b><br>di Tempat</p><br><p>Dengan hormat,</p><p>Sehubungan dengan agenda evaluasi kuartal ketiga, dengan ini kami mengundang Bapak/Ibu untuk hadir dalam rapat yang akan diselenggarakan pada:</p><p>Hari/Tanggal: Jumat, 27 September 2024<br>Waktu: 10:00 WIB - Selesai<br>Tempat: {{lokasi_rapat}}</p><p>Demikian surat undangan ini kami sampaikan. Atas perhatian dan kehadiran Bapak/Ibu, kami ucapkan terima kasih.</p><br><p>Hormat kami,</p><br><br><p><b>{{nama_pengirim}}</b><br><i>{{jabatan_pengirim}}</i></p>",
+    "fields": [
+      { "id": "tanggal", "label": "Tanggal Surat" },
+      { "id": "nama_penerima", "label": "Nama Penerima Undangan" },
+      { "id": "lokasi_rapat", "label": "Lokasi Rapat" },
+      { "id": "nama_pengirim", "label": "Nama Pengirim" },
+      { "id": "jabatan_pengirim", "label": "Jabatan Pengirim" }
+    ],
+    "isPro": false,
+    "ads": {
+      "banner": { "enabled": false, "type": "manual", "value": "" },
+      "poster": { "enabled": false, "type": "manual", "value": "" }
+    },
+    "lastModified": "2024-01-01T00:00:00.000Z",
+    "status": "public"
+  },
+  {
+    "id": "public_surat_keterangan_kerja",
+    "title": "Surat Keterangan Kerja",
+    "content": "<p style=\"text-align: center;\"><b><u>SURAT KETERANGAN KERJA</u></b><br>Nomor: .../SKK/HRD/IX/2024</p><br><p>Yang bertanda tangan di bawah ini:</p><p>Nama: {{nama_atasan}}<br>Jabatan: {{jabatan_atasan}}</p><br><p>Dengan ini menerangkan bahwa:</p><p>Nama: <b>{{nama_karyawan}}</b><br>NIK: {{nik_karyawan}}<br>Jabatan: {{jabatan_karyawan}}</p><br><p>Adalah benar merupakan karyawan kami yang telah bekerja sejak {{tanggal_mulai_kerja}} sampai saat ini dan telah menunjukkan kinerja yang baik serta dedikasi yang tinggi.</p><p>Demikian surat keterangan ini dibuat untuk dipergunakan sebagaimana mestinya.</p><br><p>{{kota_surat}}, {{tanggal_surat}}</p><br><br><p><b>{{nama_atasan}}</b><br><i>{{jabatan_atasan}}</i></p>",
+    "fields": [
+      { "id": "nama_atasan", "label": "Nama Atasan" },
+      { "id": "jabatan_atasan", "label": "Jabatan Atasan" },
+      { "id": "nama_karyawan", "label": "Nama Karyawan" },
+      { "id": "nik_karyawan", "label": "NIK Karyawan" },
+      { "id": "jabatan_karyawan", "label": "Jabatan Karyawan" },
+      { "id": "tanggal_mulai_kerja", "label": "Tanggal Mulai Kerja" },
+      { "id": "kota_surat", "label": "Kota Penerbitan Surat" },
+      { "id": "tanggal_surat", "label": "Tanggal Penerbitan Surat" }
+    ],
+    "isPro": false,
+    "ads": {
+      "banner": { "enabled": false, "type": "manual", "value": "" },
+      "poster": { "enabled": false, "type": "manual", "value": "" }
+    },
+    "lastModified": "2024-01-01T00:00:00.000Z",
+    "status": "public"
+  }
+]
