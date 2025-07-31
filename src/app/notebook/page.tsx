@@ -113,7 +113,6 @@ const CreateGroupDialog = ({ onGroupCreated }: { onGroupCreated: (newGroup: Note
 export default function NotebookListPage() {
   const [personalNotes, setPersonalNotes] = useState<Note[]>([]);
   const [groupNotes, setGroupNotes] = useState<NotebookGroup[]>([]);
-  const [isDeleting, setIsDeleting] = useState<string | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -145,7 +144,8 @@ export default function NotebookListPage() {
     router.push(`/notebook/${id}?edit=true`);
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
     try {
       const updatedNotes = personalNotes.filter(n => n.id !== id);
       setPersonalNotes(updatedNotes);
@@ -153,7 +153,6 @@ export default function NotebookListPage() {
     } catch (error) {
       console.error("Failed to delete note from localStorage", error);
     }
-    setIsDeleting(null);
   };
   
   const handleCreateGroup = (newGroup: NotebookGroup) => {
@@ -189,11 +188,25 @@ export default function NotebookListPage() {
                                 <Edit className="h-4 w-4" />
                             </Button>
                         )}
-                        <AlertDialogTrigger asChild>
-                           <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={(e) => { e.stopPropagation(); setIsDeleting(note.id); }}>
-                             <Trash2 className="h-4 w-4" />
-                           </Button>
-                        </AlertDialogTrigger>
+                        <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                               <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={(e) => { e.stopPropagation(); }}>
+                                 <Trash2 className="h-4 w-4" />
+                               </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Anda yakin?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Tindakan ini tidak bisa dibatalkan. Ini akan menghapus catatan secara permanen.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel onClick={(e) => e.stopPropagation()}>Batal</AlertDialogCancel>
+                                <AlertDialogAction onClick={(e) => handleDelete(note.id, e)}>Hapus</AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
                     </div>
                 </CardTitle>
             </CardHeader>
@@ -262,21 +275,6 @@ export default function NotebookListPage() {
 
   return (
     <div className="container mx-auto px-4 py-8 pb-24">
-       <AlertDialog open={!!isDeleting} onOpenChange={(open) => !open && setIsDeleting(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Anda yakin?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Tindakan ini tidak bisa dibatalkan. Ini akan menghapus catatan secara permanen.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Batal</AlertDialogCancel>
-            <AlertDialogAction onClick={() => handleDelete(isDeleting!)}>Hapus</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
       <div className="max-w-4xl mx-auto space-y-8">
         <div className="text-center">
             <h1 className="text-4xl font-bold font-headline tracking-tight">Catatan Cerdas</h1>
