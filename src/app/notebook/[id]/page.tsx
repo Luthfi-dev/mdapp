@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -26,9 +26,10 @@ import { Progress } from '@/components/ui/progress';
 
 const LOCAL_STORAGE_KEY_NOTES = 'notebook_notes_v1';
 
-export default function NotebookEditPage({ params }: { params: { id: string } }) {
+export default function NotebookEditPage() {
   const router = useRouter();
-  const { id } = params;
+  const params = useParams();
+  const id = params.id as string;
   const { toast } = useToast();
   
   const [note, setNote] = useState<Note | null>(null);
