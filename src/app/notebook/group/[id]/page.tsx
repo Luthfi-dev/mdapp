@@ -40,6 +40,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Badge } from '@/components/ui/badge';
+import { Loader2 } from 'lucide-react';
 
 // Simulate loading group data
 import notebookGroupsData from '@/data/notebook-groups.json';
@@ -184,7 +185,11 @@ export default function GroupNotebookPage() {
 
 
   if (!group) {
-    return <div>Loading...</div>;
+    return (
+        <div className="flex justify-center items-center h-screen">
+            <Loader2 className="w-12 h-12 animate-spin text-primary" />
+        </div>
+    );
   }
   
   return (
