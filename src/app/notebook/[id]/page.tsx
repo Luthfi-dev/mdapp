@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Plus, Trash2, Save, HelpCircle, ChevronsDownUp, ListPlus } from 'lucide-react';
+import { Plus, Trash2, Save, HelpCircle, ListPlus, Edit, ArrowLeft } from 'lucide-react';
 import { type Note, type ChecklistItem } from '@/types/notebook';
 import {
   AlertDialog,
@@ -36,9 +36,9 @@ export default function NotebookEditPage() {
   const [isBulkAddOpen, setIsBulkAddOpen] = useState(false);
   const [bulkAddCount, setBulkAddCount] = useState(10);
   const [isNumbered, setIsNumbered] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
 
   useEffect(() => {
-    // Wait until id is available from router params
     if (!id) return;
 
     if (id === 'new') {
@@ -48,6 +48,7 @@ export default function NotebookEditPage() {
         items: [],
         createdAt: new Date().toISOString(),
       });
+      setIsEditMode(true); // Start in edit mode for new notes
     } else {
       try {
         const storedNotes = localStorage.getItem(LOCAL_STORAGE_KEY_NOTES);
@@ -70,9 +71,8 @@ export default function NotebookEditPage() {
   }, [id, router]);
 
   const updateNote = useCallback((field: keyof Note, value: any) => {
-    if (!note) return;
     setNote(currentNote => currentNote ? { ...currentNote, [field]: value } : null);
-  }, [note]);
+  }, []);
 
   const addItem = useCallback(() => {
     if (!note) return;
@@ -97,8 +97,23 @@ export default function NotebookEditPage() {
     const updatedItems = note.items.map(item =>
       item.id === itemId ? { ...item, completed: !item.completed } : item
     );
-    updateNote('items', updatedItems);
-  }, [note, updateNote]);
+    const updatedNote = { ...note, items: updatedItems };
+    setNote(updatedNote);
+
+    // Auto-save completion status
+    try {
+        const storedNotesRaw = localStorage.getItem(LOCAL_STORAGE_KEY_NOTES);
+        let notes: Note[] = storedNotesRaw ? JSON.parse(storedNotesRaw) : [];
+        const existingIndex = notes.findIndex(n => n.id === updatedNote.id);
+        if (existingIndex > -1) {
+            notes[existingIndex] = updatedNote;
+            localStorage.setItem(LOCAL_STORAGE_KEY_NOTES, JSON.stringify(notes));
+        }
+    } catch (error) {
+        console.error("Failed to auto-save note completion", error);
+    }
+
+  }, [note]);
 
   const removeItem = useCallback((itemId: string) => {
     if (!note) return;
@@ -138,7 +153,7 @@ export default function NotebookEditPage() {
       
       localStorage.setItem(LOCAL_STORAGE_KEY_NOTES, JSON.stringify(notes));
       toast({ title: 'Catatan Disimpan!', description: `"${note.title}" telah berhasil disimpan.` });
-      router.push('/notebook');
+      setIsEditMode(false); // Exit edit mode after saving
     } catch (error) {
         console.error("Failed to save note", error);
         toast({ variant: 'destructive', title: 'Gagal Menyimpan', description: 'Terjadi kesalahan saat menyimpan catatan.' });
@@ -152,8 +167,10 @@ export default function NotebookEditPage() {
   }, [note]);
 
   if (!note) {
-    return <div>Loading...</div>; // Or a proper loader
+    return <div>Loading...</div>;
   }
+  
+  const isNoteCompleted = progress === 100 && note.items.length > 0;
 
   return (
     <div className="container mx-auto px-4 py-8 pb-24">
@@ -183,32 +200,42 @@ export default function NotebookEditPage() {
         <Card className="max-w-2xl mx-auto">
             <CardHeader>
                 <CardTitle className="flex items-center justify-between">
-                    <Input 
-                        placeholder="Judul Catatan Anda..." 
-                        value={note.title}
-                        onChange={(e) => updateNote('title', e.target.value)}
-                        className="text-2xl font-bold border-0 shadow-none focus-visible:ring-0 p-0"
-                    />
-                    <AlertDialog>
-                       <AlertDialogTrigger asChild>
-                         <Button variant="ghost" size="icon"><HelpCircle className="h-5 w-5"/></Button>
-                       </AlertDialogTrigger>
-                       <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Cara Penggunaan Jurnal Cerdas</AlertDialogTitle>
-                          </AlertDialogHeader>
-                           <div className="space-y-3 text-sm text-muted-foreground">
-                            <p>1. Beri nama catatan Anda dengan mengklik teks "Judul Catatan".</p>
-                            <p>2. Tambah item satu per satu dengan tombol <b className="text-foreground">Tambah Item</b>.</p>
-                            <p>3. Buat banyak item sekaligus dengan tombol <b className="text-foreground">Buat Banyak Item</b>.</p>
-                            <p>4. Centang kotak di samping item untuk menandainya sebagai selesai.</p>
-                            <p>5. Klik <b className="text-foreground">Simpan Catatan</b> untuk menyimpan semua perubahan Anda.</p>
-                          </div>
-                          <AlertDialogFooter>
-                            <AlertDialogAction>Mengerti!</AlertDialogAction>
-                          </AlertDialogFooter>
-                       </AlertDialogContent>
-                    </AlertDialog>
+                    {isEditMode ? (
+                        <Input 
+                            placeholder="Judul Catatan Anda..." 
+                            value={note.title}
+                            onChange={(e) => updateNote('title', e.target.value)}
+                            className="text-2xl font-bold border-0 shadow-none focus-visible:ring-0 p-0 h-auto"
+                        />
+                    ) : (
+                        <span className="text-2xl font-bold">{note.title || 'Tanpa Judul'}</span>
+                    )}
+
+                    <div className="flex items-center gap-1">
+                        {!isEditMode && !isNoteCompleted && (
+                            <Button variant="ghost" size="icon" onClick={() => setIsEditMode(true)}><Edit className="h-5 w-5"/></Button>
+                        )}
+                        <AlertDialog>
+                           <AlertDialogTrigger asChild>
+                             <Button variant="ghost" size="icon"><HelpCircle className="h-5 w-5"/></Button>
+                           </AlertDialogTrigger>
+                           <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Cara Penggunaan Jurnal Cerdas</AlertDialogTitle>
+                              </AlertDialogHeader>
+                               <div className="space-y-3 text-sm text-muted-foreground">
+                                <p>1. Klik ikon <Edit size={16} className="inline-block"/> untuk masuk mode edit.</p>
+                                <p>2. Saat mode edit, Anda bisa mengubah judul, menambah/mengedit/menghapus item.</p>
+                                <p>3. Tambah item satu per satu dengan tombol <b className="text-foreground">Tambah Item</b>.</p>
+                                <p>4. Buat banyak item sekaligus dengan tombol <b className="text-foreground">Buat Banyak Item</b>.</p>
+                                <p>5. Klik <b className="text-foreground">Simpan Catatan</b> untuk menyimpan semua perubahan Anda.</p>
+                              </div>
+                              <AlertDialogFooter>
+                                <AlertDialogAction>Mengerti!</AlertDialogAction>
+                              </AlertDialogFooter>
+                           </AlertDialogContent>
+                        </AlertDialog>
+                    </div>
                 </CardTitle>
                 <CardDescription>
                     <Progress value={progress} className="w-full mt-2" />
@@ -223,31 +250,46 @@ export default function NotebookEditPage() {
                         onCheckedChange={() => toggleItemCompletion(item.id)}
                         className="w-5 h-5"
                       />
-                      <Input 
-                        value={item.label}
-                        onChange={(e) => updateItem(item.id, e.target.value)}
-                        className={`border-0 shadow-none focus-visible:ring-0 p-1 h-auto ${item.completed ? 'line-through text-muted-foreground' : ''}`}
-                        placeholder='Isi tugas disini...'
-                      />
-                      <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100" onClick={() => removeItem(item.id)}>
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
+                      {isEditMode ? (
+                        <Input 
+                            value={item.label}
+                            onChange={(e) => updateItem(item.id, e.target.value)}
+                            className={`border-0 shadow-none focus-visible:ring-0 p-1 h-auto ${item.completed ? 'line-through text-muted-foreground' : ''}`}
+                            placeholder='Isi tugas disini...'
+                        />
+                      ) : (
+                        <span className={`p-1 ${item.completed ? 'line-through text-muted-foreground' : ''}`}>
+                            {item.label || <span className="text-muted-foreground italic">Item kosong</span>}
+                        </span>
+                      )}
+                      {isEditMode && (
+                        <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100" onClick={() => removeItem(item.id)}>
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      )}
                     </div>
                   ))}
                 </div>
 
-                <div className="flex flex-col sm:flex-row gap-2">
-                    <Button onClick={addItem} variant="outline" className="w-full">
-                        <Plus className="mr-2"/> Tambah Item
+                {isEditMode ? (
+                    <>
+                        <div className="flex flex-col sm:flex-row gap-2">
+                            <Button onClick={addItem} variant="outline" className="w-full">
+                                <Plus className="mr-2"/> Tambah Item
+                            </Button>
+                             <Button onClick={() => setIsBulkAddOpen(true)} variant="outline" className="w-full">
+                                <ListPlus className="mr-2"/> Buat Banyak Item
+                            </Button>
+                        </div>
+                        <Button onClick={handleSave} className="w-full">
+                            <Save className="mr-2"/> Simpan Perubahan
+                        </Button>
+                    </>
+                ) : (
+                     <Button onClick={() => router.push('/notebook')} variant="outline" className="w-full">
+                        <ArrowLeft className="mr-2"/> Kembali ke Daftar
                     </Button>
-                     <Button onClick={() => setIsBulkAddOpen(true)} variant="outline" className="w-full">
-                        <ListPlus className="mr-2"/> Buat Banyak Item
-                    </Button>
-                </div>
-                
-                <Button onClick={handleSave} className="w-full">
-                    <Save className="mr-2"/> Simpan Catatan
-                </Button>
+                )}
             </CardContent>
         </Card>
     </div>

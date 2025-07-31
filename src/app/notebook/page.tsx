@@ -41,6 +41,10 @@ export default function NotebookListPage() {
     router.push(`/notebook/new`);
   };
 
+  const handleCardClick = (id: string) => {
+    router.push(`/notebook/${id}`);
+  }
+
   const handleEdit = (id: string) => {
     router.push(`/notebook/${id}`);
   };
@@ -93,15 +97,21 @@ export default function NotebookListPage() {
         
         <section className="space-y-4">
           {notes.length > 0 ? (
-            notes.map(note => (
-              <Card key={note.id} className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => handleEdit(note.id)}>
+            notes.map(note => {
+              const progress = getProgress(note);
+              const isCompleted = progress === 100 && note.items.length > 0;
+
+              return (
+              <Card key={note.id} className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => handleCardClick(note.id)}>
                 <CardHeader>
                     <CardTitle className="flex justify-between items-center">
                         <span className="truncate">{note.title || 'Tanpa Judul'}</span>
                         <div className="flex items-center gap-2">
-                           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); handleEdit(note.id) }}>
-                             <Edit className="h-4 w-4" />
-                           </Button>
+                           {!isCompleted && (
+                             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); handleEdit(note.id) }}>
+                               <Edit className="h-4 w-4" />
+                             </Button>
+                           )}
                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={(e) => { e.stopPropagation(); setIsDeleting(note.id) }}>
                              <Trash2 className="h-4 w-4" />
                            </Button>
@@ -110,7 +120,7 @@ export default function NotebookListPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="flex items-center gap-4">
-                    <Progress value={getProgress(note)} className="w-full" />
+                    <Progress value={progress} className="w-full" />
                     <span className="text-sm font-semibold text-muted-foreground whitespace-nowrap">
                       {note.items.filter(i => i.completed).length} / {note.items.length}
                     </span>
@@ -120,7 +130,7 @@ export default function NotebookListPage() {
                   </p>
                 </CardContent>
               </Card>
-            ))
+            )})
           ) : (
              <div className="text-center py-16 border-2 border-dashed rounded-lg">
               <Notebook className="mx-auto h-12 w-12 text-muted-foreground" />
