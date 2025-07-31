@@ -11,6 +11,16 @@
     "order": 0
   },
   {
+    "id": "app_notebook",
+    "title": "Jurnal Cerdas",
+    "description": "Organisir ide dan tugas dengan checklist canggih.",
+    "href": "/notebook",
+    "icon": "Notebook",
+    "isPopular": true,
+    "isNew": true,
+    "order": 1
+  },
+  {
     "id": "app_unit_converter",
     "title": "Konversi Unit",
     "description": "Konversi berbagai satuan ukuran seperti panjang, berat, dan suhu secara instan.",
@@ -18,7 +28,7 @@
     "icon": "BookOpen",
     "isPopular": false,
     "isNew": false,
-    "order": 2
+    "order": 3
   },
   {
     "id": "app_scanner",
@@ -28,7 +38,7 @@
     "icon": "ScanLine",
     "isPopular": true,
     "isNew": false,
-    "order": 1
+    "order": 2
   },
   {
     "id": "app_calculator",
@@ -38,7 +48,7 @@
     "icon": "Calculator",
     "isPopular": true,
     "isNew": false,
-    "order": 3
+    "order": 4
   },
   {
     "id": "app_surat_generator",
@@ -48,7 +58,7 @@
     "icon": "FileSignature",
     "isPopular": true,
     "isNew": true,
-    "order": 4
+    "order": 5
   },
   {
     "id": "app_color_generator",
@@ -58,7 +68,7 @@
     "icon": "Palette",
     "isPopular": false,
     "isNew": true,
-    "order": 5
+    "order": 6
   },
   {
     "id": "app_stopwatch",
@@ -68,7 +78,7 @@
     "icon": "Timer",
     "isPopular": false,
     "isNew": false,
-    "order": 6
+    "order": 7
   },
    {
     "id": "app_all_apps",
@@ -78,6 +88,6 @@
     "icon": "Grid3x3",
     "isPopular": false,
     "isNew": false,
-    "order": 7
+    "order": 8
   }
 ]
