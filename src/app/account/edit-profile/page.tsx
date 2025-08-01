@@ -64,7 +64,8 @@ export default function EditProfilePage() {
                 return null;
             }
         } catch (error) {
-            toast({ variant: 'destructive', title: 'Error Unggah', description: 'Tidak dapat terhubung ke server.' });
+            const message = error instanceof Error ? error.message : 'Tidak dapat terhubung ke server.';
+            toast({ variant: 'destructive', title: 'Error Unggah', description: message });
             return null;
         } finally {
             setIsUploading(false);
@@ -76,16 +77,17 @@ export default function EditProfilePage() {
         if (file) {
             const newAvatarPath = await uploadAvatar(file);
             if(newAvatarPath) {
-                // Eagerly update UI
                 setAvatarUrl(`/api/images/${newAvatarPath}?t=${new Date().getTime()}`);
                 setAvatarPath(newAvatarPath);
                 
                 // Immediately save the profile with the new avatar path
-                await saveProfile({ name, phone, avatar_url: newAvatarPath });
-                toast({
-                    title: "Foto Profil Diperbarui!",
-                    description: "Foto profil Anda telah berhasil diganti."
-                });
+                const success = await saveProfile({ name, phone, avatar_url: newAvatarPath });
+                 if(success) {
+                    toast({
+                        title: "Foto Profil Diperbarui!",
+                        description: "Foto profil Anda telah berhasil diganti."
+                    });
+                }
             }
         }
     };
@@ -119,7 +121,8 @@ export default function EditProfilePage() {
                 return false;
             }
         } catch (error) {
-             toast({ variant: 'destructive', title: 'Error', description: 'Tidak dapat terhubung ke server.' });
+             const message = error instanceof Error ? error.message : 'Tidak dapat terhubung ke server.';
+             toast({ variant: 'destructive', title: 'Error', description: message });
              return false;
         } finally {
             setIsSaving(false);
@@ -128,7 +131,6 @@ export default function EditProfilePage() {
     
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        // Use the current avatarPath from the state
         const success = await saveProfile({ name, phone, avatar_url: avatarPath });
         if(success) {
             toast({

@@ -38,7 +38,7 @@ export async function POST(request: Request) {
     connection = await db.getConnection();
     const [result] = await connection.execute<ResultSetHeader>(
       'UPDATE users SET name = ?, phone_number = ?, avatar_url = ? WHERE id = ?',
-      [name, encryptedPhone, avatar_url || null, user.id]
+      [name, encryptedPhone, avatar_url, user.id]
     );
 
     if (result.affectedRows === 0) {
@@ -77,7 +77,8 @@ export async function POST(request: Request) {
 
   } catch (error) {
     console.error('Update profile error:', error);
-    return NextResponse.json({ success: false, message: 'Terjadi kesalahan server.' }, { status: 500 });
+    const message = error instanceof Error ? `Server Error: ${error.message}` : 'Terjadi kesalahan server yang tidak diketahui.';
+    return NextResponse.json({ success: false, message }, { status: 500 });
   } finally {
     if (connection) connection.release();
   }
