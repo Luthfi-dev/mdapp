@@ -20,7 +20,7 @@ const menuItems = [
     {
         label: "Edit Profil",
         icon: Edit,
-        href: "/account/edit"
+        href: "/account/edit-profile"
     },
     {
         label: "Keamanan",

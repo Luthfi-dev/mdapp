@@ -1,8 +1,8 @@
 
 'use client';
 
-import { SidebarProvider, Sidebar, SidebarTrigger, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarInset, useSidebar } from '@/components/ui/sidebar';
-import { LayoutDashboard, Settings, Bot, LogOut, AppWindow, ChevronsLeftRight, Gem } from 'lucide-react';
+import { SidebarProvider, Sidebar, SidebarTrigger, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarInset, useSidebar, SidebarGroup, SidebarGroupLabel, SidebarGroupContent } from '@/components/ui/sidebar';
+import { LayoutDashboard, Settings, Bot, LogOut, AppWindow, ChevronsLeftRight, Gem, FolderGit2 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
@@ -55,6 +55,22 @@ function AdminLayoutContent({
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
+
+             <SidebarGroup>
+                <SidebarGroupLabel className='flex items-center gap-2'><FolderGit2 /> Manajemen</SidebarGroupLabel>
+                <SidebarGroupContent>
+                  <SidebarMenu>
+                    <SidebarMenuItem>
+                      <SidebarMenuButton asChild isActive={pathname.startsWith('/admin/manager/referral')}>
+                        <Link href="/admin/manager/referral" onClick={handleLinkClick}>
+                          Referral
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  </SidebarMenu>
+                </SidebarGroupContent>
+             </SidebarGroup>
+
             <SidebarMenuItem>
               <SidebarMenuButton asChild isActive={pathname.startsWith('/admin/pricing')}>
                 <Link href="/admin/pricing" onClick={handleLinkClick}>

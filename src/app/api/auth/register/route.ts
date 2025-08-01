@@ -4,15 +4,24 @@ import { hashPassword } from '@/lib/auth-utils';
 import { z } from 'zod';
 import { db } from '@/lib/db';
 import type { ResultSetHeader } from 'mysql2';
+import { randomBytes } from 'crypto';
 
 const registerSchema = z.object({
   name: z.string().min(3, { message: "Nama harus memiliki setidaknya 3 karakter." }),
   email: z.string().email({ message: "Format email tidak valid." }),
   password: z.string().min(8, { message: "Kata sandi harus memiliki setidaknya 8 karakter." }),
+  repeatPassword: z.string()
+}).refine(data => data.password === data.repeatPassword, {
+  message: "Kata sandi tidak cocok.",
+  path: ["repeatPassword"], // path to show error on
 });
 
 // Role IDs from schema.sql
 const ROLE_ID_USER = 3; 
+
+const generateReferralCode = () => {
+    return randomBytes(3).toString('hex').toUpperCase();
+}
 
 export async function POST(request: Request) {
   let connection;
@@ -42,11 +51,14 @@ export async function POST(request: Request) {
 
     // 3. Hash the password
     const hashedPassword = await hashPassword(password);
+    
+    // 4. Generate referral code
+    const referralCode = generateReferralCode();
 
-    // 4. Create the new user in the `users` table
+    // 5. Create the new user in the `users` table
     const [userResult] = await connection.execute<ResultSetHeader>(
-      'INSERT INTO users (name, email, password, role_id) VALUES (?, ?, ?, ?)',
-      [name, email, hashedPassword, ROLE_ID_USER]
+      'INSERT INTO users (name, email, password, role_id, referral_code) VALUES (?, ?, ?, ?, ?)',
+      [name, email, hashedPassword, ROLE_ID_USER, referralCode]
     );
 
     const newUserId = userResult.insertId;
@@ -55,7 +67,7 @@ export async function POST(request: Request) {
         throw new Error('Gagal membuat pengguna baru di tabel users.');
     }
 
-    // 5. Assign the default role to the new user in the `user_roles` table
+    // 6. Assign the default role to the new user in the `user_roles` table
     const [roleResult] = await connection.execute<ResultSetHeader>(
         'INSERT INTO user_roles (user_id, role_id) VALUES (?, ?)',
         [newUserId, ROLE_ID_USER]

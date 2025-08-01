@@ -21,9 +21,10 @@ export default function AccountPage() {
     const name = formData.get("name") as string;
     const email = formData.get("email") as string;
     const password = formData.get("password") as string;
+    const repeatPassword = formData.get("repeatPassword") as string;
 
     const endpoint = isLogin ? '/api/auth/login' : '/api/auth/register';
-    const body = isLogin ? { email, password } : { name, email, password };
+    const body = isLogin ? { email, password } : { name, email, password, repeatPassword };
 
     try {
       const response = await fetch(endpoint, {
@@ -94,6 +95,12 @@ export default function AccountPage() {
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                 <Input id="password" name="password" type="password" required placeholder="Kata Sandi" className="pl-10 h-12 rounded-full" />
               </div>
+              {!isLogin && (
+                 <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                    <Input id="repeatPassword" name="repeatPassword" type="password" required placeholder="Ulangi Kata Sandi" className="pl-10 h-12 rounded-full" />
+                </div>
+              )}
               
               <Button type="submit" className="w-full h-12 rounded-full bg-primary hover:bg-primary/90 text-lg font-bold group" disabled={isLoading}>
                 {isLoading ? <Loader2 className="animate-spin" /> : (
