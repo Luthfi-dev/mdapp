@@ -10,19 +10,18 @@ import {
   ToastViewport,
 } from "@/components/ui/toast"
 import { useToast } from "@/hooks/use-toast"
-import { CheckCircle, AlertCircle } from "lucide-react"
 
 const AnimatedCheckIcon = () => (
   <svg
     version="1.1"
     xmlns="http://www.w3.org/2000/svg"
     viewBox="0 0 130.2 130.2"
-    className="w-10 h-10"
+    className="w-16 h-16"
   >
     <circle
       className="path circle"
       fill="none"
-      stroke="#4CAF50"
+      stroke="hsl(var(--primary))"
       strokeWidth="6"
       strokeMiterlimit="10"
       cx="65.1"
@@ -32,7 +31,7 @@ const AnimatedCheckIcon = () => (
     <polyline
       className="path check"
       fill="none"
-      stroke="#4CAF50"
+      stroke="hsl(var(--primary))"
       strokeWidth="6"
       strokeLinecap="round"
       strokeMiterlimit="10"
@@ -55,12 +54,12 @@ const AnimatedErrorIcon = () => (
     version="1.1"
     xmlns="http://www.w3.org/2000/svg"
     viewBox="0 0 130.2 130.2"
-    className="w-10 h-10"
+    className="w-16 h-16"
   >
     <circle
       className="path circle"
       fill="none"
-      stroke="#F44336"
+      stroke="hsl(var(--destructive))"
       strokeWidth="6"
       strokeMiterlimit="10"
       cx="65.1"
@@ -70,7 +69,7 @@ const AnimatedErrorIcon = () => (
     <line
       className="path line"
       fill="none"
-      stroke="#F44336"
+      stroke="hsl(var(--destructive))"
       strokeWidth="6"
       strokeLinecap="round"
       strokeMiterlimit="10"
@@ -82,7 +81,7 @@ const AnimatedErrorIcon = () => (
     <line
       className="path line"
       fill="none"
-      stroke="#F44336"
+      stroke="hsl(var(--destructive))"
       strokeWidth="6"
       strokeLinecap="round"
       strokeMiterlimit="10"
@@ -115,16 +114,12 @@ export function Toaster() {
 
         return (
           <Toast key={id} {...props}>
-            <div className="flex items-center gap-4">
-              <div className="shrink-0">
-                <Icon />
-              </div>
-              <div className="grid gap-1">
-                {title && <ToastTitle>{title}</ToastTitle>}
-                {description && (
-                  <ToastDescription>{description}</ToastDescription>
-                )}
-              </div>
+            <Icon />
+            <div className="grid gap-1">
+              {title && <ToastTitle>{title}</ToastTitle>}
+              {description && (
+                <ToastDescription>{description}</ToastDescription>
+              )}
             </div>
             {action}
             <ToastClose />
