@@ -1,6 +1,6 @@
 
 'use client';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,20 +8,19 @@ import { Label } from "@/components/ui/label";
 import { ArrowLeft, Camera, Loader2, Mail, Save, User, Phone } from "lucide-react";
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
-import { optimizeImage } from '@/lib/utils';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/hooks/use-auth';
 
 export default function EditProfilePage() {
     const router = useRouter();
     const { toast } = useToast();
-    const { user, isAuthenticated, isLoading: isAuthLoading, fetchWithAuth } = useAuth();
+    const { user, isAuthenticated, isLoading: isAuthLoading, fetchWithAuth, updateUser } = useAuth();
     
     const [name, setName] = useState('');
     const [phone, setPhone] = useState('');
     const [avatarPreview, setAvatarPreview] = useState('');
-    const [avatarData, setAvatarData] = useState(''); // Store base64 data for submission
     const [isSaving, setIsSaving] = useState(false);
+    const [isUploading, setIsUploading] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
@@ -31,77 +30,102 @@ export default function EditProfilePage() {
         if (user) {
             setName(user.name);
             setPhone(user.phone || '');
-            setAvatarPreview(user.avatar || '');
+            if(user.avatar) {
+                 setAvatarPreview(`/api/images/${user.avatar}`);
+            }
         }
     }, [user, isAuthenticated, isAuthLoading, router]);
     
     const getInitials = (nameStr: string) => {
+        if(!nameStr) return '';
         return nameStr.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
     }
+    
+    const uploadAvatar = async (file: File): Promise<string | null> => {
+        setIsUploading(true);
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('subfolder', 'avatars');
 
-    const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        try {
+            const response = await fetch('/api/upload', {
+                method: 'POST',
+                body: formData,
+            });
+            const result = await response.json();
+            if (result.success) {
+                return result.filePath;
+            } else {
+                toast({ variant: 'destructive', title: 'Gagal Mengunggah', description: result.message });
+                return null;
+            }
+        } catch (error) {
+            toast({ variant: 'destructive', title: 'Error Unggah', description: 'Tidak dapat terhubung ke server.' });
+            return null;
+        } finally {
+            setIsUploading(false);
+        }
+    };
+
+    const handleImageChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
         if (file) {
-             if (!file.type.startsWith('image/')) {
-                toast({ variant: 'destructive', title: 'File Tidak Valid', description: 'Hanya file gambar yang diizinkan.' });
-                return;
-            }
-            try {
-                const optimizedFile = await optimizeImage(file, 256);
-                const reader = new FileReader();
-                reader.onloadend = () => {
-                    const dataUrl = reader.result as string;
-                    setAvatarPreview(dataUrl);
-                    setAvatarData(dataUrl); // Save the data for submission
-                };
-                reader.readAsDataURL(optimizedFile);
-            } catch (error) {
-                console.error("Image optimization failed:", error);
-                toast({ variant: 'destructive', title: 'Gagal Memproses Gambar' });
+            const newAvatarUrl = await uploadAvatar(file);
+            if(newAvatarUrl) {
+                // Instantly update the preview from the server
+                setAvatarPreview(`/api/images/${newAvatarUrl}?t=${new Date().getTime()}`);
+                await saveProfile({ avatar_url: newAvatarUrl });
             }
         }
     };
     
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const saveProfile = async (data: { name?: string; phone?: string; avatar_url?: string; }) => {
         setIsSaving(true);
-        
         try {
+            const payload = {
+                name: data.name ?? user?.name,
+                phone: data.phone ?? user?.phone,
+                avatar_url: data.avatar_url ?? user?.avatar
+            };
+
             const response = await fetchWithAuth('/api/user/update', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    name,
-                    phone,
-                    avatar: avatarData || user?.avatar // Send new avatar data, or keep old one if not changed
-                })
+                body: JSON.stringify(payload)
             });
 
             const result = await response.json();
 
-            if (result.success) {
-                toast({
-                    title: "Profil Diperbarui!",
-                    description: "Perubahan pada profil Anda telah berhasil disimpan."
-                });
-                // It's good practice to force a token refresh or re-fetch user data
-                // to get the latest info (name, avatar url etc.) reflected everywhere.
-                // A simple way is to push user to profile page, which re-evaluates auth state.
-                router.push('/account/profile');
-                 router.refresh(); // Tell Next.js to refresh server components
+            if (result.success && result.user) {
+                updateUser(result.user); // Update auth context state
+                return true;
             } else {
                 toast({
                     variant: 'destructive',
                     title: 'Gagal Menyimpan',
                     description: result.message || 'Terjadi kesalahan saat menyimpan profil.'
                 });
+                return false;
             }
         } catch (error) {
              toast({ variant: 'destructive', title: 'Error', description: 'Tidak dapat terhubung ke server.' });
+             return false;
         } finally {
             setIsSaving(false);
         }
-    }
+    };
+    
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        const success = await saveProfile({ name, phone });
+        if(success) {
+            toast({
+                title: "Profil Diperbarui!",
+                description: "Perubahan pada profil Anda telah berhasil disimpan."
+            });
+            router.push('/account/profile');
+        }
+    };
     
     if (isAuthLoading || !user) {
         return (
@@ -137,15 +161,16 @@ export default function EditProfilePage() {
                                         size="icon" 
                                         className="absolute bottom-1 right-1 rounded-full h-10 w-10 bg-background"
                                         onClick={() => fileInputRef.current?.click()}
+                                        disabled={isUploading}
                                     >
-                                        <Camera className="w-5 h-5" />
+                                        {isUploading ? <Loader2 className="animate-spin"/> : <Camera className="w-5 h-5" />}
                                     </Button>
                                     <Input 
                                         type="file" 
                                         className="hidden" 
                                         ref={fileInputRef} 
-                                        onChange={handleImageUpload} 
-                                        accept="image/*"
+                                        onChange={handleImageChange} 
+                                        accept="image/png, image/jpeg, image/webp"
                                     />
                                 </div>
                             </div>
@@ -175,7 +200,7 @@ export default function EditProfilePage() {
                                  </div>
                             </div>
 
-                            <Button type="submit" disabled={isSaving} className="w-full">
+                            <Button type="submit" disabled={isSaving || isUploading} className="w-full">
                                 {isSaving ? <Loader2 className="mr-2 animate-spin"/> : <Save className="mr-2" />}
                                 Simpan Perubahan
                             </Button>

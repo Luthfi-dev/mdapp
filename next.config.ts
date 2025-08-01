@@ -17,6 +17,11 @@ const nextConfig: NextConfig = {
         pathname: '/**',
       },
     ],
+    // Allow serving images from the local API endpoint
+    // This is required for the dynamic image serving from the /uploads folder
+    loader: 'default',
+    path: '/_next/image',
+    domains: ['localhost'], // Add your production domain here as well
   },
 };
 

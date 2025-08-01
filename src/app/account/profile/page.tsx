@@ -39,15 +39,18 @@ export default function ProfilePage() {
     };
     
     const getInitials = (name: string) => {
+        if(!name) return 'U';
         return name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
     }
+    
+    const avatarUrl = user?.avatar ? `/api/images/${user.avatar}` : undefined;
 
     return (
         <div className="min-h-screen bg-secondary/30">
             <div className="container mx-auto max-w-2xl px-4 py-8 pb-24">
                 <div className="flex flex-col items-center pt-8">
                     <Avatar className="w-32 h-32 text-5xl mb-4 border-4 border-background shadow-lg">
-                        <AvatarImage src={user?.avatar} data-ai-hint="profile picture" />
+                        <AvatarImage src={avatarUrl} data-ai-hint="profile picture" />
                         <AvatarFallback>{getInitials(user?.name || 'U')}</AvatarFallback>
                     </Avatar>
                     <h1 className="text-3xl font-bold text-foreground">{user?.name}</h1>

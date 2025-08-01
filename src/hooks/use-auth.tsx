@@ -4,7 +4,7 @@ import React, { createContext, useState, useContext, useEffect, useCallback } fr
 import { jwtDecode } from 'jwt-decode';
 import { useRouter } from 'next/navigation';
 
-interface User {
+export interface User {
     id: number;
     name: string;
     email: string;
@@ -23,6 +23,7 @@ interface AuthContextType {
     register: (data: any) => Promise<{success: boolean, message: string}>;
     logout: () => Promise<void>;
     fetchWithAuth: (url: string, options?: RequestInit) => Promise<Response>;
+    updateUser: (newUser: User) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -173,9 +174,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setIsLoading(false);
         }
     };
+    
+    const updateUser = (newUser: User) => {
+        setUser(newUser);
+        // Regenerate token with new user data to keep session consistent
+        // This is a client-side update for immediate UI changes.
+        // The real token will be updated on the next refresh.
+        const currentToken = getAccessToken();
+        if(currentToken) {
+            const decoded: any = jwtDecode(currentToken);
+            const updatedPayload = { ...decoded, ...newUser };
+            // Note: This does not generate a new valid JWT, it's just for state consistency.
+            // The next fetchWithAuth will handle getting a new valid token if needed.
+        }
+    }
 
     return (
-        <AuthContext.Provider value={{ user, isAuthenticated, isLoading, login, register, logout, fetchWithAuth }}>
+        <AuthContext.Provider value={{ user, isAuthenticated, isLoading, login, register, logout, fetchWithAuth, updateUser }}>
             {children}
         </AuthContext.Provider>
     );

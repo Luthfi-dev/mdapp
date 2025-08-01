@@ -8,7 +8,7 @@ import type { ResultSetHeader } from 'mysql2';
 const updateProfileSchema = z.object({
   name: z.string().min(3, "Nama harus memiliki setidaknya 3 karakter."),
   phone: z.string().optional().or(z.literal('')),
-  avatar: z.string().optional().or(z.literal('')), // Avatar as data URI
+  avatar_url: z.string().optional().or(z.literal('')), 
 });
 
 export async function POST(request: Request) {
@@ -29,21 +29,46 @@ export async function POST(request: Request) {
       }, { status: 400 });
     }
 
-    const { name, phone, avatar } = validation.data;
+    const { name, phone, avatar_url } = validation.data;
 
     connection = await db.getConnection();
     const [result] = await connection.execute<ResultSetHeader>(
-      'UPDATE users SET name = ?, phone_number = ?, avatar = ? WHERE id = ?',
-      [name, phone || null, avatar || null, user.id]
+      'UPDATE users SET name = ?, phone_number = ?, avatar_url = ? WHERE id = ?',
+      [name, phone || null, avatar_url || null, user.id]
     );
 
     if (result.affectedRows === 0) {
       return NextResponse.json({ success: false, message: 'Gagal memperbarui profil, pengguna tidak ditemukan.' }, { status: 404 });
     }
 
-    // After updating, we might want to return the updated user object or a new token
-    // For simplicity, we just return success. The client should refresh its user state.
-    return NextResponse.json({ success: true, message: 'Profil berhasil diperbarui.' });
+    // Fetch the updated user data to return
+    const [rows]: [any[], any] = await connection.execute(
+      'SELECT id, name, email, role_id, status, avatar_url, phone_number, points, referral_code FROM users WHERE id = ?',
+      [user.id]
+    );
+
+    if (rows.length === 0) {
+        return NextResponse.json({ success: false, message: 'Gagal mengambil data pengguna yang diperbarui.' }, { status: 500 });
+    }
+
+    const updatedUser = rows[0];
+
+    const userForToken = {
+        id: updatedUser.id,
+        name: updatedUser.name,
+        email: updatedUser.email,
+        role: updatedUser.role_id,
+        avatar: updatedUser.avatar_url,
+        phone: updatedUser.phone_number,
+        points: updatedUser.points,
+        referralCode: updatedUser.referral_code
+    };
+
+    return NextResponse.json({ 
+        success: true, 
+        message: 'Profil berhasil diperbarui.',
+        user: userForToken 
+    });
 
   } catch (error) {
     console.error('Update profile error:', error);
