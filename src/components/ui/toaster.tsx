@@ -8,6 +8,7 @@ import {
   ToastProvider,
   ToastTitle,
   ToastViewport,
+  ToastOverlay,
 } from "@/components/ui/toast"
 import { useToast } from "@/hooks/use-toast"
 
@@ -40,10 +41,14 @@ const AnimatedCheckIcon = () => (
     <style>{`
       .path { stroke-dasharray: 1000; stroke-dashoffset: 0; }
       .circle { animation: 0.9s ease-in-out forwards dash; }
-      .check { stroke-dashoffset: -100; animation: 0.9s 0.35s ease-in-out forwards dash; }
+      .check { stroke-dashoffset: -100; animation: 0.9s 0.35s ease-in-out forwards dash-check; }
       @keyframes dash {
         0% { stroke-dashoffset: 1000; }
         100% { stroke-dashoffset: 0; }
+      }
+      @keyframes dash-check {
+        0% { stroke-dashoffset: -100; }
+        100% { stroke-dashoffset: 900; }
       }
     `}</style>
   </svg>
@@ -93,7 +98,7 @@ const AnimatedErrorIcon = () => (
      <style>{`
       .path { stroke-dasharray: 1000; stroke-dashoffset: 0; }
       .circle { animation: 0.9s ease-in-out forwards dash; }
-      .line { stroke-dashoffset: -100; animation: 0.9s 0.35s ease-in-out forwards dash; }
+      .line { stroke-dashoffset: 1000; animation: 0.9s 0.35s ease-in-out forwards dash; }
       @keyframes dash {
         0% { stroke-dashoffset: 1000; }
         100% { stroke-dashoffset: 0; }
@@ -104,7 +109,7 @@ const AnimatedErrorIcon = () => (
 
 
 export function Toaster() {
-  const { toasts } = useToast()
+  const { toasts, dismiss } = useToast()
 
   return (
     <ToastProvider>
@@ -117,20 +122,22 @@ export function Toaster() {
         }
 
         return (
-          <Toast key={id} {...props}>
-            <Icon />
-            <div className="grid gap-1">
-              {title && <ToastTitle>{title}</ToastTitle>}
-              {description && (
-                <ToastDescription>{description}</ToastDescription>
-              )}
-            </div>
-            {action}
-            <ToastClose />
-          </Toast>
-        )
+          <ToastViewport key={id}>
+            <ToastOverlay onClick={() => dismiss(id)} />
+            <Toast {...props} className="z-[101]">
+              <Icon />
+              <div className="grid gap-1">
+                {title && <ToastTitle>{title}</ToastTitle>}
+                {description && (
+                  <ToastDescription>{description}</ToastDescription>
+                )}
+              </div>
+              {action}
+              <ToastClose />
+            </Toast>
+          </ToastViewport>
+        );
       })}
-      <ToastViewport />
     </ToastProvider>
   )
 }

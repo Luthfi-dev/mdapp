@@ -17,7 +17,7 @@ const ToastViewport = React.forwardRef<
   <ToastPrimitives.Viewport
     ref={ref}
     className={cn(
-      "fixed top-0 z-[100] flex max-h-screen w-full flex-col-reverse p-4 sm:bottom-0 sm:right-0 sm:top-auto sm:flex-col md:max-w-[420px]",
+      "fixed inset-0 z-[100] flex items-center justify-center p-4",
       className
     )}
     {...props}
@@ -26,11 +26,11 @@ const ToastViewport = React.forwardRef<
 ToastViewport.displayName = ToastPrimitives.Viewport.displayName
 
 const toastVariants = cva(
-  "group pointer-events-auto relative flex w-full max-w-sm flex-col items-center gap-4 rounded-2xl border bg-background p-6 text-center shadow-lg transition-all data-[swipe=cancel]:translate-y-0 data-[swipe=end]:translate-y-[var(--radix-toast-swipe-end-y)] data-[swipe=move]:translate-y-[var(--radix-toast-swipe-move-y)] data-[swipe=move]:transition-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[swipe=end]:animate-out data-[state=closed]:fade-out-80 data-[state=closed]:slide-out-to-top-full data-[state=open]:slide-in-from-bottom-full",
+  "group pointer-events-auto relative flex w-full max-w-sm flex-col items-center gap-4 rounded-2xl border bg-background p-6 text-center shadow-lg transition-all data-[swipe=cancel]:translate-y-0 data-[swipe=end]:translate-y-[var(--radix-toast-swipe-end-y)] data-[swipe=move]:translate-y-[var(--radix-toast-swipe-move-y)] data-[swipe=move]:transition-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[swipe=end]:animate-out data-[state=closed]:fade-out-80 data-[state=closed]:slide-out-to-top-full data-[state=open]:slide-in-from-top-full",
   {
     variants: {
       variant: {
-        default: "border-border",
+        default: "border",
         destructive:
           "destructive group border-destructive/50 text-foreground",
       },
@@ -47,14 +47,11 @@ const Toast = React.forwardRef<
     VariantProps<typeof toastVariants>
 >(({ className, variant, ...props }, ref) => {
   return (
-    <>
-      <div className="fixed inset-0 z-50 bg-black/50" />
-      <ToastPrimitives.Root
-        ref={ref}
-        className={cn(toastVariants({ variant }), 'fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-[100]', className)}
-        {...props}
-      />
-    </>
+    <ToastPrimitives.Root
+      ref={ref}
+      className={cn(toastVariants({ variant }), className)}
+      {...props}
+    />
   )
 })
 Toast.displayName = ToastPrimitives.Root.displayName
@@ -120,6 +117,20 @@ type ToastProps = React.ComponentPropsWithoutRef<typeof Toast>
 
 type ToastActionElement = React.ReactElement<typeof ToastAction>
 
+const ToastOverlay = React.forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement> & { onClick?: () => void }
+>(({ className, onClick, ...props }, ref) => (
+  <div
+    ref={ref}
+    className={cn("fixed inset-0 z-50 bg-black/50", className)}
+    onClick={onClick}
+    {...props}
+  />
+));
+ToastOverlay.displayName = "ToastOverlay";
+
+
 export {
   type ToastProps,
   type ToastActionElement,
@@ -130,4 +141,5 @@ export {
   ToastDescription,
   ToastClose,
   ToastAction,
+  ToastOverlay
 }

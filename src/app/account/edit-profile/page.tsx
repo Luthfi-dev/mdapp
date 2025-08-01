@@ -72,7 +72,6 @@ export default function EditProfilePage() {
         if (file) {
             const newAvatarUrl = await uploadAvatar(file);
             if(newAvatarUrl) {
-                // Instantly update the preview from the server
                 setAvatarPreview(`/api/images/${newAvatarUrl}?t=${new Date().getTime()}`);
                 await saveProfile({ avatar_url: newAvatarUrl });
             }
@@ -85,7 +84,7 @@ export default function EditProfilePage() {
             const payload = {
                 name: data.name ?? user?.name,
                 phone: data.phone ?? user?.phone,
-                avatar_url: data.avatar_url ?? user?.avatar
+                avatar_url: data.avatar_url ?? user?.avatar ?? '',
             };
 
             const response = await fetchWithAuth('/api/user/update', {
@@ -97,7 +96,7 @@ export default function EditProfilePage() {
             const result = await response.json();
 
             if (result.success && result.user) {
-                updateUser(result.user); // Update auth context state
+                updateUser(result.user);
                 return true;
             } else {
                 toast({
