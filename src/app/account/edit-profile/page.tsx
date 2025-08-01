@@ -70,10 +70,14 @@ export default function EditProfilePage() {
     const handleImageChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
         if (file) {
-            const newAvatarUrl = await uploadAvatar(file);
-            if(newAvatarUrl) {
-                setAvatarPreview(`/api/images/${newAvatarUrl}?t=${new Date().getTime()}`);
-                await saveProfile({ avatar_url: newAvatarUrl });
+            const newAvatarPath = await uploadAvatar(file);
+            if(newAvatarPath) {
+                setAvatarPreview(`/api/images/${newAvatarPath}?t=${new Date().getTime()}`);
+                await saveProfile({ name: user?.name, phone: user?.phone, avatar_url: newAvatarPath });
+                 toast({
+                    title: "Foto Profil Diperbarui!",
+                    description: "Foto profil Anda telah berhasil diganti."
+                });
             }
         }
     };
@@ -84,7 +88,7 @@ export default function EditProfilePage() {
             const payload = {
                 name: data.name ?? user?.name,
                 phone: data.phone ?? user?.phone,
-                avatar_url: data.avatar_url ?? user?.avatar ?? '',
+                avatar_url: data.avatar_url ?? user?.avatar,
             };
 
             const response = await fetchWithAuth('/api/user/update', {
@@ -116,7 +120,7 @@ export default function EditProfilePage() {
     
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        const success = await saveProfile({ name, phone });
+        const success = await saveProfile({ name, phone, avatar_url: user?.avatar });
         if(success) {
             toast({
                 title: "Profil Diperbarui!",
@@ -160,7 +164,7 @@ export default function EditProfilePage() {
                                         size="icon" 
                                         className="absolute bottom-1 right-1 rounded-full h-10 w-10 bg-background"
                                         onClick={() => fileInputRef.current?.click()}
-                                        disabled={isUploading}
+                                        disabled={isUploading || isSaving}
                                     >
                                         {isUploading ? <Loader2 className="animate-spin"/> : <Camera className="w-5 h-5" />}
                                     </Button>

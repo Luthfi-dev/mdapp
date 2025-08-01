@@ -6,6 +6,7 @@ import { db } from '@/lib/db';
 import { generateTokens, setTokenCookie } from '@/lib/jwt';
 import type { UserForToken } from '@/lib/jwt';
 import type { ResultSetHeader } from 'mysql2';
+import { decrypt } from '@/lib/encryption';
 
 const loginSchema = z.object({
   email: z.string().email({ message: "Format email tidak valid." }),
@@ -59,13 +60,15 @@ export async function POST(request: NextRequest) {
       [user.id, ip, userAgent]
     );
 
+    const decryptedPhone = user.phone_number ? decrypt(user.phone_number) : undefined;
+
     const userForToken: UserForToken = {
         id: user.id,
         name: user.name,
         email: user.email,
         role: user.role_id,
         avatar: user.avatar_url,
-        phone: user.phone_number,
+        phone: decryptedPhone,
         points: user.points,
         referralCode: user.referral_code
     };

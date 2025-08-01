@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { db } from '@/lib/db';
 import type { ResultSetHeader } from 'mysql2';
 import { randomBytes } from 'crypto';
+import { encrypt } from '@/lib/encryption';
 
 const registerSchema = z.object({
   name: z.string().min(3, { message: "Nama harus memiliki setidaknya 3 karakter." }),

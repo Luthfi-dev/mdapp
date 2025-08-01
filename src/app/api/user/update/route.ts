@@ -4,11 +4,12 @@ import { db } from '@/lib/db';
 import { z } from 'zod';
 import { getAuthFromRequest } from '@/lib/auth-utils';
 import type { ResultSetHeader } from 'mysql2';
+import { encrypt, decrypt } from '@/lib/encryption';
 
 const updateProfileSchema = z.object({
   name: z.string().min(3, "Nama harus memiliki setidaknya 3 karakter."),
   phone: z.string().optional().or(z.literal('')),
-  avatar_url: z.string().optional().or(z.literal('')), 
+  avatar_url: z.string().optional().or(z.literal('')).nullable(), 
 });
 
 export async function POST(request: Request) {
@@ -30,11 +31,12 @@ export async function POST(request: Request) {
     }
 
     const { name, phone, avatar_url } = validation.data;
+    const encryptedPhone = phone ? encrypt(phone) : null;
 
     connection = await db.getConnection();
     const [result] = await connection.execute<ResultSetHeader>(
       'UPDATE users SET name = ?, phone_number = ?, avatar_url = ? WHERE id = ?',
-      [name, phone || null, avatar_url || null, user.id]
+      [name, encryptedPhone, avatar_url || null, user.id]
     );
 
     if (result.affectedRows === 0) {
@@ -52,6 +54,7 @@ export async function POST(request: Request) {
     }
 
     const updatedUser = rows[0];
+    const decryptedPhone = updatedUser.phone_number ? decrypt(updatedUser.phone_number) : undefined;
 
     const userForToken = {
         id: updatedUser.id,
@@ -59,7 +62,7 @@ export async function POST(request: Request) {
         email: updatedUser.email,
         role: updatedUser.role_id,
         avatar: updatedUser.avatar_url,
-        phone: updatedUser.phone_number,
+        phone: decryptedPhone,
         points: updatedUser.points,
         referralCode: updatedUser.referral_code
     };
