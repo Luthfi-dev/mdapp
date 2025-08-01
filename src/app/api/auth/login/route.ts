@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
 
     connection = await db.getConnection();
     const [rows]: [any[], any] = await connection.execute(
-      'SELECT id, name, email, password as passwordHash, role_id, status, avatar_url, phone_number, points, referral_code, browser_fingerprint FROM users WHERE email = ?',
+      'SELECT id, name, email, password as passwordHash, role_id, status, avatar_url, phone_number, points, referral_code FROM users WHERE email = ?',
       [email]
     );
 

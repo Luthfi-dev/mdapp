@@ -91,7 +91,7 @@ export default function EditProfilePage() {
         setIsSaving(true);
         try {
             // Get the current path from the state, not the user object which might be stale
-            const currentAvatarPath = avatarUrl ? avatarUrl.replace('/api/images/', '').split('?')[0] : undefined;
+            const currentAvatarPath = user?.avatar;
 
             const payload = {
                 name: data.name,

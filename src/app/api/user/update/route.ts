@@ -31,6 +31,8 @@ export async function POST(request: Request) {
     }
 
     const { name, phone, avatar_url } = validation.data;
+    
+    // Encrypt phone number only if it's provided and not an empty string
     const encryptedPhone = phone ? encrypt(phone) : null;
 
     connection = await db.getConnection();
