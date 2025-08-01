@@ -1,16 +1,17 @@
+
 'use client';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { ArrowRight, ChevronRight, Loader2, Lock, Mail, User } from "lucide-react";
-import Link from "next/link";
+import { ArrowRight, Loader2, Lock, Mail, User } from "lucide-react";
 import React, { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { useRouter } from "next/navigation";
 
 export default function AccountPage() {
   const [isLogin, setIsLogin] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+  const router = useRouter();
 
   const handleFormSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -38,11 +39,12 @@ export default function AccountPage() {
           title: isLogin ? 'Login Berhasil!' : 'Registrasi Berhasil!',
           description: result.message,
         });
-        // Di sini Anda biasanya akan menangani sesi, misalnya menyimpan JWT, mengarahkan pengguna
+        
         if (isLogin) {
-            // Contoh: router.push('/dashboard');
+            // TODO: Save session/token here
+            router.push('/account/profile');
         } else {
-            setIsLogin(true); // Beralih ke tampilan login setelah registrasi berhasil
+            setIsLogin(true); // Switch to login view after successful registration
         }
       } else {
         toast({
@@ -92,17 +94,6 @@ export default function AccountPage() {
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                 <Input id="password" name="password" type="password" required placeholder="Kata Sandi" className="pl-10 h-12 rounded-full" />
               </div>
-
-              {isLogin && (
-                <div className="flex items-center justify-between text-sm">
-                   <div className="flex items-center gap-2">
-                     {/* Checkbox bisa ditambahkan di sini */}
-                  </div>
-                  <Link href="/login" className="font-medium text-primary hover:underline">
-                    Login sebagai Admin?
-                  </Link>
-                </div>
-              )}
               
               <Button type="submit" className="w-full h-12 rounded-full bg-primary hover:bg-primary/90 text-lg font-bold group" disabled={isLoading}>
                 {isLoading ? <Loader2 className="animate-spin" /> : (
