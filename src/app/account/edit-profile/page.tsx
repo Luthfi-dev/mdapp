@@ -19,6 +19,7 @@ export default function EditProfilePage() {
     const [name, setName] = useState('');
     const [phone, setPhone] = useState('');
     const [avatarUrl, setAvatarUrl] = useState<string | undefined>(undefined);
+    const [avatarPath, setAvatarPath] = useState<string | undefined>(undefined);
     const [isSaving, setIsSaving] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -30,8 +31,11 @@ export default function EditProfilePage() {
         if (user) {
             setName(user.name);
             setPhone(user.phone || '');
+            setAvatarPath(user.avatar);
             if(user.avatar) {
                  setAvatarUrl(`/api/images/${user.avatar}`);
+            } else {
+                 setAvatarUrl(undefined);
             }
         }
     }, [user, isAuthenticated, isAuthLoading, router]);
@@ -74,15 +78,14 @@ export default function EditProfilePage() {
             if(newAvatarPath) {
                 // Eagerly update UI
                 setAvatarUrl(`/api/images/${newAvatarPath}?t=${new Date().getTime()}`);
+                setAvatarPath(newAvatarPath);
                 
-                // Save the new avatar path to the profile
-                const success = await saveProfile({ name, phone, avatar_url: newAvatarPath });
-                 if (success) {
-                    toast({
-                        title: "Foto Profil Diperbarui!",
-                        description: "Foto profil Anda telah berhasil diganti."
-                    });
-                 }
+                // Immediately save the profile with the new avatar path
+                await saveProfile({ name, phone, avatar_url: newAvatarPath });
+                toast({
+                    title: "Foto Profil Diperbarui!",
+                    description: "Foto profil Anda telah berhasil diganti."
+                });
             }
         }
     };
@@ -90,13 +93,10 @@ export default function EditProfilePage() {
     const saveProfile = async (data: { name: string; phone: string; avatar_url: string | undefined; }) => {
         setIsSaving(true);
         try {
-            // Get the current path from the state, not the user object which might be stale
-            const currentAvatarPath = user?.avatar;
-
             const payload = {
                 name: data.name,
                 phone: data.phone,
-                avatar_url: data.avatar_url ?? currentAvatarPath,
+                avatar_url: data.avatar_url,
             };
 
             const response = await fetchWithAuth('/api/user/update', {
@@ -108,7 +108,6 @@ export default function EditProfilePage() {
             const result = await response.json();
 
             if (result.success && result.user) {
-                // This is crucial: update the auth context with the new user data from the server
                 updateUser(result.user);
                 return true;
             } else {
@@ -129,7 +128,8 @@ export default function EditProfilePage() {
     
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        const success = await saveProfile({ name, phone, avatar_url: undefined }); // Pass undefined so it uses the current state
+        // Use the current avatarPath from the state
+        const success = await saveProfile({ name, phone, avatar_url: avatarPath });
         if(success) {
             toast({
                 title: "Profil Diperbarui!",

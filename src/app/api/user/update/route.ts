@@ -55,24 +55,24 @@ export async function POST(request: Request) {
         return NextResponse.json({ success: false, message: 'Gagal mengambil data pengguna yang diperbarui.' }, { status: 500 });
     }
 
-    const updatedUser = rows[0];
-    const decryptedPhone = updatedUser.phone_number ? decrypt(updatedUser.phone_number) : undefined;
+    const updatedUserDb = rows[0];
+    const decryptedPhone = updatedUserDb.phone_number ? decrypt(updatedUserDb.phone_number) : undefined;
 
-    const userForToken = {
-        id: updatedUser.id,
-        name: updatedUser.name,
-        email: updatedUser.email,
-        role: updatedUser.role_id,
-        avatar: updatedUser.avatar_url,
+    const updatedUserForToken = {
+        id: updatedUserDb.id,
+        name: updatedUserDb.name,
+        email: updatedUserDb.email,
+        role: updatedUserDb.role_id,
+        avatar: updatedUserDb.avatar_url,
         phone: decryptedPhone,
-        points: updatedUser.points,
-        referralCode: updatedUser.referral_code
+        points: updatedUserDb.points,
+        referralCode: updatedUserDb.referral_code
     };
 
     return NextResponse.json({ 
         success: true, 
         message: 'Profil berhasil diperbarui.',
-        user: userForToken 
+        user: updatedUserForToken
     });
 
   } catch (error) {
