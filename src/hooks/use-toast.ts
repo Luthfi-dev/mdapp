@@ -9,8 +9,8 @@ import type {
   ToastProps,
 } from "@/components/ui/toast"
 
-const TOAST_LIMIT = 3
-const TOAST_REMOVE_DELAY = 5000; // Auto-dismiss after 5 seconds
+const TOAST_LIMIT = 1; // Show only one toast at a time for center-screen pop-up
+const TOAST_REMOVE_DELAY = 4000; // Auto-dismiss after 4 seconds
 
 type ToasterToast = ToastProps & {
   id: string

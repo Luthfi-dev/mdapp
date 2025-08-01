@@ -39,8 +39,8 @@ const AnimatedCheckIcon = () => (
     />
     <style>{`
       .path { stroke-dasharray: 1000; stroke-dashoffset: 0; }
-      .circle { animation: 0.9s ease-in-out dash; }
-      .check { stroke-dashoffset: -100; animation: 0.9s 0.35s ease-in-out dash; }
+      .circle { animation: 0.9s ease-in-out forwards dash; }
+      .check { stroke-dashoffset: -100; animation: 0.9s 0.35s ease-in-out forwards dash; }
       @keyframes dash {
         0% { stroke-dashoffset: 1000; }
         100% { stroke-dashoffset: 0; }
@@ -92,8 +92,8 @@ const AnimatedErrorIcon = () => (
     />
      <style>{`
       .path { stroke-dasharray: 1000; stroke-dashoffset: 0; }
-      .circle { animation: 0.9s ease-in-out dash; }
-      .line { stroke-dashoffset: -100; animation: 0.9s 0.35s ease-in-out dash; }
+      .circle { animation: 0.9s ease-in-out forwards dash; }
+      .line { stroke-dashoffset: -100; animation: 0.9s 0.35s ease-in-out forwards dash; }
       @keyframes dash {
         0% { stroke-dashoffset: 1000; }
         100% { stroke-dashoffset: 0; }
@@ -111,6 +111,10 @@ export function Toaster() {
       {toasts.map(function ({ id, title, description, action, ...props }) {
         const isDestructive = props.variant === 'destructive';
         const Icon = isDestructive ? AnimatedErrorIcon : AnimatedCheckIcon;
+
+        if (!props.open) {
+          return null;
+        }
 
         return (
           <Toast key={id} {...props}>
