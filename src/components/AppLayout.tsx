@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import React, { useEffect, useState } from 'react';
 import { MobileLayout } from './MobileLayout';
 import { DesktopLayout } from './DesktopLayout';
+import { Loader2 } from 'lucide-react';
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const isMobile = useIsMobile();
@@ -22,8 +23,13 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   }
   
   if (!isClient) {
-    // Render a placeholder or loader on the server to avoid flash of wrong layout
-    return <div className="flex h-screen w-full items-center justify-center">Loading...</div>;
+    // Render a server-side placeholder to avoid layout shifts (FOUC).
+    // This helps improve perceived performance.
+    return (
+        <div className="flex h-screen w-full items-center justify-center bg-background">
+           <Loader2 className="h-8 w-8 animate-spin" />
+        </div>
+    );
   }
 
   if (isMobile) {

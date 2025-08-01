@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
 
     connection = await db.getConnection();
     const [rows]: [any[], any] = await connection.execute(
-      'SELECT id, name, email, password as passwordHash, role_id, status, avatar, phone_number, points, referral_code, browser_fingerprint FROM users WHERE email = ?',
+      'SELECT id, name, email, password as passwordHash, role_id, status, avatar_url, phone_number, points, referral_code, browser_fingerprint FROM users WHERE email = ?',
       [email]
     );
 
@@ -39,16 +39,16 @@ export async function POST(request: NextRequest) {
 
     const user = rows[0];
 
+    const isPasswordValid = await verifyPassword(password, user.passwordHash);
+    if (!isPasswordValid) {
+      return NextResponse.json({ success: false, message: 'Email atau kata sandi salah.' }, { status: 401 });
+    }
+
     if (user.status === 'deactivated' || user.status === 'blocked') {
         return NextResponse.json({ 
             success: false, 
             message: 'Akun Anda tidak aktif. Silakan hubungi administrator.' 
         }, { status: 403 });
-    }
-
-    const isPasswordValid = await verifyPassword(password, user.passwordHash);
-    if (!isPasswordValid) {
-      return NextResponse.json({ success: false, message: 'Email atau kata sandi salah.' }, { status: 401 });
     }
     
     // Log login history
@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
         name: user.name,
         email: user.email,
         role: user.role_id,
-        avatar: user.avatar,
+        avatar: user.avatar_url,
         phone: user.phone_number,
         points: user.points,
         referralCode: user.referral_code

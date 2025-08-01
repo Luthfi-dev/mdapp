@@ -41,11 +41,22 @@ export async function POST(request: NextRequest) {
     connection = await db.getConnection();
     await connection.beginTransaction();
 
-    const [existingUsers]: [any[], any] = await connection.execute('SELECT id FROM users WHERE email = ?', [email]);
-    if (existingUsers.length > 0) {
+    // Check for existing email
+    const [existingUsersByEmail]: [any[], any] = await connection.execute('SELECT id FROM users WHERE email = ?', [email]);
+    if (existingUsersByEmail.length > 0) {
       await connection.rollback();
       return NextResponse.json({ success: false, message: 'Email ini sudah terdaftar.' }, { status: 409 });
     }
+
+    // Check for existing fingerprint to prevent multi-accounting fraud
+    if (fingerprint) {
+        const [existingUsersByFingerprint]: [any[], any] = await connection.execute('SELECT id FROM users WHERE browser_fingerprint = ?', [fingerprint]);
+        if (existingUsersByFingerprint.length > 0) {
+            await connection.rollback();
+            return NextResponse.json({ success: false, message: 'Gagal: Aktivitas tidak wajar terdeteksi dari perangkat Anda.' }, { status: 403 });
+        }
+    }
+
 
     const hashedPassword = await hashPassword(password);
     const referralCode = generateReferralCode();
