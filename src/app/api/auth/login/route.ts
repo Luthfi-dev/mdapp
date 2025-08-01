@@ -1,17 +1,18 @@
 
-import { NextResponse } from 'next/server';
+import { NextResponse, type NextRequest } from 'next/server';
 import { verifyPassword } from '@/lib/auth-utils';
 import { z } from 'zod';
 import { db } from '@/lib/db';
 import { generateTokens, setTokenCookie } from '@/lib/jwt';
 import type { UserForToken } from '@/lib/jwt';
+import type { ResultSetHeader } from 'mysql2';
 
 const loginSchema = z.object({
   email: z.string().email({ message: "Format email tidak valid." }),
   password: z.string().min(1, { message: "Kata sandi tidak boleh kosong." }),
 });
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   let connection;
   try {
     const body = await request.json();
@@ -28,7 +29,7 @@ export async function POST(request: Request) {
 
     connection = await db.getConnection();
     const [rows]: [any[], any] = await connection.execute(
-      'SELECT id, name, email, password as passwordHash, role_id, status FROM users WHERE email = ?',
+      'SELECT id, name, email, password as passwordHash, role_id, status, avatar, phone_number, points, referral_code, browser_fingerprint FROM users WHERE email = ?',
       [email]
     );
 
@@ -49,23 +50,33 @@ export async function POST(request: Request) {
     if (!isPasswordValid) {
       return NextResponse.json({ success: false, message: 'Email atau kata sandi salah.' }, { status: 401 });
     }
+    
+    // Log login history
+    const ip = request.ip || request.headers.get('x-forwarded-for') || 'unknown';
+    const userAgent = request.headers.get('user-agent') || 'unknown';
+    await connection.execute<ResultSetHeader>(
+      'INSERT INTO login_history (user_id, ip_address, user_agent) VALUES (?, ?, ?)',
+      [user.id, ip, userAgent]
+    );
 
-    // Generate JWT
     const userForToken: UserForToken = {
         id: user.id,
         name: user.name,
         email: user.email,
-        role: user.role_id, // Assuming role_id maps to a role name/id
+        role: user.role_id,
+        avatar: user.avatar,
+        phone: user.phone_number,
+        points: user.points,
+        referralCode: user.referral_code
     };
     
     const { accessToken, refreshToken } = generateTokens(userForToken);
 
-    // Set refresh token in secure cookie
     const response = NextResponse.json({
       success: true,
       message: 'Login berhasil!',
       accessToken,
-      user: { name: user.name, email: user.email, role_id: user.role_id } 
+      user: userForToken
     }, { status: 200 });
 
     setTokenCookie(response, refreshToken);

@@ -5,7 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Bot, Camera, Loader2, Mail, Save, User } from "lucide-react";
+import { ArrowLeft, Camera, Loader2, Mail, Save, User, Phone } from "lucide-react";
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { optimizeImage } from '@/lib/utils';
@@ -15,11 +15,12 @@ import { useAuth } from '@/hooks/use-auth';
 export default function EditProfilePage() {
     const router = useRouter();
     const { toast } = useToast();
-    const { user, isAuthenticated, isLoading: isAuthLoading } = useAuth();
+    const { user, isAuthenticated, isLoading: isAuthLoading, fetchWithAuth } = useAuth();
     
     const [name, setName] = useState('');
     const [phone, setPhone] = useState('');
     const [avatarPreview, setAvatarPreview] = useState('');
+    const [avatarData, setAvatarData] = useState(''); // Store base64 data for submission
     const [isSaving, setIsSaving] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -30,12 +31,12 @@ export default function EditProfilePage() {
         if (user) {
             setName(user.name);
             setPhone(user.phone || '');
-            setAvatarPreview(user.avatar || `https://placehold.co/128x128.png?text=${getInitials(user.name)}`);
+            setAvatarPreview(user.avatar || '');
         }
     }, [user, isAuthenticated, isAuthLoading, router]);
     
-    const getInitials = (name: string) => {
-        return name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+    const getInitials = (nameStr: string) => {
+        return nameStr.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
     }
 
     const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -46,11 +47,12 @@ export default function EditProfilePage() {
                 return;
             }
             try {
-                const optimizedFile = await optimizeImage(file, 256); // Optimize to 256px
+                const optimizedFile = await optimizeImage(file, 256);
                 const reader = new FileReader();
                 reader.onloadend = () => {
                     const dataUrl = reader.result as string;
                     setAvatarPreview(dataUrl);
+                    setAvatarData(dataUrl); // Save the data for submission
                 };
                 reader.readAsDataURL(optimizedFile);
             } catch (error) {
@@ -60,20 +62,45 @@ export default function EditProfilePage() {
         }
     };
     
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsSaving(true);
-        // Simulate API call to update user profile
-        setTimeout(() => {
-            console.log("Saving data:", { name, phone, avatar: avatarPreview });
-            // Here you would call an API to update the user, then maybe refresh the user data in the AuthContext
-            toast({
-                title: "Profil Diperbarui!",
-                description: "Perubahan pada profil Anda telah berhasil disimpan."
+        
+        try {
+            const response = await fetchWithAuth('/api/user/update', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    name,
+                    phone,
+                    avatar: avatarData || user?.avatar // Send new avatar data, or keep old one if not changed
+                })
             });
+
+            const result = await response.json();
+
+            if (result.success) {
+                toast({
+                    title: "Profil Diperbarui!",
+                    description: "Perubahan pada profil Anda telah berhasil disimpan."
+                });
+                // It's good practice to force a token refresh or re-fetch user data
+                // to get the latest info (name, avatar url etc.) reflected everywhere.
+                // A simple way is to push user to profile page, which re-evaluates auth state.
+                router.push('/account/profile');
+                 router.refresh(); // Tell Next.js to refresh server components
+            } else {
+                toast({
+                    variant: 'destructive',
+                    title: 'Gagal Menyimpan',
+                    description: result.message || 'Terjadi kesalahan saat menyimpan profil.'
+                });
+            }
+        } catch (error) {
+             toast({ variant: 'destructive', title: 'Error', description: 'Tidak dapat terhubung ke server.' });
+        } finally {
             setIsSaving(false);
-            router.push('/account/profile');
-        }, 1500);
+        }
     }
     
     if (isAuthLoading || !user) {
@@ -143,7 +170,7 @@ export default function EditProfilePage() {
                              <div className="space-y-2">
                                 <Label htmlFor="phone">Nomor Telepon (Opsional)</Label>
                                  <div className="relative">
-                                     <User className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                                     <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                                      <Input id="phone" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Contoh: 08123456789" className="pl-10"/>
                                  </div>
                             </div>

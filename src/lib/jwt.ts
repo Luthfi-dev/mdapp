@@ -14,6 +14,10 @@ export interface UserForToken {
     name: string;
     email: string;
     role: number;
+    avatar?: string;
+    phone?: string;
+    points?: number;
+    referralCode?: string;
 }
 
 export function generateTokens(payload: UserForToken) {

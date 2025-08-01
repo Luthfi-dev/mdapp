@@ -1,5 +1,7 @@
 
 import bcrypt from 'bcryptjs';
+import { type NextRequest, NextResponse } from 'next/server';
+import { verifyAccessToken } from './jwt';
 
 const SALT_ROUNDS = 10;
 
@@ -23,4 +25,19 @@ export async function hashPassword(password: string): Promise<string> {
 export async function verifyPassword(password: string, hash: string): Promise<boolean> {
   const isMatch = await bcrypt.compare(password, hash);
   return isMatch;
+}
+
+/**
+ * Extracts user data from the Authorization header of a request.
+ * @param request The NextRequest object.
+ * @returns The decoded user payload or null if not authenticated.
+ */
+export function getAuthFromRequest(request: Request) {
+    const authHeader = request.headers.get('Authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return null;
+    }
+    const token = authHeader.substring(7);
+    const decoded = verifyAccessToken(token);
+    return decoded as any; // Cast to 'any' or a specific user payload type
 }

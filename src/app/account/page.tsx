@@ -8,6 +8,25 @@ import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
 
+// A simple function to generate a browser fingerprint
+const getBrowserFingerprint = () => {
+  const { userAgent, language, platform, hardwareConcurrency, deviceMemory } = navigator;
+  const screenResolution = `${window.screen.width}x${window.screen.height}x${window.screen.colorDepth}`;
+  const timezone = new Date().getTimezoneOffset();
+  
+  const data = `${userAgent}|${language}|${platform}|${hardwareConcurrency}|${deviceMemory}|${screenResolution}|${timezone}`;
+  
+  // Simple hash function (not cryptographically secure, but good enough for a fingerprint)
+  let hash = 0;
+  for (let i = 0; i < data.length; i++) {
+    const char = data.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash |= 0; // Convert to 32bit integer
+  }
+  return hash.toString();
+};
+
+
 export default function AccountPage() {
   const [isLogin, setIsLogin] = useState(true);
   const { isLoading, login, register, isAuthenticated, user } = useAuth();
@@ -46,13 +65,14 @@ export default function AccountPage() {
                 });
             }
         } else {
-            const result = await register({name, email, password, repeatPassword});
+            const fingerprint = getBrowserFingerprint();
+            const result = await register({name, email, password, repeatPassword, fingerprint});
             if (result.success) {
                 toast({
                     title: 'Registrasi Berhasil!',
                     description: result.message,
                 });
-                setIsLogin(true); // Switch to login view after successful registration
+                setIsLogin(true);
             } else {
                  toast({
                     variant: 'destructive',

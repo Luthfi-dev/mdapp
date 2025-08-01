@@ -2,6 +2,7 @@
 'use client';
 import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
 import { jwtDecode } from 'jwt-decode';
+import { useRouter } from 'next/navigation';
 
 interface User {
     id: number;
@@ -10,6 +11,8 @@ interface User {
     role: number;
     avatar?: string;
     phone?: string;
+    points?: number;
+    referralCode?: string;
 }
 
 interface AuthContextType {
@@ -19,11 +22,11 @@ interface AuthContextType {
     login: (email: string, password: string) => Promise<{success: boolean, message: string}>;
     register: (data: any) => Promise<{success: boolean, message: string}>;
     logout: () => Promise<void>;
+    fetchWithAuth: (url: string, options?: RequestInit) => Promise<Response>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// A utility to check if a token is expired
 const isTokenExpired = (token: string): boolean => {
   try {
     const decoded: { exp: number } = jwtDecode(token);
@@ -34,7 +37,13 @@ const isTokenExpired = (token: string): boolean => {
 };
 
 let accessToken: string | null = null;
-const getAccessToken = () => accessToken;
+
+const getAccessToken = () => {
+    if (typeof window !== 'undefined') {
+        return localStorage.getItem('accessToken');
+    }
+    return accessToken;
+};
 
 const setAccessToken = (token: string | null) => {
     accessToken = token;
@@ -47,32 +56,39 @@ const setAccessToken = (token: string | null) => {
     }
 };
 
-
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [user, setUser] = useState<User | null>(null);
     const [isAuthenticated, setIsAuthenticated] = useState<boolean | undefined>(undefined);
     const [isLoading, setIsLoading] = useState(false);
+    const router = useRouter();
+
+    const logout = useCallback(async () => {
+        setUser(null);
+        setAccessToken(null);
+        setIsAuthenticated(false);
+        await fetch('/api/auth/logout', { method: 'POST' });
+    }, []);
 
     const silentRefresh = useCallback(async () => {
         try {
-            const res = await fetch('/api/auth/refresh', {
-                method: 'POST',
-            });
-
+            const res = await fetch('/api/auth/refresh', { method: 'POST' });
             if (!res.ok) throw new Error('Refresh failed');
             
             const data = await res.json();
-            setAccessToken(data.accessToken);
-            const decodedUser: User = jwtDecode(data.accessToken);
-            setUser(decodedUser);
-            setIsAuthenticated(true);
-            return data.accessToken;
+            if (data.success && data.accessToken) {
+                setAccessToken(data.accessToken);
+                const decodedUser: User = jwtDecode(data.accessToken);
+                setUser(decodedUser);
+                setIsAuthenticated(true);
+                return data.accessToken;
+            }
+            throw new Error('Refresh token invalid');
         } catch (error) {
             console.error('Silent refresh failed:', error);
-            await logout(); // Logout if refresh fails
+            await logout();
             return null;
         }
-    }, []);
+    }, [logout]);
 
     const fetchWithAuth = useCallback(async (url: string, options: RequestInit = {}) => {
         let token = getAccessToken();
@@ -82,27 +98,38 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
 
         if (!token) {
+            logout(); // Force logout if no token is available after refresh attempt
+            router.push('/account'); // Redirect to login
             throw new Error('Not authenticated');
         }
 
         const headers = new Headers(options.headers || {});
         headers.set('Authorization', `Bearer ${token}`);
-        options.headers = headers;
+        if (!headers.has('Content-Type') && !(options.body instanceof FormData)) {
+            headers.set('Content-Type', 'application/json');
+        }
 
-        return fetch(url, options);
-    }, [silentRefresh]);
+        const response = await fetch(url, { ...options, headers });
 
+        if (response.status === 401) {
+            await logout();
+            router.push('/account');
+        }
+
+        return response;
+    }, [silentRefresh, logout, router]);
 
     const initializeAuth = useCallback(async () => {
-        const storedToken = localStorage.getItem('accessToken');
-        if (storedToken && !isTokenExpired(storedToken)) {
-            setAccessToken(storedToken);
-            const decodedUser: User = jwtDecode(storedToken);
-            setUser(decodedUser);
-            setIsAuthenticated(true);
-        } else if (storedToken) {
-            // Token is expired, try to refresh it
-            await silentRefresh();
+        const storedToken = getAccessToken();
+        if (storedToken) {
+            if (!isTokenExpired(storedToken)) {
+                setAccessToken(storedToken);
+                const decodedUser: User = jwtDecode(storedToken);
+                setUser(decodedUser);
+                setIsAuthenticated(true);
+            } else {
+                await silentRefresh();
+            }
         } else {
             setIsAuthenticated(false);
         }
@@ -111,7 +138,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     useEffect(() => {
         initializeAuth();
     }, [initializeAuth]);
-
 
     const login = async (email: string, password: string) => {
         setIsLoading(true);
@@ -148,15 +174,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
     };
 
-    const logout = async () => {
-        setUser(null);
-        setAccessToken(null);
-        setIsAuthenticated(false);
-        await fetch('/api/auth/logout', { method: 'POST' });
-    };
-
     return (
-        <AuthContext.Provider value={{ user, isAuthenticated, isLoading, login, register, logout }}>
+        <AuthContext.Provider value={{ user, isAuthenticated, isLoading, login, register, logout, fetchWithAuth }}>
             {children}
         </AuthContext.Provider>
     );

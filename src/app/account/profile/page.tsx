@@ -47,8 +47,8 @@ export default function ProfilePage() {
             <div className="container mx-auto max-w-2xl px-4 py-8 pb-24">
                 <div className="flex flex-col items-center pt-8">
                     <Avatar className="w-32 h-32 text-5xl mb-4 border-4 border-background shadow-lg">
-                        <AvatarImage src={user?.avatar || `https://placehold.co/128x128.png?text=${getInitials(user?.name || 'U')}`} data-ai-hint="profile picture" />
-                        <AvatarFallback>{getInitials(user?.name || 'User')}</AvatarFallback>
+                        <AvatarImage src={user?.avatar} data-ai-hint="profile picture" />
+                        <AvatarFallback>{getInitials(user?.name || 'U')}</AvatarFallback>
                     </Avatar>
                     <h1 className="text-3xl font-bold text-foreground">{user?.name}</h1>
                     <Badge variant="secondary" className="mt-2 text-muted-foreground bg-secondary/80 border border-border shadow-inner px-4 py-1.5">
