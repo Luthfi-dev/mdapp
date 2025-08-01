@@ -18,7 +18,7 @@ export default function EditProfilePage() {
     
     const [name, setName] = useState('');
     const [phone, setPhone] = useState('');
-    const [avatarPreview, setAvatarPreview] = useState('');
+    const [avatarUrl, setAvatarUrl] = useState<string | undefined>(undefined);
     const [isSaving, setIsSaving] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -31,7 +31,7 @@ export default function EditProfilePage() {
             setName(user.name);
             setPhone(user.phone || '');
             if(user.avatar) {
-                 setAvatarPreview(`/api/images/${user.avatar}`);
+                 setAvatarUrl(`/api/images/${user.avatar}`);
             }
         }
     }, [user, isAuthenticated, isAuthLoading, router]);
@@ -72,23 +72,31 @@ export default function EditProfilePage() {
         if (file) {
             const newAvatarPath = await uploadAvatar(file);
             if(newAvatarPath) {
-                setAvatarPreview(`/api/images/${newAvatarPath}?t=${new Date().getTime()}`);
-                await saveProfile({ name: user?.name, phone: user?.phone, avatar_url: newAvatarPath });
-                 toast({
-                    title: "Foto Profil Diperbarui!",
-                    description: "Foto profil Anda telah berhasil diganti."
-                });
+                // Eagerly update UI
+                setAvatarUrl(`/api/images/${newAvatarPath}?t=${new Date().getTime()}`);
+                
+                // Save the new avatar path to the profile
+                const success = await saveProfile({ name, phone, avatar_url: newAvatarPath });
+                 if (success) {
+                    toast({
+                        title: "Foto Profil Diperbarui!",
+                        description: "Foto profil Anda telah berhasil diganti."
+                    });
+                 }
             }
         }
     };
     
-    const saveProfile = async (data: { name?: string; phone?: string; avatar_url?: string; }) => {
+    const saveProfile = async (data: { name: string; phone: string; avatar_url: string | undefined; }) => {
         setIsSaving(true);
         try {
+            // Get the current path from the state, not the user object which might be stale
+            const currentAvatarPath = avatarUrl ? avatarUrl.replace('/api/images/', '').split('?')[0] : undefined;
+
             const payload = {
-                name: data.name ?? user?.name,
-                phone: data.phone ?? user?.phone,
-                avatar_url: data.avatar_url ?? user?.avatar,
+                name: data.name,
+                phone: data.phone,
+                avatar_url: data.avatar_url ?? currentAvatarPath,
             };
 
             const response = await fetchWithAuth('/api/user/update', {
@@ -100,6 +108,7 @@ export default function EditProfilePage() {
             const result = await response.json();
 
             if (result.success && result.user) {
+                // This is crucial: update the auth context with the new user data from the server
                 updateUser(result.user);
                 return true;
             } else {
@@ -120,7 +129,7 @@ export default function EditProfilePage() {
     
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        const success = await saveProfile({ name, phone, avatar_url: user?.avatar });
+        const success = await saveProfile({ name, phone, avatar_url: undefined }); // Pass undefined so it uses the current state
         if(success) {
             toast({
                 title: "Profil Diperbarui!",
@@ -155,7 +164,7 @@ export default function EditProfilePage() {
                              <div className="flex flex-col items-center gap-4">
                                 <div className="relative">
                                     <Avatar className="w-32 h-32 text-5xl">
-                                        <AvatarImage src={avatarPreview} data-ai-hint="profile picture" />
+                                        <AvatarImage src={avatarUrl} data-ai-hint="profile picture" />
                                         <AvatarFallback>{getInitials(user.name)}</AvatarFallback>
                                     </Avatar>
                                      <Button 
