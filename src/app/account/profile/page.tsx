@@ -1,68 +1,58 @@
 
 'use client';
-
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { ChevronRight, Gem, LogOut, User, Edit, Shield, Bell, Users } from "lucide-react";
+import { ChevronRight, Gem, LogOut, Edit, Shield, Bell, Users, Loader2 } from "lucide-react";
 import { useRouter } from 'next/navigation';
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-
-// Placeholder data - in a real app, this would come from a session/context
-const user = {
-    name: 'Sana Afzal',
-    email: 'sana.afzal22@gmail.com',
-    avatar: 'https://placehold.co/128x128.png',
-    initials: 'SA'
-};
+import { useAuth } from "@/hooks/use-auth";
 
 const menuItems = [
-    {
-        label: "Edit Profil",
-        icon: Edit,
-        href: "/account/edit-profile"
-    },
-    {
-        label: "Keamanan",
-        icon: Shield,
-        href: "/account/security"
-    },
-     {
-        label: "Notifikasi",
-        icon: Bell,
-        href: "/account/notifications"
-    },
-    {
-        label: "Kelola Langganan",
-        icon: Gem,
-        href: "/pricing"
-    },
-    {
-        label: "Undang Teman",
-        icon: Users,
-        href: "/account/invite"
-    }
+    { label: "Edit Profil", icon: Edit, href: "/account/edit-profile" },
+    { label: "Keamanan", icon: Shield, href: "/account/security" },
+    { label: "Notifikasi", icon: Bell, href: "/account/notifications" },
+    { label: "Kelola Langganan", icon: Gem, href: "/pricing" },
+    { label: "Undang Teman", icon: Users, href: "/account/invite" }
 ];
 
 export default function ProfilePage() {
     const router = useRouter();
+    const { user, logout, isAuthenticated } = useAuth();
 
-    const handleLogout = () => {
-        // TODO: Implement actual logout logic (clear session/token)
+    if (isAuthenticated === undefined || (isAuthenticated === true && !user)) {
+        return (
+            <div className="flex h-screen items-center justify-center">
+                <Loader2 className="h-8 w-8 animate-spin" />
+            </div>
+        );
+    }
+    
+    if (!isAuthenticated) {
+        router.push('/account');
+        return null;
+    }
+
+    const handleLogout = async () => {
+        await logout();
         router.push('/');
     };
+    
+    const getInitials = (name: string) => {
+        return name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+    }
 
     return (
         <div className="min-h-screen bg-secondary/30">
             <div className="container mx-auto max-w-2xl px-4 py-8 pb-24">
                 <div className="flex flex-col items-center pt-8">
                     <Avatar className="w-32 h-32 text-5xl mb-4 border-4 border-background shadow-lg">
-                        <AvatarImage src={user.avatar} data-ai-hint="profile picture" />
-                        <AvatarFallback>{user.initials}</AvatarFallback>
+                        <AvatarImage src={user?.avatar || `https://placehold.co/128x128.png?text=${getInitials(user?.name || 'U')}`} data-ai-hint="profile picture" />
+                        <AvatarFallback>{getInitials(user?.name || 'User')}</AvatarFallback>
                     </Avatar>
-                    <h1 className="text-3xl font-bold text-foreground">{user.name}</h1>
+                    <h1 className="text-3xl font-bold text-foreground">{user?.name}</h1>
                     <Badge variant="secondary" className="mt-2 text-muted-foreground bg-secondary/80 border border-border shadow-inner px-4 py-1.5">
-                        {user.email}
+                        {user?.email}
                     </Badge>
                 </div>
 
@@ -78,9 +68,7 @@ export default function ProfilePage() {
                             </button>
                        ))}
                     </div>
-
                     <Separator className="my-2" />
-                    
                     <button onClick={handleLogout} className="w-full text-left p-4 rounded-lg hover:bg-secondary flex items-center justify-between transition-colors text-destructive">
                         <div className="flex items-center gap-4">
                             <LogOut className="w-6 h-6" />

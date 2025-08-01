@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils"
 import { Toaster } from "@/components/ui/toaster"
 import { ThemeProvider } from '@/components/ThemeProvider';
 import { AppLayout } from '@/components/AppLayout';
-
+import { AuthProvider } from '@/hooks/use-auth';
 
 const ptSans = PT_Sans({
   subsets: ['latin'],
@@ -98,15 +98,17 @@ export default function RootLayout({
         />
       </head>
       <body className={cn("font-body antialiased min-h-screen flex flex-col bg-background")}>
-        <ThemeProvider
-            attribute="class"
-            defaultTheme="system"
-            enableSystem
-            disableTransitionOnChange
-        >
-          <AppLayout>{children}</AppLayout>
-          <Toaster />
-        </ThemeProvider>
+        <AuthProvider>
+          <ThemeProvider
+              attribute="class"
+              defaultTheme="system"
+              enableSystem
+              disableTransitionOnChange
+          >
+            <AppLayout>{children}</AppLayout>
+            <Toaster />
+          </ThemeProvider>
+        </AuthProvider>
       </body>
     </html>
   );

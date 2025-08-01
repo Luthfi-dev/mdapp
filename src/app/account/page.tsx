@@ -3,68 +3,80 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ArrowRight, Loader2, Lock, Mail, User } from "lucide-react";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/hooks/use-auth";
 
 export default function AccountPage() {
   const [isLogin, setIsLogin] = useState(true);
-  const [isLoading, setIsLoading] = useState(false);
+  const { isLoading, login, register, isAuthenticated, user } = useAuth();
   const { toast } = useToast();
   const router = useRouter();
 
+  useEffect(() => {
+    if (isAuthenticated && user) {
+        router.push('/account/profile');
+    }
+  }, [isAuthenticated, user, router]);
+
   const handleFormSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    setIsLoading(true);
 
     const formData = new FormData(event.currentTarget);
     const name = formData.get("name") as string;
     const email = formData.get("email") as string;
     const password = formData.get("password") as string;
     const repeatPassword = formData.get("repeatPassword") as string;
-
-    const endpoint = isLogin ? '/api/auth/login' : '/api/auth/register';
-    const body = isLogin ? { email, password } : { name, email, password, repeatPassword };
-
+    
     try {
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
-
-      const result = await response.json();
-
-      if (response.ok) {
-        toast({
-          title: isLogin ? 'Login Berhasil!' : 'Registrasi Berhasil!',
-          description: result.message,
-        });
-        
         if (isLogin) {
-            // TODO: Save session/token here
-            router.push('/account/profile');
+            const result = await login(email, password);
+            if (result.success) {
+                 toast({
+                    title: 'Login Berhasil!',
+                    description: result.message,
+                });
+                router.push('/account/profile');
+            } else {
+                toast({
+                    variant: 'destructive',
+                    title: 'Login Gagal',
+                    description: result.message || 'Terjadi kesalahan.',
+                });
+            }
         } else {
-            setIsLogin(true); // Switch to login view after successful registration
+            const result = await register({name, email, password, repeatPassword});
+            if (result.success) {
+                toast({
+                    title: 'Registrasi Berhasil!',
+                    description: result.message,
+                });
+                setIsLogin(true); // Switch to login view after successful registration
+            } else {
+                 toast({
+                    variant: 'destructive',
+                    title: 'Registrasi Gagal',
+                    description: result.message || 'Terjadi kesalahan.',
+                });
+            }
         }
-      } else {
-        toast({
-          variant: 'destructive',
-          title: isLogin ? 'Login Gagal' : 'Registrasi Gagal',
-          description: result.message || 'Terjadi kesalahan.',
-        });
-      }
-
-    } catch (error) {
-       toast({
+    } catch(error) {
+         toast({
           variant: 'destructive',
           title: 'Error',
           description: 'Tidak dapat terhubung ke server.',
         });
-    } finally {
-      setIsLoading(false);
     }
   };
+  
+  if (isAuthenticated === undefined || isAuthenticated) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col min-h-screen bg-gradient-to-br from-primary/5 via-background to-background">
