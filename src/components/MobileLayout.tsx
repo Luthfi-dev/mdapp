@@ -1,3 +1,4 @@
+
 'use client';
 
 import BottomNavBar from './BottomNavBar';
@@ -7,9 +8,9 @@ import { cn } from '@/lib/utils';
 export function MobileLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   
-  // Exclude BottomNavBar for specific pages
-  const noNavPages = ['/messages', '/login', '/account'];
-  const showBottomNav = !noNavPages.includes(pathname) && !pathname.startsWith('/admin') && !pathname.startsWith('/surat/');
+  // Exclude BottomNavBar for specific pages or page groups
+  const noNavPaths = ['/messages', '/login', '/account', '/surat', '/surat-generator'];
+  const showBottomNav = !noNavPaths.some(path => pathname.startsWith(path)) && !pathname.startsWith('/admin');
 
   return (
     <div className="flex flex-col flex-1 h-full">

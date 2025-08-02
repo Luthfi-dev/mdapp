@@ -17,7 +17,10 @@ const navItems = [
 const BottomNavBar = () => {
   const pathname = usePathname();
 
-  if (pathname.startsWith('/admin') || pathname === '/login') {
+  // This component is now controlled by MobileLayout, so this check is for extra safety.
+  // The actual show/hide logic is in MobileLayout.tsx
+  const noNavPaths = ['/messages', '/login', '/account', '/surat', '/surat-generator'];
+  if (noNavPaths.some(path => pathname.startsWith(path)) || pathname.startsWith('/admin')) {
     return null;
   }
 
@@ -25,7 +28,7 @@ const BottomNavBar = () => {
     <div className="fixed bottom-0 left-0 right-0 h-16 bg-card z-50 shadow-[0_-8px_32px_0_rgba(0,0,0,0.05)] border-t">
       <div className="flex justify-around items-center h-full">
         {navItems.map(({ href, label, icon: Icon, isCenter }) => {
-          const isActive = (pathname === href) || (href !== '/' && pathname.startsWith(href));
+          const isActive = (pathname === href) || (href !== '/' && pathname.startsWith(href) && href !== '/account' && href !== '/messages' && href !== '/notebook');
           
           if (isCenter) {
             return (
