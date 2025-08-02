@@ -2,7 +2,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { hashPassword } from '@/lib/auth-utils';
 import { z } from 'zod';
-import { db } from '@/lib/db';
+import { getDbConnection } from '@/lib/db';
 import type { ResultSetHeader } from 'mysql2';
 import { randomBytes } from 'crypto';
 import { encrypt } from '@/lib/encryption';
@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
 
     const { name, email, password, fingerprint } = validationResult.data;
     
-    connection = await db.getConnection();
+    connection = await getDbConnection();
     await connection.beginTransaction();
 
     // Check for existing email

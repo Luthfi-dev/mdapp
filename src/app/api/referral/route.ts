@@ -1,6 +1,6 @@
 
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import { getDbConnection } from '@/lib/db';
 import { z } from 'zod';
 import { getAuthFromRequest } from '@/lib/auth-utils';
 import type { ResultSetHeader } from 'mysql2';
@@ -26,7 +26,7 @@ export async function POST(request: Request) {
     }
     const { referralCode } = validation.data;
     
-    connection = await db.getConnection();
+    connection = await getDbConnection();
     await connection.beginTransaction();
 
     // 1. Cari pengguna yang memiliki kode referral ini (referrer)

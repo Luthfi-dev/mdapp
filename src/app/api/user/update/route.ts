@@ -1,6 +1,6 @@
 
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import { getDbConnection } from '@/lib/db';
 import { z } from 'zod';
 import { getAuthFromRequest } from '@/lib/auth-utils';
 import type { ResultSetHeader } from 'mysql2';
@@ -29,6 +29,8 @@ export async function POST(request: Request) {
         message: validation.error.errors.map(e => e.message).join(', ') 
       }, { status: 400 });
     }
+    
+    connection = await getDbConnection();
 
     const dataToUpdate = validation.data;
     
@@ -61,7 +63,7 @@ export async function POST(request: Request) {
     
     if (updateFields.length === 0) {
       // Fetch current data and return it if nothing changed, to ensure consistency
-       const [currentRows] : [any[], any] = await db.execute('SELECT id, name, email, role_id, status, avatar_url, phone_number, points, referral_code FROM users WHERE id = ?', [user.id]);
+       const [currentRows] : [any[], any] = await connection.execute('SELECT id, name, email, role_id, status, avatar_url, phone_number, points, referral_code FROM users WHERE id = ?', [user.id]);
        if (currentRows.length === 0) {
            return NextResponse.json({ success: false, message: 'Pengguna tidak ditemukan.' }, { status: 404 });
        }
@@ -77,7 +79,6 @@ export async function POST(request: Request) {
     
     queryParams.push(user.id);
 
-    connection = await db.getConnection();
     const [result] = await connection.execute<ResultSetHeader>(sql, queryParams);
 
     if (result.affectedRows === 0) {

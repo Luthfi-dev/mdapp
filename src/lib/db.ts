@@ -53,7 +53,7 @@ const getPool = (): mysql.Pool => {
     return pool;
 }
 
-const getDbConnection = async () => {
+export async function getDbConnection() {
     try {
         const currentPool = getPool();
         const connection = await currentPool.getConnection();
@@ -69,28 +69,3 @@ const getDbConnection = async () => {
         throw new Error(`Could not connect to the database. Please check database status and configuration. Error: ${error.code || 'UNKNOWN'}`);
     }
 };
-
-// For direct queries if needed, though getting a connection is safer for transactions
-const db = {
-    query: async (sql: string, params?: any[]) => {
-        const connection = await getDbConnection();
-        try {
-            const [rows] = await connection.query(sql, params);
-            return rows;
-        } finally {
-            connection.release();
-        }
-    },
-    execute: async (sql: string, params?: any[]) => {
-        const connection = await getDbConnection();
-        try {
-            const [rows] = await connection.execute(sql, params);
-            return rows;
-        } finally {
-            connection.release();
-        }
-    },
-    getConnection: getDbConnection
-};
-
-export { db, getDbConnection };
