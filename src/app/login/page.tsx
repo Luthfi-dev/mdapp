@@ -27,9 +27,9 @@ export default function LoginPage() {
     <div className="flex items-center justify-center min-h-[calc(100vh-150px)] bg-background">
       <Card className="w-full max-w-sm">
         <CardHeader>
-          <CardTitle className="text-2xl">Login</CardTitle>
+          <CardTitle className="text-2xl">Admin Login</CardTitle>
           <CardDescription>
-            Enter your email below to login to your account.
+            This page is for administrators only.
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4">
@@ -44,11 +44,9 @@ export default function LoginPage() {
         </CardContent>
         <CardFooter className="flex flex-col gap-4">
           <Button className="w-full" onClick={handleLogin}>Sign in</Button>
-          <div className="text-center text-sm">
-            <Link href="#" className="underline">
-              Forgot your password?
-            </Link>
-          </div>
+           <Button variant="link" size="sm" asChild>
+              <Link href="/">Back to Home</Link>
+          </Button>
         </CardFooter>
       </Card>
     </div>

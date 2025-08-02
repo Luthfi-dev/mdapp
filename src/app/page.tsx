@@ -24,6 +24,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 
 // Simulate fetching data
 import appsData from '@/data/apps.json';
+import { useAuth } from "@/hooks/use-auth";
 
 const getIcon = (iconName: string): React.ReactNode => {
     const IconComponent = (LucideIcons as any)[iconName];
@@ -113,6 +114,7 @@ export default function HomePage() {
    )
    const router = useRouter();
    const { theme, setTheme } = useTheme();
+   const { user } = useAuth();
    const isMobile = useIsMobile();
    const [isDialogOpen, setIsDialogOpen] = React.useState(false);
    const { points, claimState, claimReward, refreshClaimState } = useDailyReward();
@@ -173,7 +175,7 @@ export default function HomePage() {
           <div className="flex justify-between items-center mb-4">
               <div className="flex flex-col">
                   <p className="opacity-80 text-sm">Selamat Datang!</p>
-                  <h1 className="text-2xl font-bold">John Doe</h1>
+                  <h1 className="text-2xl font-bold">{ user ? user.name : 'Guest' }</h1>
               </div>
               <Button variant="ghost" size="icon" className="rounded-full" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
                 <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
