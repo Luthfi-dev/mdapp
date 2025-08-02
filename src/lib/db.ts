@@ -1,12 +1,15 @@
 
 import mysql from 'mysql2/promise';
+import logger from './logger';
+
+let pool: mysql.Pool | null = null;
 
 const getDbConfig = () => {
   // Check if any of the required environment variables for remote DB are set
   const hasRemoteDbConfig = process.env.DB_HOST && process.env.DB_USER && process.env.DB_NAME;
 
   if (hasRemoteDbConfig) {
-    console.log("Using database configuration from .env file.");
+    logger.info("Using database configuration from .env file.");
     return {
       host: process.env.DB_HOST,
       port: parseInt(process.env.DB_PORT || '3306', 10),
@@ -16,11 +19,11 @@ const getDbConfig = () => {
       waitForConnections: true,
       connectionLimit: 10,
       queueLimit: 0,
-      connectTimeout: 10000, // 10 seconds
+      connectTimeout: 10000,
     };
   } else {
     // Fallback to a default local configuration if .env is not set
-    console.warn("[DATABASE WARNING] No .env database configuration found. Falling back to default localhost settings.");
+    logger.warn("No .env database configuration found. Falling back to default localhost settings.");
     return {
       host: '127.0.0.1',
       port: 3306,
@@ -35,21 +38,64 @@ const getDbConfig = () => {
   }
 };
 
-// Create the pool directly using the config logic
-const db: mysql.Pool = mysql.createPool(getDbConfig());
+const initializePool = () => {
+    if (!pool) {
+        try {
+            const config = getDbConfig();
+            pool = mysql.createPool(config);
+            logger.info('Database pool initialized successfully.');
+        } catch(error: any) {
+            logger.error('Failed to initialize database pool', { error: error.message, stack: error.stack });
+            pool = null; // Ensure pool is null on failure
+        }
+    }
+    return pool;
+}
 
-// Export a custom function to get connection that includes a pre-flight check
 const getDbConnection = async () => {
+    const currentPool = initializePool();
+
+    if (!currentPool) {
+        const errorMessage = 'Database pool is not available. Check logs for initialization errors.';
+        logger.error(errorMessage);
+        throw new Error(errorMessage);
+    }
+    
     try {
-        const connection = await db.getConnection();
-        // A simple query to ensure the connection is truly active
-        await connection.query('SELECT 1'); 
+        const connection = await currentPool.getConnection();
+        logger.info('Successfully acquired a database connection.');
         return connection;
     } catch (error: any) {
-        console.error(`[DATABASE FATAL] Failed to get a database connection: ${error.message}`);
-        // Re-throw a more user-friendly error to be caught by API routes
-        throw new Error(`Could not connect to the database. Please ensure the database is running and .env configuration is correct. Detail: ${error.code || 'Unknown Error'}`);
+        logger.error('Failed to get a database connection from the pool.', {
+            code: error.code,
+            message: error.message,
+            stack: error.stack
+        });
+        throw new Error(`Could not connect to the database. Please check database status and configuration. Error: ${error.code}`);
     }
+};
+
+// For direct queries if needed, though getting a connection is safer for transactions
+const db = {
+    query: async (sql: string, params?: any[]) => {
+        const connection = await getDbConnection();
+        try {
+            const [rows, fields] = await connection.query(sql, params);
+            return rows;
+        } finally {
+            connection.release();
+        }
+    },
+    execute: async (sql: string, params?: any[]) => {
+        const connection = await getDbConnection();
+        try {
+            const [rows, fields] = await connection.execute(sql, params);
+            return rows;
+        } finally {
+            connection.release();
+        }
+    },
+    getConnection: getDbConnection
 };
 
 

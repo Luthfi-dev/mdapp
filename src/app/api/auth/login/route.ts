@@ -7,6 +7,7 @@ import { generateTokens, setTokenCookie } from '@/lib/jwt';
 import type { UserForToken } from '@/lib/jwt';
 import type { ResultSetHeader } from 'mysql2';
 import { decrypt } from '@/lib/encryption';
+import logger from '@/lib/logger';
 
 const loginSchema = z.object({
   email: z.string().email({ message: "Format email tidak valid." }),
@@ -28,7 +29,6 @@ export async function POST(request: NextRequest) {
 
     const { email, password } = validationResult.data;
 
-    // Use the new connection getter to catch initial connection errors
     connection = await getDbConnection();
     
     const [rows]: [any[], any] = await connection.execute(
@@ -88,8 +88,11 @@ export async function POST(request: NextRequest) {
     return response;
 
   } catch (error: any) {
-    console.error('Login error:', error);
-    // DEBUGGING MODE: Return the actual error message to the client
+    logger.error('Login API error:', { 
+      message: error.message, 
+      stack: error.stack,
+      requestBody: await request.json().catch(() => 'Could not parse body')
+    });
     return NextResponse.json({
       success: false,
       message: `Terjadi kesalahan server: ${error.message || 'Error tidak diketahui.'}`
