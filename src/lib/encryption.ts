@@ -6,8 +6,8 @@ const ENCRYPTION_KEY_STRING = process.env.ENCRYPTION_KEY;
 
 // Safely get the encryption key
 function getEncryptionKey(): Buffer {
-  if (!ENCRYPTION_KEY_STRING || ENCRYPTION_KEY_STRING.length !== 32) {
-    console.error('FATAL: ENCRYPTION_KEY is not set or is not 32 bytes (256 bits) long. Please check your .env file.');
+  if (!ENCRYPTION_KEY_STRING || Buffer.byteLength(ENCRYPTION_KEY_STRING, 'utf8') !== 32) {
+    console.error('FATAL: ENCRYPTION_KEY must be a 32-byte (256-bit) string. Please check your .env file.');
     throw new Error('Server configuration error: Encryption key is missing or invalid.');
   }
   return Buffer.from(ENCRYPTION_KEY_STRING, 'utf8');
