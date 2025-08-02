@@ -6,10 +6,11 @@ import { getAuthFromRequest } from '@/lib/auth-utils';
 import type { ResultSetHeader } from 'mysql2';
 import { encrypt, decrypt } from '@/lib/encryption';
 
+// Schema is now more robust, explicitly marking fields as optional.
 const updateProfileSchema = z.object({
   name: z.string().min(3, "Nama harus memiliki setidaknya 3 karakter.").optional(),
-  phone: z.string().optional(), // Can be empty string or undefined
-  avatar_url: z.string().optional(),
+  phone: z.string().optional(), // Can be an empty string, null, or undefined
+  avatar_url: z.string().nullable().optional(), // Can be a string, null, or undefined
 });
 
 export async function POST(request: Request) {
@@ -33,37 +34,42 @@ export async function POST(request: Request) {
     const { name, phone, avatar_url } = validation.data;
     
     // --- Dynamic SQL Query Builder ---
-    const fieldsToUpdate: { [key: string]: any } = {};
+    const updateFields: string[] = [];
     const queryParams: any[] = [];
     
     if (name !== undefined) {
-      fieldsToUpdate.name = name;
+      updateFields.push('name = ?');
+      queryParams.push(name);
     }
     if (phone !== undefined) {
-      // Encrypt phone number only if it's a non-empty string
-      fieldsToUpdate.phone_number = phone ? encrypt(phone) : null;
+      // Encrypt phone number only if it's a non-empty string, otherwise store as NULL
+      updateFields.push('phone_number = ?');
+      queryParams.push(phone ? encrypt(phone) : null);
     }
     if (avatar_url !== undefined) {
-      fieldsToUpdate.avatar_url = avatar_url;
+      // avatar_url can be a string path or null to clear it
+      updateFields.push('avatar_url = ?');
+      queryParams.push(avatar_url);
     }
     
-    if (Object.keys(fieldsToUpdate).length === 0) {
-      return NextResponse.json({ success: false, message: 'Tidak ada data untuk diperbarui.' }, { status: 400 });
+    if (updateFields.length === 0) {
+      return NextResponse.json({ success: true, message: 'Tidak ada data untuk diperbarui.', user });
     }
     
-    const setClauses = Object.keys(fieldsToUpdate).map(key => `${key} = ?`).join(', ');
-    const sql = `UPDATE users SET ${setClauses} WHERE id = ?`;
+    const setClause = updateFields.join(', ');
+    const sql = `UPDATE users SET ${setClause} WHERE id = ?`;
     
-    const finalQueryParams = [...Object.values(fieldsToUpdate), user.id];
+    // Add the user ID as the last parameter for the WHERE clause
+    queryParams.push(user.id);
 
     connection = await db.getConnection();
-    const [result] = await connection.execute<ResultSetHeader>(sql, finalQueryParams);
+    const [result] = await connection.execute<ResultSetHeader>(sql, queryParams);
 
     if (result.affectedRows === 0) {
       return NextResponse.json({ success: false, message: 'Gagal memperbarui profil, pengguna tidak ditemukan.' }, { status: 404 });
     }
 
-    // Fetch the updated user data to return
+    // Fetch the updated user data to return, ensuring data consistency
     const [rows]: [any[], any] = await connection.execute(
       'SELECT id, name, email, role_id, status, avatar_url, phone_number, points, referral_code FROM users WHERE id = ?',
       [user.id]
