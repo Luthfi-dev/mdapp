@@ -17,18 +17,6 @@ const navItems = [
 const BottomNavBar = () => {
   const pathname = usePathname();
 
-  // The rendering of this component is now controlled by MobileLayout, 
-  // so this check is primarily for safety and clarity.
-  const isHidden = () => {
-    const noNavPaths = ['/messages', '/login', '/account', '/surat', '/surat-generator', '/admin'];
-    // Check if the current pathname starts with any of the paths in noNavPaths
-    return noNavPaths.some(path => pathname.startsWith(path));
-  };
-
-  if (isHidden()) {
-    return null;
-  }
-
   return (
     <div className="fixed bottom-0 left-0 right-0 h-16 bg-card z-50 shadow-[0_-8px_32px_0_rgba(0,0,0,0.05)] border-t">
       <div className="flex justify-around items-center h-full">
