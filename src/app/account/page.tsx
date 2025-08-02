@@ -10,6 +10,8 @@ import { useAuth } from "@/hooks/use-auth";
 
 // A simple function to generate a browser fingerprint
 const getBrowserFingerprint = () => {
+  if (typeof window === 'undefined') return 'server-side-render';
+  
   const { userAgent, language, platform, hardwareConcurrency, deviceMemory } = navigator;
   const screenResolution = `${window.screen.width}x${window.screen.height}x${window.screen.colorDepth}`;
   const timezone = new Date().getTimezoneOffset();
@@ -85,7 +87,7 @@ export default function AccountPage() {
          toast({
           variant: 'destructive',
           title: 'Error',
-          description: 'Tidak dapat terhubung ke server.',
+          description: error instanceof Error ? error.message : 'Tidak dapat terhubung ke server.',
         });
     }
   };

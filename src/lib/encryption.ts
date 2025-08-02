@@ -2,14 +2,19 @@
 import crypto from 'crypto';
 
 const ALGORITHM = 'aes-256-cbc';
-const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY;
+const ENCRYPTION_KEY_STRING = process.env.ENCRYPTION_KEY;
 
-if (!ENCRYPTION_KEY || ENCRYPTION_KEY.length !== 32) {
-  throw new Error('ENCRYPTION_KEY is not set or is not 32 bytes (256 bits) long. Please check your .env file.');
+// Safely get the encryption key
+function getEncryptionKey(): Buffer {
+  if (!ENCRYPTION_KEY_STRING || ENCRYPTION_KEY_STRING.length !== 32) {
+    console.error('FATAL: ENCRYPTION_KEY is not set or is not 32 bytes (256 bits) long. Please check your .env file.');
+    throw new Error('Server configuration error: Encryption key is missing or invalid.');
+  }
+  return Buffer.from(ENCRYPTION_KEY_STRING, 'utf8');
 }
-const key = Buffer.from(ENCRYPTION_KEY, 'utf8');
 
 export function encrypt(text: string): string {
+  const key = getEncryptionKey();
   const iv = crypto.randomBytes(16);
   const cipher = crypto.createCipheriv(ALGORITHM, key, iv);
   let encrypted = cipher.update(text, 'utf8', 'hex');
@@ -19,7 +24,12 @@ export function encrypt(text: string): string {
 
 export function decrypt(text: string): string {
   try {
+    const key = getEncryptionKey();
     const parts = text.split(':');
+    // Ensure parts has at least two elements before proceeding
+    if (parts.length < 2) {
+        throw new Error("Invalid encrypted text format.");
+    }
     const iv = Buffer.from(parts.shift()!, 'hex');
     const encryptedText = Buffer.from(parts.join(':'), 'hex');
     const decipher = crypto.createDecipheriv(ALGORITHM, key, iv);

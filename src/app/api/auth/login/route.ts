@@ -86,11 +86,12 @@ export async function POST(request: NextRequest) {
 
     return response;
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Login error:', error);
+    // DEBUGGING MODE: Return the actual error message to the client
     return NextResponse.json({
       success: false,
-      message: 'Terjadi kesalahan yang tidak terduga.'
+      message: `Terjadi kesalahan server: ${error.message || 'Error tidak diketahui.'}`
     }, { status: 500 });
   } finally {
     if (connection) {
