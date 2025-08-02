@@ -1,63 +1,53 @@
 
 import mysql from 'mysql2/promise';
 
-// Check for essential environment variables at the module level
-const requiredEnvVars = ['DB_HOST', 'DB_USER', 'DB_NAME'];
-const missingVars = requiredEnvVars.filter(v => !process.env[v]);
+const getDbConfig = () => {
+  const hasEnvConfig = process.env.DB_HOST && process.env.DB_USER && process.env.DB_NAME;
 
-let db: mysql.Pool;
-let connectionError: Error | null = null;
-
-
-if (missingVars.length > 0) {
-  const errorMessage = `[DATABASE WARNING] The following required environment variables are missing: ${missingVars.join(', ')}. The application will run without a database connection. This is expected during build time or if no database is configured.`;
-  console.warn(errorMessage);
-  connectionError = new Error('Database is not configured. Please check your .env file.');
-  
-  // Create a mock pool that will throw an error if used
-  const handler = {
-    get: function(target: any, prop: any) {
-      if (prop === 'getConnection') {
-         return () => Promise.reject(connectionError);
-      }
-      return Reflect.get(target, prop);
-    }
-  };
-  db = new Proxy({}, handler) as mysql.Pool;
-
-} else {
-  // Create a connection pool if all variables are present
-  db = mysql.createPool({
-    host: process.env.DB_HOST,
-    port: parseInt(process.env.DB_PORT || '3306', 10),
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    database: process.env.DB_NAME,
-    waitForConnections: true,
-    connectionLimit: 10,
-    queueLimit: 0,
-    connectTimeout: 10000, // 10 seconds timeout
-  });
-
-  // Test the connection and store the error if it fails
-  db.getConnection()
-    .then(connection => {
-      console.log('Successfully connected to the database.');
-      connection.release();
-    })
-    .catch(err => {
-      console.error('Initial database connection failed:', err);
-      connectionError = err; // Store the connection error
-      db.end().catch(endErr => console.error("Failed to close pool after connection error:", endErr)); // Attempt to close the pool
-    });
+  if (hasEnvConfig) {
+    console.log("Menggunakan konfigurasi database dari file .env");
+    return {
+      host: process.env.DB_HOST,
+      port: parseInt(process.env.DB_PORT || '3306', 10),
+      user: process.env.DB_USER,
+      password: process.env.DB_PASSWORD,
+      database: process.env.DB_NAME,
+      waitForConnections: true,
+      connectionLimit: 10,
+      queueLimit: 0,
+      connectTimeout: 10000,
+    };
+  } else {
+    console.warn("[DATABASE WARNING] Konfigurasi .env tidak ditemukan. Menggunakan fallback ke localhost.");
+    return {
+      host: '127.0.0.1',
+      port: 3306,
+      user: 'root',
+      password: '',
+      database: 'test',
+      waitForConnections: true,
+      connectionLimit: 10,
+      queueLimit: 0,
+      connectTimeout: 10000,
+    };
+  }
 }
 
-// Export a custom function to get connection that also checks for initial error
+// Create the pool directly using the config logic
+const db: mysql.Pool = mysql.createPool(getDbConfig());
+
+// Export a custom function to get connection that includes a pre-flight check
 const getDbConnection = async () => {
-    if (connectionError) {
-        throw new Error(`Database connection failed: ${connectionError.message}`);
+    try {
+        const connection = await db.getConnection();
+        // A simple query to ensure the connection is truly active
+        await connection.query('SELECT 1'); 
+        return connection;
+    } catch (error: any) {
+        console.error(`[DATABASE FATAL] Gagal mendapatkan koneksi database: ${error.message}`);
+        // Re-throw a more user-friendly error to be caught by API routes
+        throw new Error(`Tidak dapat terhubung ke database. Pastikan database berjalan dan konfigurasi .env sudah benar. Detail: ${error.code}`);
     }
-    return db.getConnection();
 };
 
 

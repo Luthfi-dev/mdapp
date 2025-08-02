@@ -2,11 +2,13 @@
 'use client';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ArrowRight, Loader2, Lock, Mail, User } from "lucide-react";
+import { ArrowRight, Loader2, Lock, Mail, User, AlertTriangle } from "lucide-react";
 import React, { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+
 
 // A simple function to generate a browser fingerprint
 const getBrowserFingerprint = () => {
@@ -31,6 +33,7 @@ const getBrowserFingerprint = () => {
 
 export default function AccountPage() {
   const [isLogin, setIsLogin] = useState(true);
+  const [serverError, setServerError] = useState<string | null>(null);
   const { isLoading, login, register, isAuthenticated, user } = useAuth();
   const { toast } = useToast();
   const router = useRouter();
@@ -43,6 +46,7 @@ export default function AccountPage() {
 
   const handleFormSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    setServerError(null);
 
     const formData = new FormData(event.currentTarget);
     const name = formData.get("name") as string;
@@ -60,11 +64,7 @@ export default function AccountPage() {
                 });
                 router.push('/account/profile');
             } else {
-                toast({
-                    variant: 'destructive',
-                    title: 'Login Gagal',
-                    description: result.message || 'Terjadi kesalahan.',
-                });
+                setServerError(result.message || 'Terjadi kesalahan.');
             }
         } else {
             const fingerprint = getBrowserFingerprint();
@@ -76,19 +76,11 @@ export default function AccountPage() {
                 });
                 setIsLogin(true);
             } else {
-                 toast({
-                    variant: 'destructive',
-                    title: 'Registrasi Gagal',
-                    description: result.message || 'Terjadi kesalahan.',
-                });
+                 setServerError(result.message || 'Terjadi kesalahan.');
             }
         }
     } catch(error) {
-         toast({
-          variant: 'destructive',
-          title: 'Error',
-          description: error instanceof Error ? error.message : 'Tidak dapat terhubung ke server.',
-        });
+         setServerError(error instanceof Error ? error.message : 'Tidak dapat terhubung ke server.');
     }
   };
   
@@ -136,6 +128,16 @@ export default function AccountPage() {
                 </div>
               )}
               
+               {serverError && (
+                 <Alert variant="destructive">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertTitle>Terjadi Kesalahan</AlertTitle>
+                    <AlertDescription>
+                       {serverError}
+                    </AlertDescription>
+                </Alert>
+              )}
+
               <Button type="submit" className="w-full h-12 rounded-full bg-primary hover:bg-primary/90 text-lg font-bold group" disabled={isLoading}>
                 {isLoading ? <Loader2 className="animate-spin" /> : (
                   <>

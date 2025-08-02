@@ -2,7 +2,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { verifyPassword } from '@/lib/auth-utils';
 import { z } from 'zod';
-import { db, getDbConnection } from '@/lib/db';
+import { getDbConnection } from '@/lib/db';
 import { generateTokens, setTokenCookie } from '@/lib/jwt';
 import type { UserForToken } from '@/lib/jwt';
 import type { ResultSetHeader } from 'mysql2';
