@@ -19,7 +19,7 @@ export default function EditProfilePage() {
     const [name, setName] = useState('');
     const [phone, setPhone] = useState('');
     const [avatarUrl, setAvatarUrl] = useState<string | undefined>(undefined);
-    const [avatarPath, setAvatarPath] = useState<string | undefined>(undefined);
+    const [avatarPath, setAvatarPath] = useState<string | null | undefined>(undefined);
     const [isSaving, setIsSaving] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -29,7 +29,7 @@ export default function EditProfilePage() {
             router.push('/account');
         }
         if (user) {
-            setName(user.name);
+            setName(user.name || '');
             setPhone(user.phone || '');
             setAvatarPath(user.avatar);
             if(user.avatar) {
@@ -77,22 +77,33 @@ export default function EditProfilePage() {
         if (file) {
             const newAvatarPath = await uploadAvatar(file);
             if(newAvatarPath) {
+                // Update preview URL with a timestamp to break browser cache
                 setAvatarUrl(`/api/images/${newAvatarPath}?t=${new Date().getTime()}`);
+                // Set the path to be saved later when the user clicks "Simpan"
                 setAvatarPath(newAvatarPath);
-                
-                // Immediately save the profile with the new avatar path
-                await saveProfile({ avatar_url: newAvatarPath });
             }
         }
     };
     
-    const saveProfile = async (data: { name?: string; phone?: string; avatar_url?: string; }) => {
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
         setIsSaving(true);
         try {
+            const payload: { name: string; phone: string; avatar_url?: string | null } = {
+                name,
+                phone,
+            };
+
+            // Only include avatar_url in payload if it has been changed.
+            // `user.avatar` is the original value, `avatarPath` is the new one.
+            if (avatarPath !== user?.avatar) {
+                payload.avatar_url = avatarPath;
+            }
+
             const response = await fetchWithAuth('/api/user/update', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data)
+                body: JSON.stringify(payload)
             });
 
             const result = await response.json();
@@ -103,29 +114,19 @@ export default function EditProfilePage() {
                     title: "Profil Diperbarui!",
                     description: "Perubahan pada profil Anda telah berhasil disimpan."
                 });
-                return true;
+                router.push('/account/profile');
             } else {
                 toast({
                     variant: 'destructive',
                     title: 'Gagal Menyimpan',
                     description: result.message || 'Terjadi kesalahan saat menyimpan profil.'
                 });
-                return false;
             }
         } catch (error) {
              const message = error instanceof Error ? error.message : 'Tidak dapat terhubung ke server.';
              toast({ variant: 'destructive', title: 'Error', description: message });
-             return false;
         } finally {
             setIsSaving(false);
-        }
-    };
-    
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        const success = await saveProfile({ name, phone, avatar_url: avatarPath });
-        if(success) {
-            router.push('/account/profile');
         }
     };
     

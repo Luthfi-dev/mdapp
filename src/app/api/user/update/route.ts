@@ -6,11 +6,10 @@ import { getAuthFromRequest } from '@/lib/auth-utils';
 import type { ResultSetHeader } from 'mysql2';
 import { encrypt, decrypt } from '@/lib/encryption';
 
-// Schema is now more robust, explicitly marking fields as optional.
 const updateProfileSchema = z.object({
   name: z.string().min(3, "Nama harus memiliki setidaknya 3 karakter.").optional(),
-  phone: z.string().optional(), // Can be an empty string, null, or undefined
-  avatar_url: z.string().nullable().optional(), // Can be a string, null, or undefined
+  phone: z.string().optional(),
+  avatar_url: z.string().nullable().optional(),
 });
 
 export async function POST(request: Request) {
@@ -31,35 +30,51 @@ export async function POST(request: Request) {
       }, { status: 400 });
     }
 
-    const { name, phone, avatar_url } = validation.data;
+    const dataToUpdate = validation.data;
     
     // --- Dynamic SQL Query Builder ---
     const updateFields: string[] = [];
     const queryParams: any[] = [];
     
-    if (name !== undefined) {
-      updateFields.push('name = ?');
-      queryParams.push(name);
-    }
-    if (phone !== undefined) {
-      // Encrypt phone number only if it's a non-empty string, otherwise store as NULL
-      updateFields.push('phone_number = ?');
-      queryParams.push(phone ? encrypt(phone) : null);
-    }
-    if (avatar_url !== undefined) {
-      // avatar_url can be a string path or null to clear it
-      updateFields.push('avatar_url = ?');
-      queryParams.push(avatar_url);
-    }
+    // The Object.keys().forEach approach is safer against undefined values
+    Object.keys(dataToUpdate).forEach(key => {
+        const fieldKey = key as keyof typeof dataToUpdate;
+        const value = dataToUpdate[fieldKey];
+
+        if (value !== undefined) { // Check for undefined, allow null and empty strings
+            switch(fieldKey) {
+                case 'name':
+                    updateFields.push('name = ?');
+                    queryParams.push(value);
+                    break;
+                case 'phone':
+                    updateFields.push('phone_number = ?');
+                    queryParams.push(value ? encrypt(value as string) : null);
+                    break;
+                case 'avatar_url':
+                     updateFields.push('avatar_url = ?');
+                     queryParams.push(value); // value can be string path or null
+                     break;
+            }
+        }
+    });
     
     if (updateFields.length === 0) {
-      return NextResponse.json({ success: true, message: 'Tidak ada data untuk diperbarui.', user });
+      // Fetch current data and return it if nothing changed, to ensure consistency
+       const [currentRows] : [any[], any] = await db.execute('SELECT id, name, email, role_id, status, avatar_url, phone_number, points, referral_code FROM users WHERE id = ?', [user.id]);
+       if (currentRows.length === 0) {
+           return NextResponse.json({ success: false, message: 'Pengguna tidak ditemukan.' }, { status: 404 });
+       }
+       const currentUser = currentRows[0];
+       const decryptedPhone = currentUser.phone_number ? decrypt(currentUser.phone_number) : undefined;
+       const userForToken = { ...currentUser, phone: decryptedPhone };
+
+       return NextResponse.json({ success: true, message: 'Tidak ada data untuk diperbarui.', user: userForToken });
     }
     
     const setClause = updateFields.join(', ');
     const sql = `UPDATE users SET ${setClause} WHERE id = ?`;
     
-    // Add the user ID as the last parameter for the WHERE clause
     queryParams.push(user.id);
 
     connection = await db.getConnection();
