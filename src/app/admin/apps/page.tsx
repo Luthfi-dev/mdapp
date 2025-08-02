@@ -11,21 +11,11 @@ import { useToast } from "@/hooks/use-toast";
 import { Plus, Trash2, Save, Flame, Star, ThumbsUp, Loader2, Settings } from "lucide-react";
 import { Switch } from '@/components/ui/switch';
 import { AppSettingsDialog } from '@/components/admin/AppSettingsDialog';
+import type { AppDefinition } from '@/types';
+import { loadAppSettings, saveAppSettings, type AppSettings } from '@/data/app-settings';
 
 // Simulate fetching and saving data
 import appsData from '@/data/apps.json';
-import { AppSettings, loadAppSettings, saveAppSettings } from '@/data/app-settings';
-
-export interface AppDefinition {
-  id: string;
-  title: string;
-  description: string;
-  href: string;
-  icon: string;
-  isPopular: boolean;
-  isNew: boolean;
-  order: number;
-}
 
 export default function ManageAppsPage() {
   const [apps, setApps] = useState<AppDefinition[]>([]);

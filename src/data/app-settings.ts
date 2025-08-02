@@ -1,18 +1,12 @@
 
 'use client';
-import type { AdSetting } from "@/types/surat";
+import type { AppSettings, PaginationSettings } from "@/types";
 
-export interface AppSettings {
-  isPro: boolean;
-  ads: {
-    banner: AdSetting;
-    poster: AdSetting;
-  };
-}
+export type { AppSettings, PaginationSettings };
 
-export interface PaginationSettings {
-  itemsPerPage: number;
-}
+// Re-exporting AdSetting for convenience in components that use it.
+export type { AdSetting } from '@/types/surat';
+
 
 const APP_SETTINGS_KEY = 'all_app_settings_v1';
 const PAGINATION_SETTINGS_KEY = 'pagination_settings_v1';

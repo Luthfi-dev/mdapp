@@ -11,21 +11,10 @@ import { useToast } from "@/hooks/use-toast";
 import { Plus, Trash2, Save, Gem, Loader2, Star } from "lucide-react";
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
+import type { PricingPlan } from '@/types/surat';
 
 // Simulate fetching and saving data from a JSON file
 import pricingPlansData from '@/data/pricing-plans.json';
-
-export interface PricingPlan {
-  id: string;
-  name: string;
-  price: string;
-  priceDetails: string;
-  description: string;
-  features: string[];
-  isPopular: boolean;
-  buttonText: string;
-  buttonVariant: 'default' | 'outline' | 'secondary';
-}
 
 export default function ManagePricingPage() {
   const [plans, setPlans] = useState<PricingPlan[]>([]);

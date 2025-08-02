@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Search, Loader2, Star, Flame } from 'lucide-react';
 import { ToolCard } from '@/components/ToolCard';
-import type { AppDefinition } from '@/app/admin/apps/page';
+import type { AppDefinition } from '@/types';
 import * as LucideIcons from 'lucide-react';
 
 // Simulate fetching data
@@ -36,7 +36,7 @@ export default function ExplorePage() {
     const sortedApps = [...appsData]
         .filter(app => app.id !== 'app_all_apps') // Exclude the "All Apps" card from its own page
         .sort((a, b) => a.order - b.order);
-    setAllApps(sortedApps);
+    setAllApps(sortedApps as AppDefinition[]);
 
     try {
         const storedFavorites = window.localStorage.getItem(BROWSER_STORAGE_KEY_FAVORITES);

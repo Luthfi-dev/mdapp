@@ -8,8 +8,8 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import type { AppDefinition } from '@/app/admin/apps/page';
-import type { AppSettings, AdSetting } from '@/data/app-settings';
+import type { AppDefinition, AppSettings } from '@/types';
+import type { AdSetting } from '@/data/app-settings';
 import { Loader2, Save, Upload, Settings } from 'lucide-react';
 import Image from 'next/image';
 

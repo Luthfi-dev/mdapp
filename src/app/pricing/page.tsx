@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { CheckCircle, Gem, Loader2, Star } from "lucide-react";
 import { cn } from '@/lib/utils';
-import { type PricingPlan } from '../admin/pricing/page';
+import type { PricingPlan } from '@/types/surat';
 
 // Simulate fetching data from a JSON file
 import pricingPlansData from '@/data/pricing-plans.json';

@@ -8,7 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Save, Loader2, ChevronsLeftRight } from "lucide-react";
-import { getPaginationSettings, savePaginationSettings, PaginationSettings } from '@/data/app-settings';
+import { getPaginationSettings, savePaginationSettings } from '@/data/app-settings';
+import type { PaginationSettings } from '@/types';
 
 export default function PaginationSettingsPage() {
   const [settings, setSettings] = useState<PaginationSettings>({ itemsPerPage: 15 });

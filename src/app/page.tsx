@@ -16,7 +16,7 @@ import { useDailyReward } from "@/hooks/use-daily-reward";
 import { DailyRewardDialog } from "@/components/DailyRewardDialog";
 import { CountUp } from "@/components/CountUp";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import type { AppDefinition } from "@/app/admin/apps/page";
+import type { AppDefinition } from "@/types";
 import * as LucideIcons from 'lucide-react';
 import Image from 'next/image';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -128,7 +128,7 @@ export default function HomePage() {
    useEffect(() => {
         // In a real app, this will be replaced with logic to fetch admin-defined or recently-used apps.
         const sortedApps = [...appsData].sort((a, b) => a.order - b.order);
-        setMainFeatures(sortedApps);
+        setMainFeatures(sortedApps as AppDefinition[]);
         setIsLoading(false);
     }, []);
 
