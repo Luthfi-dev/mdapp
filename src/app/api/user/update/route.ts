@@ -7,9 +7,9 @@ import type { ResultSetHeader } from 'mysql2';
 import { encrypt, decrypt } from '@/lib/encryption';
 
 const updateProfileSchema = z.object({
-  name: z.string().min(3, "Nama harus memiliki setidaknya 3 karakter."),
-  phone: z.string().optional().or(z.literal('')),
-  avatar_url: z.string().optional().or(z.literal('')).nullable(), 
+  name: z.string().min(3, "Nama harus memiliki setidaknya 3 karakter.").optional(),
+  phone: z.string().optional(), // Can be empty string or undefined
+  avatar_url: z.string().optional(),
 });
 
 export async function POST(request: Request) {
@@ -32,14 +32,32 @@ export async function POST(request: Request) {
 
     const { name, phone, avatar_url } = validation.data;
     
-    // Encrypt phone number only if it's provided and not an empty string
-    const encryptedPhone = phone ? encrypt(phone) : null;
+    // --- Dynamic SQL Query Builder ---
+    const fieldsToUpdate: { [key: string]: any } = {};
+    const queryParams: any[] = [];
+    
+    if (name !== undefined) {
+      fieldsToUpdate.name = name;
+    }
+    if (phone !== undefined) {
+      // Encrypt phone number only if it's a non-empty string
+      fieldsToUpdate.phone_number = phone ? encrypt(phone) : null;
+    }
+    if (avatar_url !== undefined) {
+      fieldsToUpdate.avatar_url = avatar_url;
+    }
+    
+    if (Object.keys(fieldsToUpdate).length === 0) {
+      return NextResponse.json({ success: false, message: 'Tidak ada data untuk diperbarui.' }, { status: 400 });
+    }
+    
+    const setClauses = Object.keys(fieldsToUpdate).map(key => `${key} = ?`).join(', ');
+    const sql = `UPDATE users SET ${setClauses} WHERE id = ?`;
+    
+    const finalQueryParams = [...Object.values(fieldsToUpdate), user.id];
 
     connection = await db.getConnection();
-    const [result] = await connection.execute<ResultSetHeader>(
-      'UPDATE users SET name = ?, phone_number = ?, avatar_url = ? WHERE id = ?',
-      [name, encryptedPhone, avatar_url, user.id]
-    );
+    const [result] = await connection.execute<ResultSetHeader>(sql, finalQueryParams);
 
     if (result.affectedRows === 0) {
       return NextResponse.json({ success: false, message: 'Gagal memperbarui profil, pengguna tidak ditemukan.' }, { status: 404 });

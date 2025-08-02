@@ -81,36 +81,28 @@ export default function EditProfilePage() {
                 setAvatarPath(newAvatarPath);
                 
                 // Immediately save the profile with the new avatar path
-                const success = await saveProfile({ name, phone, avatar_url: newAvatarPath });
-                 if(success) {
-                    toast({
-                        title: "Foto Profil Diperbarui!",
-                        description: "Foto profil Anda telah berhasil diganti."
-                    });
-                }
+                await saveProfile({ avatar_url: newAvatarPath });
             }
         }
     };
     
-    const saveProfile = async (data: { name: string; phone: string; avatar_url: string | undefined; }) => {
+    const saveProfile = async (data: { name?: string; phone?: string; avatar_url?: string; }) => {
         setIsSaving(true);
         try {
-            const payload = {
-                name: data.name,
-                phone: data.phone,
-                avatar_url: data.avatar_url,
-            };
-
             const response = await fetchWithAuth('/api/user/update', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
+                body: JSON.stringify(data)
             });
 
             const result = await response.json();
 
             if (result.success && result.user) {
                 updateUser(result.user);
+                toast({
+                    title: "Profil Diperbarui!",
+                    description: "Perubahan pada profil Anda telah berhasil disimpan."
+                });
                 return true;
             } else {
                 toast({
@@ -133,10 +125,6 @@ export default function EditProfilePage() {
         e.preventDefault();
         const success = await saveProfile({ name, phone, avatar_url: avatarPath });
         if(success) {
-            toast({
-                title: "Profil Diperbarui!",
-                description: "Perubahan pada profil Anda telah berhasil disimpan."
-            });
             router.push('/account/profile');
         }
     };
