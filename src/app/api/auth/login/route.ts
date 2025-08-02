@@ -2,7 +2,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { verifyPassword } from '@/lib/auth-utils';
 import { z } from 'zod';
-import { db } from '@/lib/db';
+import { db, getDbConnection } from '@/lib/db';
 import { generateTokens, setTokenCookie } from '@/lib/jwt';
 import type { UserForToken } from '@/lib/jwt';
 import type { ResultSetHeader } from 'mysql2';
@@ -28,7 +28,9 @@ export async function POST(request: NextRequest) {
 
     const { email, password } = validationResult.data;
 
-    connection = await db.getConnection();
+    // Use the new connection getter to catch initial connection errors
+    connection = await getDbConnection();
+    
     const [rows]: [any[], any] = await connection.execute(
       'SELECT id, name, email, password as passwordHash, role_id, status, avatar_url, phone_number, points, referral_code FROM users WHERE email = ?',
       [email]
@@ -52,7 +54,6 @@ export async function POST(request: NextRequest) {
         }, { status: 403 });
     }
     
-    // Log login history
     const ip = request.ip || request.headers.get('x-forwarded-for') || 'unknown';
     const userAgent = request.headers.get('user-agent') || 'unknown';
     await connection.execute<ResultSetHeader>(
