@@ -1,6 +1,4 @@
 
-'use server';
-
 import mysql from 'mysql2/promise';
 import logger from './logger';
 
@@ -46,7 +44,6 @@ const getPool = (): mysql.Pool => {
             logger.info('Database pool initialized successfully.');
         } catch(error: any) {
             logger.error('Failed to initialize database pool', { error: error.message, stack: error.stack });
-            // This re-throw is important to signal a critical configuration error
             throw new Error('Could not create a database pool. Check configuration and database server status.');
         }
     }
@@ -65,7 +62,6 @@ export async function getDbConnection() {
             message: error.message,
             stack: error.stack
         });
-        // This provides a more user-friendly error for API responses
         throw new Error(`Could not connect to the database. Please check database status and configuration. Error: ${error.code || 'UNKNOWN'}`);
     }
 };
