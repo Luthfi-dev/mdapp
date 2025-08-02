@@ -1,8 +1,17 @@
 
+'use server';
+
 import winston from 'winston';
 import path from 'path';
 
+// This ensures the 'logs' directory exists at the project root
 const logsDir = path.join(process.cwd(), 'logs');
+try {
+  require('fs').mkdirSync(logsDir, { recursive: true });
+} catch (e) {
+  console.error("Could not create logs directory", e);
+}
+
 
 // Define log format
 const logFormat = winston.format.printf(({ level, message, timestamp, stack, ...metadata }) => {

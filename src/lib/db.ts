@@ -1,11 +1,12 @@
 
+'use server';
+
 import mysql from 'mysql2/promise';
 import logger from './logger';
 
 let pool: mysql.Pool | null = null;
 
 const getDbConfig = () => {
-  // Check if any of the required environment variables for remote DB are set
   const hasRemoteDbConfig = process.env.DB_HOST && process.env.DB_USER && process.env.DB_NAME;
 
   if (hasRemoteDbConfig) {
@@ -22,7 +23,6 @@ const getDbConfig = () => {
       connectTimeout: 10000,
     };
   } else {
-    // Fallback to a default local configuration if .env is not set
     logger.warn("No .env database configuration found. Falling back to default localhost settings.");
     return {
       host: '127.0.0.1',
@@ -38,7 +38,7 @@ const getDbConfig = () => {
   }
 };
 
-const initializePool = () => {
+const getPool = (): mysql.Pool => {
     if (!pool) {
         try {
             const config = getDbConfig();
@@ -46,22 +46,16 @@ const initializePool = () => {
             logger.info('Database pool initialized successfully.');
         } catch(error: any) {
             logger.error('Failed to initialize database pool', { error: error.message, stack: error.stack });
-            pool = null; // Ensure pool is null on failure
+            // This re-throw is important to signal a critical configuration error
+            throw new Error('Could not create a database pool. Check configuration and database server status.');
         }
     }
     return pool;
 }
 
 const getDbConnection = async () => {
-    const currentPool = initializePool();
-
-    if (!currentPool) {
-        const errorMessage = 'Database pool is not available. Check logs for initialization errors.';
-        logger.error(errorMessage);
-        throw new Error(errorMessage);
-    }
-    
     try {
+        const currentPool = getPool();
         const connection = await currentPool.getConnection();
         logger.info('Successfully acquired a database connection.');
         return connection;
@@ -71,7 +65,8 @@ const getDbConnection = async () => {
             message: error.message,
             stack: error.stack
         });
-        throw new Error(`Could not connect to the database. Please check database status and configuration. Error: ${error.code}`);
+        // This provides a more user-friendly error for API responses
+        throw new Error(`Could not connect to the database. Please check database status and configuration. Error: ${error.code || 'UNKNOWN'}`);
     }
 };
 
@@ -80,7 +75,7 @@ const db = {
     query: async (sql: string, params?: any[]) => {
         const connection = await getDbConnection();
         try {
-            const [rows, fields] = await connection.query(sql, params);
+            const [rows] = await connection.query(sql, params);
             return rows;
         } finally {
             connection.release();
@@ -89,7 +84,7 @@ const db = {
     execute: async (sql: string, params?: any[]) => {
         const connection = await getDbConnection();
         try {
-            const [rows, fields] = await connection.execute(sql, params);
+            const [rows] = await connection.execute(sql, params);
             return rows;
         } finally {
             connection.release();
@@ -97,6 +92,5 @@ const db = {
     },
     getConnection: getDbConnection
 };
-
 
 export { db, getDbConnection };
